@@ -20,7 +20,7 @@ export const eq = (a, b) => {
 
 export const match = (val, branches) => {
   const res = branches.find(([expr]) => eq(val, expr));
-  if (!res) return null;
+  if (!res) return;
   const [_, fn] = res;
   return fn(val);
 }

@@ -1,5 +1,5 @@
 import {TOKEN_NAMES} from "./tokenizer.mjs";
-import {match, any} from './utils.mjs';
+import {match, any, eq} from './utils.mjs';
 
 export const STATEMENT_TYPE = {
   ASSIGNMENT: 'ASSIGNMENT',
@@ -26,42 +26,44 @@ export const _return = ({expr}) => ({
   expr
 });
 
-const expression = () => ({
+const makeConsumer = tokens => (i, tokensToConsume) => {
+  const tokenValues = [];
+  for (let consumable of tokensToConsume) {
+    const token = tokens[i++];
+    let tokenValue;
 
-});
+    if (!eq(token, consumable.token)) {
+      if (consumable.optional) {
+        tokenValue = null;
+        i--;
+      } else throw "JESSE ALARCON";
+    } else {
+      tokenValue = match(token, [
+        [[TOKEN_NAMES.SYMBOL, any], ([_, sym]) => sym],
+        [[TOKEN_NAMES.LITERAL, any], ([_, lit]) => lit],
+      ]);
+    }
+    if (typeof tokenValue !== 'undefined') tokenValues.push(tokenValue);
+  }
+  return [tokenValues, i];
+}
 
 const parse = tokens => {
-  const AST = {
-    type: STATEMENT_TYPE.PROGRAM,
-    body: []
-  };
-  let current = { type: null, };
-  const clear = () => current = { type: null, };
-  for (const token of tokens) {
-    // console.log(token)
-    match(token, [
-      [TOKEN_NAMES.END_STATEMENT, () => {
-        if (current.type === STATEMENT_TYPE.ASSIGNMENT) {
-          AST.body.push(assignment(current));
-        }
-        clear();
-      }],
+  const consume = makeConsumer(tokens);
+  const AST = { type: STATEMENT_TYPE.PROGRAM, body: [], };
+  for (let i = 0; i < tokens.length; i++) {
+    match(tokens[i], [
       [TOKEN_NAMES.LET, () => {
-        current.type = STATEMENT_TYPE.ASSIGNMENT
-        // const [mutable, symbol, _] = consume([
-        //   {type: TOKEN_NAMES.MUT, optional: true},
-        //   {type: TOKEN_NAMES.SYMBOL},
-        //   {type: TOKEN_NAMES.ASSIGNMENT},
-        // ])
+        const [[mutable, symbol, value], newIndex] = consume(i + 1, [
+          {token: TOKEN_NAMES.MUT, optional: true},
+          {token: [TOKEN_NAMES.SYMBOL, any]},
+          {token: TOKEN_NAMES.ASSIGNMENT},
+          {token: [TOKEN_NAMES.LITERAL, any]},
+          {token: TOKEN_NAMES.END_STATEMENT}
+        ]);
+        i = newIndex;
+        AST.body.push(assignment({mutable, symbol, value}));
       }],
-      [[TOKEN_NAMES.SYMBOL, any], ([_, sym]) => {
-        if (current.type !== STATEMENT_TYPE.ASSIGNMENT) throw 'AHHHH';
-        current.symbol = sym;
-      }],
-      [[TOKEN_NAMES.LITERAL, any], ([_, lit]) => {
-        if (current.type !== STATEMENT_TYPE.ASSIGNMENT) throw 'AHHHH';
-        current.value = lit;
-      }]
     ]);
   }
   return AST;

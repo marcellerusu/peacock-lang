@@ -18,6 +18,7 @@ it('should parse `let var = 3;`', () => {
     TOKEN_NAMES.END_STATEMENT
   ];
   const ast = parse(tokens);
+  // console.log(ast);
 
   assert(eq(ast, {
     type: STATEMENT_TYPE.PROGRAM,
