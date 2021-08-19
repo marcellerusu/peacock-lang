@@ -9,38 +9,45 @@ export const STATEMENT_TYPE = {
   PROGRAM: 'PROGRAM',
   NUMBER_LITERAL: 'NUMBER_LITERAL',
   OBJECT_LITERAL: 'OBJECT_LITERAL',
+  FUNCTION_APPLICATION: 'FUNCTION_APPLICATION',
 };
 
-export const declaration = ({symbol, expr, mutable}) => ({
+const declaration = ({symbol, expr, mutable}) => ({
   type: STATEMENT_TYPE.DECLARATION,
   mutable: !!mutable,
   symbol,
   expr
 });
 
-export const assignment = ({symbol, expr}) => ({
+const assignment = ({symbol, expr}) => ({
   type: STATEMENT_TYPE.ASSIGNMENT,
   symbol,
   expr
 });
 
-export const objectLiteral = ({ value }) => ({
+const objectLiteral = ({ value }) => ({
   type: STATEMENT_TYPE.OBJECT_LITERAL,
   value,
 })
 
-export const numberLiteral = ({ value }) => ({
+const numberLiteral = ({ value }) => ({
   type: STATEMENT_TYPE.NUMBER_LITERAL,
   value,
 })
 
-export const _function = ({paramNames = [], body}) => ({
+const fn = ({paramNames = [], body}) => ({
   type: STATEMENT_TYPE.FUNCTION,
   paramNames,
   body,
 });
 
-export const _return = ({expr}) => ({
+const fnCall = ({symbol, paramNames = []}) => ({
+  type: STATEMENT_TYPE.FUNCTION_APPLICATION,
+  symbol,
+  paramNames
+});
+
+const _return = ({expr}) => ({
   type: STATEMENT_TYPE.RETURN,
   expr
 });
@@ -77,6 +84,7 @@ const parse = tokens => {
   };
   const AST = { type: STATEMENT_TYPE.PROGRAM, body: [], };
   for (let i = 0; i < tokens.length; i++) {
+    const peek = () => tokens[i + 1];
     const parseNode = (token, context = undefined) => match(token, [
       [[TOKEN_NAMES.LITERAL, any], () => {
         const [value, i2] = consumeOne(i, token);
@@ -97,11 +105,23 @@ const parse = tokens => {
       [[TOKEN_NAMES.SYMBOL, any], () => {
         const [symbol, i2] = consumeOne(i, token);
         i = i2;
-        // expect to be assignment 
-        const [_, i3] = consumeOne(i2, TOKEN_NAMES.ASSIGNMENT);
-        i = i3;
-        const [expr, i4] = parseNode(tokens[i3], STATEMENT_TYPE.ASSIGNMENT);
-        return [assignment({symbol, expr}), i4]
+        return match(peek(), [
+          [TOKEN_NAMES.ASSIGNMENT, () => {
+            const [_, i3] = consumeOne(i2, TOKEN_NAMES.ASSIGNMENT);
+            i = i3;
+            const [expr, i4] = parseNode(tokens[i3], STATEMENT_TYPE.ASSIGNMENT);
+            return [assignment({symbol, expr}), i4]
+          }],
+          [TOKEN_NAMES.OPEN_PARAN, () => {
+            // TODO: func arguments
+            const [_, i3] = consume(i2, [
+              {type:TOKEN_NAMES.OPEN_PARAN},
+              {type:TOKEN_NAMES.CLOSE_PARAN},
+              {type:TOKEN_NAMES.END_STATEMENT},
+            ]);
+            return [fnCall({symbol}), i3];
+          }]
+        ]);
       }],
       [TOKEN_NAMES.OPEN_PARAN, () => {
         // TODO: implement func args
@@ -114,7 +134,7 @@ const parse = tokens => {
         const [expr, i3] = parseNode(tokens[i2], STATEMENT_TYPE.FUNCTION);
         // TODO: implement non-expr body
         const body = [_return({expr})];
-        return [_function({body}), i3];
+        return [fn({body}), i3];
 
       }],
       [TOKEN_NAMES.OPEN_BRACE, () => {
