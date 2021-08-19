@@ -28,7 +28,7 @@ it('should parse `let var = 3;`', () => {
         symbol: 'var',
         mutable: false,
         expr: {
-          type: STATEMENT_TYPE.LITERAL,
+          type: STATEMENT_TYPE.NUMBER_LITERAL,
           value: 3
         }
       },
@@ -56,7 +56,7 @@ it(`should parse mutable variable`, () => {
         mutable: true,
         symbol: 'var',
         expr: {
-          type: STATEMENT_TYPE.LITERAL,
+          type: STATEMENT_TYPE.NUMBER_LITERAL,
           value: 3
         }
       },
@@ -92,7 +92,7 @@ it(`should parse function`, () => {
             {
               type: STATEMENT_TYPE.RETURN,
               expr: {
-                type: STATEMENT_TYPE.LITERAL,
+                type: STATEMENT_TYPE.NUMBER_LITERAL,
                 value: 3
               }
             }
@@ -103,22 +103,52 @@ it(`should parse function`, () => {
   }))
 });
 
-/*
-let function = () => 3;
-->
-{
-  type: 'ASSIGNMENT'
-  symbol: 'function,
-  value: {
-    type: 'FUNCTION',
-    param_names: [],
-    body: [{
-      type: 'RETURN',
-      expr: 3
-    }]
-  }
-}
 
+it(`should parse object literal`, () => {
+  const tokens = [
+    TOKEN_NAMES.LET,
+    [TOKEN_NAMES.SYMBOL, 'obj'],
+    TOKEN_NAMES.ASSIGNMENT,
+    TOKEN_NAMES.OPEN_BRACE,
+    [TOKEN_NAMES.SYMBOL, 'a'],
+    TOKEN_NAMES.COLON,
+    [TOKEN_NAMES.LITERAL, 3],
+    TOKEN_NAMES.COMMA,
+    [TOKEN_NAMES.SYMBOL, 'yesa'],
+    TOKEN_NAMES.COLON,
+    [TOKEN_NAMES.LITERAL, 5],
+    TOKEN_NAMES.COMMA,
+    TOKEN_NAMES.CLOSE_BRACE,
+    TOKEN_NAMES.END_STATEMENT
+  ];
+  const ast = parse(tokens);
+
+  assert(eq(ast, {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      {
+        type: STATEMENT_TYPE.ASSIGNMENT,
+        mutable: false,
+        symbol: 'obj',
+        expr: {
+          type: STATEMENT_TYPE.OBJECT_LITERAL,
+          value: {
+            a: {
+              type: STATEMENT_TYPE.NUMBER_LITERAL,
+              value: 3
+            },
+            yesa: {
+              type: STATEMENT_TYPE.NUMBER_LITERAL,
+              value: 5
+            }
+          }
+        }
+      }
+    ]
+  }))
+});
+
+/*
 
 if obj == { a: 3 } {
 

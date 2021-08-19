@@ -15,6 +15,7 @@ export const TOKEN_NAMES = {
   ARROW: 'ARROW',
   IF: 'IF',
   ELSE: 'ELSE',
+  COMMA: 'COMMA',
 };
 
 const TOKEN_TO_NAME = {
@@ -32,6 +33,7 @@ const TOKEN_TO_NAME = {
   '=>': TOKEN_NAMES.ARROW,
   ':': TOKEN_NAMES.COLON,
   ';': TOKEN_NAMES.END_STATEMENT,
+  ',': TOKEN_NAMES.COMMA,
 };
 
 // const take

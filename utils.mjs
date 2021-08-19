@@ -4,31 +4,30 @@ const eqArr = (a1, a2) =>
 
 
 export const eq = (a, b) => {
-  // console.log(a, b)
   if (a === any || b === any) {
     return true;
   }
+  if (typeof a !== typeof b) return false;
   if (a === b) {
     return true;
   } else if (Array.isArray(a) && Array.isArray(a)) {
     return eqArr(a, b);
-  } else {
+  } else if (typeof a === 'object') {
     const aKeys = Object.keys(a);
     if (aKeys.length !== Object.keys(b).length) return false;
     return aKeys.every(k => eq(a[k], b[k]));
+  } else {
+    return false;
   }
 }
 
 export const match = (val, branches) => {
-  const res = branches.find(([expr]) => {
-    try {
-      return eq(val, expr);
-    } catch (e) {
-      console.log('cant eq', {val, expr});
-      throw e;
-    }
-  });
-  if (!res) return;
+  const res = branches.find(([expr]) => eq(val, expr));
+  if (!res) {
+    console.log(val, branches);
+    throw 'unmatch branch'  
+    return;
+  }
   const [_, fn] = res;
   return fn(val);
 }

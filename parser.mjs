@@ -6,7 +6,8 @@ export const STATEMENT_TYPE = {
   FUNCTION: 'FUNCTION',
   RETURN: 'RETURN',
   PROGRAM: 'PROGRAM',
-  LITERAL: 'LITERAL',
+  NUMBER_LITERAL: 'NUMBER_LITERAL',
+  OBJECT_LITERAL: 'OBJECT_LITERAL',
 };
 
 export const assignment = ({symbol, expr, mutable}) => ({
@@ -16,8 +17,13 @@ export const assignment = ({symbol, expr, mutable}) => ({
   expr
 });
 
-export const literal = ({ value }) => ({
-  type: STATEMENT_TYPE.LITERAL,
+export const objectLiteral = ({ value }) => ({
+  type: STATEMENT_TYPE.OBJECT_LITERAL,
+  value,
+})
+
+export const numberLiteral = ({ value }) => ({
+  type: STATEMENT_TYPE.NUMBER_LITERAL,
   value,
 })
 
@@ -48,6 +54,7 @@ const makeConsumer = tokens => (i, tokensToConsume) => {
         [[TOKEN_NAMES.SYMBOL, any], ([_, sym]) => sym],
         [[TOKEN_NAMES.LITERAL, any], ([_, lit]) => lit],
         [TOKEN_NAMES.MUT, t => t],
+        [any, () => undefined]
       ]);
     }
     if (typeof tokenValue !== 'undefined') tokenValues.push(tokenValue);
@@ -63,10 +70,10 @@ const parse = tokens => {
   };
   const AST = { type: STATEMENT_TYPE.PROGRAM, body: [], };
   for (let i = 0; i < tokens.length; i++) {
-    const parseNode = token => match(token, [
+    const parseNode = (token, context = undefined) => match(token, [
       [[TOKEN_NAMES.LITERAL, any], () => {
         const [value, i2] = consumeOne(i, token);
-        return [literal({value}), i2];
+        return [numberLiteral({value}), i2];
       }],
       [TOKEN_NAMES.LET, () => {
         const [[mutable, symbol], i2] = consume(i + 1, [
@@ -75,7 +82,7 @@ const parse = tokens => {
           {token: TOKEN_NAMES.ASSIGNMENT},
         ]);
         i = i2;
-        const [expr, i3] = parseNode(tokens[i2]);
+        const [expr, i3] = parseNode(tokens[i2], STATEMENT_TYPE.ASSIGNMENT);
         i = i3;
         const [_, i4] = consumeOne(i3, TOKEN_NAMES.END_STATEMENT);
         return [assignment({mutable, symbol, expr}), i4];
@@ -88,11 +95,41 @@ const parse = tokens => {
           {token: TOKEN_NAMES.ARROW},
         ]);
         i = i2;
-        const [expr, i3] = parseNode(tokens[i2]);
+        const [expr, i3] = parseNode(tokens[i2], STATEMENT_TYPE.FUNCTION);
         // TODO: implement non-expr body
         const body = [_return({expr})];
         return [_function({body}), i3];
 
+      }],
+      [TOKEN_NAMES.OPEN_BRACE, () => {
+        if (context === STATEMENT_TYPE.ASSIGNMENT) {
+          const [_, i2] = consumeOne(i, TOKEN_NAMES.OPEN_BRACE);
+          i = i2;
+          const value = {};
+          while (true) {
+            let varName, i3;
+            // TODO: don't use try, implement peek
+            try {
+              [[varName], i3] = consume(i, [
+                {token: [TOKEN_NAMES.SYMBOL, any]},
+                {token: TOKEN_NAMES.COLON},
+              ]);
+            } catch (e) {
+              break;
+            }
+            i = i3;
+            const [expr, i4] = parseNode(tokens[i3], STATEMENT_TYPE.OBJECT_LITERAL);
+            i = i4;
+            value[varName] = expr;
+            const [_, i5] = consumeOne(i4, TOKEN_NAMES.COMMA);
+            i = i5;
+          }
+          const [__, i6] = consumeOne(i, TOKEN_NAMES.CLOSE_BRACE);
+          return [objectLiteral({value}), i6];
+        } else {
+          console.log({context});
+          throw 'unimplemented';
+        }
       }],
       [any, () => { throw 'did not match any ' + token}],
     ]);
