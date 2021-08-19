@@ -4,6 +4,7 @@ const eqArr = (a1, a2) =>
 
 
 export const eq = (a, b) => {
+  // console.log(a, b)
   if (a === any || b === any) {
     return true;
   }
@@ -19,7 +20,14 @@ export const eq = (a, b) => {
 }
 
 export const match = (val, branches) => {
-  const res = branches.find(([expr]) => eq(val, expr));
+  const res = branches.find(([expr]) => {
+    try {
+      return eq(val, expr);
+    } catch (e) {
+      console.log('cant eq', {val, expr});
+      throw e;
+    }
+  });
   if (!res) return;
   const [_, fn] = res;
   return fn(val);

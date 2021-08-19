@@ -27,7 +27,10 @@ it('should parse `let var = 3;`', () => {
         type: STATEMENT_TYPE.ASSIGNMENT,
         symbol: 'var',
         mutable: false,
-        value: 3
+        expr: {
+          type: STATEMENT_TYPE.LITERAL,
+          value: 3
+        }
       },
     ]
   }))
@@ -52,21 +55,55 @@ it(`should parse mutable variable`, () => {
         type: STATEMENT_TYPE.ASSIGNMENT,
         mutable: true,
         symbol: 'var',
-        value: 3
+        expr: {
+          type: STATEMENT_TYPE.LITERAL,
+          value: 3
+        }
+      },
+    ]
+  }))
+});
+
+it(`should parse function`, () => {
+  const tokens = [
+    TOKEN_NAMES.LET,
+    [TOKEN_NAMES.SYMBOL, 'function'],
+    TOKEN_NAMES.ASSIGNMENT,
+    TOKEN_NAMES.OPEN_PARAN,
+    TOKEN_NAMES.CLOSE_PARAN,
+    TOKEN_NAMES.ARROW,
+    [TOKEN_NAMES.LITERAL, 3],
+    TOKEN_NAMES.END_STATEMENT
+  ];
+  const ast = parse(tokens);
+  // console.log(ast.body[0].expr.body);
+
+  assert(eq(ast, {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      {
+        type: STATEMENT_TYPE.ASSIGNMENT,
+        mutable: false,
+        symbol: 'function',
+        expr: {
+          type: STATEMENT_TYPE.FUNCTION,
+          paramNames: [],
+          body: [
+            {
+              type: STATEMENT_TYPE.RETURN,
+              expr: {
+                type: STATEMENT_TYPE.LITERAL,
+                value: 3
+              }
+            }
+          ]
+        }
       },
     ]
   }))
 });
 
 /*
-let var = 3
-->
-{
-  type: 'ASSIGNMENT'
-  symbol: 'var,
-  value: 3
-}
-
 let function = () => 3;
 ->
 {
