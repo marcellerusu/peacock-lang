@@ -41,6 +41,7 @@ const makeConsumer = tokens => (i, tokensToConsume) => {
       tokenValue = match(token, [
         [[TOKEN_NAMES.SYMBOL, any], ([_, sym]) => sym],
         [[TOKEN_NAMES.LITERAL, any], ([_, lit]) => lit],
+        [TOKEN_NAMES.MUT, t => t]
       ]);
     }
     if (typeof tokenValue !== 'undefined') tokenValues.push(tokenValue);

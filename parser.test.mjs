@@ -33,28 +33,30 @@ it('should parse `let var = 3;`', () => {
   }))
 });
 
-// it(`should parse mutable variable`, () => {
-//   const tokens = [
-//     TOKEN_NAMES.LET,
-//     TOKEN_NAMES.MUT,
-//     [TOKEN_NAMES.SYMBOL, 'var'],
-//     TOKEN_NAMES.ASSIGNMENT,
-//     [TOKEN_NAMES.LITERAL, 3],
-//     TOKEN_NAMES.END_STATEMENT
-//   ];
-//   const ast = parse(tokens);
+it(`should parse mutable variable`, () => {
+  const tokens = [
+    TOKEN_NAMES.LET,
+    TOKEN_NAMES.MUT,
+    [TOKEN_NAMES.SYMBOL, 'var'],
+    TOKEN_NAMES.ASSIGNMENT,
+    [TOKEN_NAMES.LITERAL, 3],
+    TOKEN_NAMES.END_STATEMENT
+  ];
+  const ast = parse(tokens);
+  // console.log(ast);
 
-//   assert(eq(ast, {
-//     type: STATEMENT_TYPE.PROGRAM,
-//     body: [
-//       {
-//         type: STATEMENT_TYPE.ASSIGNMENT,
-//         symbol: 'var',
-//         value: 3
-//       },
-//     ]
-//   }))
-// });
+  assert(eq(ast, {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      {
+        type: STATEMENT_TYPE.ASSIGNMENT,
+        mutable: true,
+        symbol: 'var',
+        value: 3
+      },
+    ]
+  }))
+});
 
 /*
 let var = 3
