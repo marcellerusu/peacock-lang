@@ -2,6 +2,7 @@ import {TOKEN_NAMES} from "./tokenizer.mjs";
 import {match, any, eq} from './utils.mjs';
 
 export const STATEMENT_TYPE = {
+  DECLARATION: 'DECLARATION',
   ASSIGNMENT: 'ASSIGNMENT',
   FUNCTION: 'FUNCTION',
   RETURN: 'RETURN',
@@ -10,9 +11,15 @@ export const STATEMENT_TYPE = {
   OBJECT_LITERAL: 'OBJECT_LITERAL',
 };
 
-export const assignment = ({symbol, expr, mutable}) => ({
-  type: STATEMENT_TYPE.ASSIGNMENT,
+export const declaration = ({symbol, expr, mutable}) => ({
+  type: STATEMENT_TYPE.DECLARATION,
   mutable: !!mutable,
+  symbol,
+  expr
+});
+
+export const assignment = ({symbol, expr}) => ({
+  type: STATEMENT_TYPE.ASSIGNMENT,
   symbol,
   expr
 });
@@ -82,10 +89,19 @@ const parse = tokens => {
           {token: TOKEN_NAMES.ASSIGNMENT},
         ]);
         i = i2;
-        const [expr, i3] = parseNode(tokens[i2], STATEMENT_TYPE.ASSIGNMENT);
+        const [expr, i3] = parseNode(tokens[i2], STATEMENT_TYPE.DECLARATION);
         i = i3;
         const [_, i4] = consumeOne(i3, TOKEN_NAMES.END_STATEMENT);
-        return [assignment({mutable, symbol, expr}), i4];
+        return [declaration({mutable, symbol, expr}), i4];
+      }],
+      [[TOKEN_NAMES.SYMBOL, any], () => {
+        const [symbol, i2] = consumeOne(i, token);
+        i = i2;
+        // expect to be assignment 
+        const [_, i3] = consumeOne(i2, TOKEN_NAMES.ASSIGNMENT);
+        i = i3;
+        const [expr, i4] = parseNode(tokens[i3], STATEMENT_TYPE.ASSIGNMENT);
+        return [assignment({symbol, expr}), i4]
       }],
       [TOKEN_NAMES.OPEN_PARAN, () => {
         // TODO: implement func args
@@ -102,7 +118,7 @@ const parse = tokens => {
 
       }],
       [TOKEN_NAMES.OPEN_BRACE, () => {
-        if (context === STATEMENT_TYPE.ASSIGNMENT) {
+        if ([STATEMENT_TYPE.ASSIGNMENT, STATEMENT_TYPE.DECLARATION].includes(context)) {
           const [_, i2] = consumeOne(i, TOKEN_NAMES.OPEN_BRACE);
           i = i2;
           const value = {};

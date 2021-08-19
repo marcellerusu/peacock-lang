@@ -18,13 +18,12 @@ it('should parse `let var = 3;`', () => {
     TOKEN_NAMES.END_STATEMENT
   ];
   const ast = parse(tokens);
-  // console.log(ast);
 
   assert(eq(ast, {
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       {
-        type: STATEMENT_TYPE.ASSIGNMENT,
+        type: STATEMENT_TYPE.DECLARATION,
         symbol: 'var',
         mutable: false,
         expr: {
@@ -52,8 +51,33 @@ it(`should parse mutable variable`, () => {
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       {
-        type: STATEMENT_TYPE.ASSIGNMENT,
+        type: STATEMENT_TYPE.DECLARATION,
         mutable: true,
+        symbol: 'var',
+        expr: {
+          type: STATEMENT_TYPE.NUMBER_LITERAL,
+          value: 3
+        }
+      },
+    ]
+  }))
+});
+
+it(`should parse variable assignment`, () => {
+  const tokens = [
+    [TOKEN_NAMES.SYMBOL, 'var'],
+    TOKEN_NAMES.ASSIGNMENT,
+    [TOKEN_NAMES.LITERAL, 3],
+    TOKEN_NAMES.END_STATEMENT
+  ];
+  const ast = parse(tokens);
+  // console.log(ast);
+
+  assert(eq(ast, {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      {
+        type: STATEMENT_TYPE.ASSIGNMENT,
         symbol: 'var',
         expr: {
           type: STATEMENT_TYPE.NUMBER_LITERAL,
@@ -82,7 +106,7 @@ it(`should parse function`, () => {
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       {
-        type: STATEMENT_TYPE.ASSIGNMENT,
+        type: STATEMENT_TYPE.DECLARATION,
         mutable: false,
         symbol: 'function',
         expr: {
@@ -127,7 +151,7 @@ it(`should parse object literal`, () => {
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       {
-        type: STATEMENT_TYPE.ASSIGNMENT,
+        type: STATEMENT_TYPE.DECLARATION,
         mutable: false,
         symbol: 'obj',
         expr: {
