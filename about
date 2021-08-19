@@ -1,0 +1,22 @@
+// subset of js / inspired by rust
+// like in rust everything is deeply immutable by default
+
+
+
+let var = 3;
+
+let mut x = 5;
+
+let function = () => 3;
+let function = () => {
+  //
+};
+
+let obj = { a: 3 };
+
+if obj == { a: 3 } {
+
+} else {
+
+}
+
