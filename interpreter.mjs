@@ -36,7 +36,7 @@ const evalExpr = (expr, context) => match(expr.type, [
   [any, () => { console.log(expr); throw 'unimplemented -- evalExpr'; }]
 ])
 
-const interpret = (ast, context =  {...globals}, global = {...globals}) => {
+const interpret = (ast, context = {}, global = {...globals}) => {
   assert(ast.type === STATEMENT_TYPE.PROGRAM);
   const lookup = sym => context[sym] || global[sym];
   for (const statement of ast.body) {
