@@ -32,7 +32,7 @@ let expr = match ([1, 2]) {
 
 - [x] `let var = 3;`
 - [x] `let mut var = 5;`
-- [ ] `let var = 'string';`
+- [x] `let var = 'string';`
 - [x] `var = 5;`
 - [x] `let function = () => 3;`
 - [ ] functions with a body

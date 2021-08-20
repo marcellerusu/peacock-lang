@@ -35,6 +35,33 @@ it('should parse `let var = 3;`', () => {
   }))
 });
 
+
+it('should parse `let var = \'abc\';`', () => {
+  const tokens = [
+    TOKEN_NAMES.LET,
+    [TOKEN_NAMES.SYMBOL, 'var'],
+    TOKEN_NAMES.ASSIGNMENT,
+    [TOKEN_NAMES.LITERAL, 'abc'],
+    TOKEN_NAMES.END_STATEMENT
+  ];
+  const ast = parse(tokens);
+
+  assert(eq(ast, {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      {
+        type: STATEMENT_TYPE.DECLARATION,
+        symbol: 'var',
+        mutable: false,
+        expr: {
+          type: STATEMENT_TYPE.STRING_LITERAL,
+          value: 'abc'
+        }
+      },
+    ]
+  }))
+});
+
 it(`should parse mutable variable`, () => {
   const tokens = [
     TOKEN_NAMES.LET,

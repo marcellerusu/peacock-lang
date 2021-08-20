@@ -9,6 +9,7 @@ export const STATEMENT_TYPE = {
   RETURN: 'RETURN',
   PROGRAM: 'PROGRAM',
   NUMBER_LITERAL: 'NUMBER_LITERAL',
+  STRING_LITERAL: 'STRING_LITERAL',
   OBJECT_LITERAL: 'OBJECT_LITERAL',
   FUNCTION_APPLICATION: 'FUNCTION_APPLICATION',
   SYMBOL_LOOKUP: 'SYMBOL_LOOKUP',
@@ -34,6 +35,11 @@ const objectLiteral = ({ value }) => ({
 
 const numberLiteral = ({ value }) => ({
   type: STATEMENT_TYPE.NUMBER_LITERAL,
+  value,
+})
+
+const stringLiteral = ({ value }) => ({
+  type: STATEMENT_TYPE.STRING_LITERAL,
   value,
 })
 
@@ -94,7 +100,13 @@ const parse = tokens => {
     const parseNode = (token, context = undefined) => match(token, [
       [[TOKEN_NAMES.LITERAL, any], () => {
         const [value, i2] = consumeOne(i, token);
-        return [numberLiteral({value}), i2];
+        if (typeof value === 'number') {
+          return [numberLiteral({value}), i2];
+        } else if (typeof value === 'string') {
+          return [stringLiteral({value}), i2];
+        } else {
+          throw 'should not reach';
+        }
       }],
       [TOKEN_NAMES.LET, () => {
         const [[mutable, symbol], i2] = consume(i + 1, [

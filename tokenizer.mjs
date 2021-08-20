@@ -76,7 +76,7 @@ const getLiteralParser = str => {
   } else if (str[0] === '\'' && str[str.length - 1] === '\'') {
     return s => s.slice(1, s.length - 1);
   }
-}
+};
 
 const tokenize = program => {
   const takeUntil = takeUntilOf(program);
