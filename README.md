@@ -22,7 +22,7 @@ let expr = match ([1, 2]) {
 - [x] math operators (+, -, *, /)
 - [x] function arguments
 - [x] `let obj = { a: 3 }`
-- [x] if & if else
+- [x] if & if else & elif
 - [x] match expressions
 - [x] arrays
 - [x] object deconstruction

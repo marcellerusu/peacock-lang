@@ -374,4 +374,54 @@ it('should tokenize if else', () => {
   ]))
 });
 
+
+it('should tokenize if elif else', () => {
+  const program = `
+  if obj == { a: 3 } {
+    let a = 4;
+  } elif b == true {
+    let b = 4;
+  } else {
+    let c = 4;
+  }
+  `;
+  const tokens = tokenize(program);
+
+  assert(eq(tokens, [
+    TOKEN_NAMES.IF,
+    [TOKEN_NAMES.SYMBOL, 'obj'],
+    TOKEN_NAMES.EQUALS,
+    TOKEN_NAMES.OPEN_BRACE,
+    [TOKEN_NAMES.SYMBOL, 'a'],
+    TOKEN_NAMES.COLON,
+    [TOKEN_NAMES.LITERAL, 3],
+    TOKEN_NAMES.CLOSE_BRACE,
+    TOKEN_NAMES.OPEN_BRACE,
+    TOKEN_NAMES.LET,
+    [TOKEN_NAMES.SYMBOL, 'a'],
+    TOKEN_NAMES.ASSIGNMENT,
+    [TOKEN_NAMES.LITERAL, 4],
+    TOKEN_NAMES.END_STATEMENT,
+    TOKEN_NAMES.CLOSE_BRACE,
+    TOKEN_NAMES.ELIF,
+    [TOKEN_NAMES.SYMBOL, 'b'],
+    TOKEN_NAMES.EQUALS,
+    [TOKEN_NAMES.SYMBOL, 'true'],
+    TOKEN_NAMES.OPEN_BRACE,
+    TOKEN_NAMES.LET,
+    [TOKEN_NAMES.SYMBOL, 'b'],
+    TOKEN_NAMES.ASSIGNMENT,
+    [TOKEN_NAMES.LITERAL, 4],
+    TOKEN_NAMES.END_STATEMENT,
+    TOKEN_NAMES.CLOSE_BRACE,
+    TOKEN_NAMES.ELSE,
+    TOKEN_NAMES.OPEN_BRACE,
+    TOKEN_NAMES.LET,
+    [TOKEN_NAMES.SYMBOL, 'c'],
+    TOKEN_NAMES.ASSIGNMENT,
+    [TOKEN_NAMES.LITERAL, 4],
+    TOKEN_NAMES.END_STATEMENT,
+    TOKEN_NAMES.CLOSE_BRACE
+  ]))
+});
 console.log('Passed', passed, 'tests!');
