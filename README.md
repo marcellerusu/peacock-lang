@@ -37,7 +37,7 @@ let expr = match ([1, 2]) {
 - [x] `let function = () => 3;`
 - [x] function arguments in definition
 - [x] function arguments used in body
-- [ ] call function with arguments
+- [x] call function with arguments
 - [ ] functions with a body
 - [x] function with variable lookup
 - [x] `let obj = { a: 3 }`

@@ -234,6 +234,41 @@ it(`should parse identity function`, () => {
   }))
 });
 
+
+it(`should parse function application with arguments`, () => {
+  const tokens = [
+    [TOKEN_NAMES.SYMBOL, 'add'],
+    TOKEN_NAMES.OPEN_PARAN,
+    [TOKEN_NAMES.SYMBOL, 'a'],
+    TOKEN_NAMES.COMMA,
+    [TOKEN_NAMES.SYMBOL, 'b'],
+    TOKEN_NAMES.CLOSE_PARAN,
+    TOKEN_NAMES.END_STATEMENT
+  ];
+  const ast = parse(tokens);
+
+  assert(eq(ast, {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      {
+        type: STATEMENT_TYPE.FUNCTION_APPLICATION,
+        symbol: 'add',
+        paramExprs: [
+          {
+            type: STATEMENT_TYPE.SYMBOL_LOOKUP,
+            symbol: 'a'
+          },
+          {
+            type: STATEMENT_TYPE.SYMBOL_LOOKUP,
+            symbol: 'b'
+          }
+        ]
+      },
+    ]
+  }))
+});
+
+
 it(`should parse function with multiple args`, () => {
   const tokens = [
     TOKEN_NAMES.LET,

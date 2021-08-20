@@ -92,6 +92,12 @@ const makeConsumer = tokens => (i, tokensToConsume) => {
   return [tokenValues, i];
 }
 
+const isExpression = context => [
+  // TODO wtf - func isn't an expression
+  STATEMENT_TYPE.FUNCTION,
+  STATEMENT_TYPE.FUNCTION_APPLICATION,
+].includes(context);
+
 const parse = tokens => {
   const consume = makeConsumer(tokens);
   const consumeOne = (i, token) => {
@@ -164,7 +170,7 @@ const parse = tokens => {
             }), i4];
           }],
           [any, () => {
-            assert(context === STATEMENT_TYPE.FUNCTION);
+            assert(isExpression(context));
             // inside a function definition - wtf
             return [symbolLookup({symbol}), i2];
           }]
