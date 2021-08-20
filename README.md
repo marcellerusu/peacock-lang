@@ -4,10 +4,11 @@
 
 - [x] `let var = 3;`
 - [x] `let mut var = 5;`
-- [ ] `let var = 'string';`
+- [x] `let var = 'string';`
 - [x] `let function = () => 3;`
 - [x] functions with a body
-- [ ] function arguments
+- [x] math operators (+, -, *, /)
+- [x] function arguments
 - [x] `let obj = { a: 3 }`
 - [x] if & if else
 - [ ] pattern matching

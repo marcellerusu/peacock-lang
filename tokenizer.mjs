@@ -16,6 +16,7 @@ export const TOKEN_NAMES = {
   IF: 'IF',
   ELSE: 'ELSE',
   COMMA: 'COMMA',
+  OPERATOR: 'OPERATOR',
 };
 
 const TOKEN_TO_NAME = {
@@ -36,7 +37,14 @@ const TOKEN_TO_NAME = {
   ',': TOKEN_NAMES.COMMA,
 };
 
-// const take
+const OPERATORS = {
+  '+': [TOKEN_NAMES.OPERATOR, '+'],
+  '-': [TOKEN_NAMES.OPERATOR, '-'],
+  '*': [TOKEN_NAMES.OPERATOR, '*'],
+  '/': [TOKEN_NAMES.OPERATOR, '/'],
+  // '|>': [TOKEN_NAMES.OPERATOR, '|>'],
+};
+
 const isWhiteSpace = c => [' ', '\n'].includes(c);
 
 const takeWhileOf = program => (index, condFn) => {
@@ -57,13 +65,13 @@ const takeWhileOf = program => (index, condFn) => {
   return [index, str];
 };
 
-const isLiteral = str => {
+const getLiteralParser = str => {
   if (Number(str) == str) {
-    return true;
+    return Number;
+  } else if (str[0] === '\'' && str[str.length - 1] === '\'') {
+    return s => s.slice(1, s.length - 1);
   }
 }
-
-const parseLiteral = str => Number(str);
 
 const tokenize = program => {
   const takeWhile = takeWhileOf(program);
@@ -71,12 +79,16 @@ const tokenize = program => {
   for (let i = 0; i < program.length; i++) {
     const char = program[i];
     if (isWhiteSpace(char)) continue;
+    // todo should we be checking OPERATORS[str] in the cb here?
     const [newIndex, str] = takeWhile(i, (str, peek) => TOKEN_TO_NAME[str] && !TOKEN_TO_NAME[peek]);
     i = newIndex;
-    if (TOKEN_TO_NAME[str]) {
+    if (OPERATORS[str]) {
+      tokens.push(OPERATORS[str]);
+    } else if (TOKEN_TO_NAME[str]) {
       tokens.push(TOKEN_TO_NAME[str]);
-    } else if (isLiteral(str)) {
-      tokens.push([TOKEN_NAMES.LITERAL, parseLiteral(str)]);
+    } else if (getLiteralParser(str)) {
+      const parser = getLiteralParser(str);
+      tokens.push([TOKEN_NAMES.LITERAL, parser(str)]);
     } else {
       tokens.push([TOKEN_NAMES.SYMBOL, str]);
     }

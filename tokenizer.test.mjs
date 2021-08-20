@@ -4,10 +4,12 @@ import assert from 'assert';
 const eq = (a1, a2) =>
   a1.length === a2.length && a1.every((x, i) => Array.isArray(x) ? eq(x, a2[i]) : x === a2[i]);
 
+let passed = 0;
 const it = (str, fn) => {
   console.log(`it - ${str}`);
   fn();
   console.log('succeeded!')
+  passed++;
 }
 
 it('should tokenize `let`', () => {
@@ -60,7 +62,20 @@ it('should tokenize `let var = 3`', () => {
   ]))
 });
 
+it('should tokenize `let var = \'str\';`', () => {
+  const program = `
+  let var = 'str';
+  `;
+  const tokens = tokenize(program);
 
+  assert(eq(tokens, [
+    TOKEN_NAMES.LET,
+    [TOKEN_NAMES.SYMBOL, 'var'],
+    TOKEN_NAMES.ASSIGNMENT,
+    [TOKEN_NAMES.LITERAL, 'str'],
+    TOKEN_NAMES.END_STATEMENT
+  ]))
+});
 
 it('should tokenize `let var = 3;`', () => {
   const program = `
@@ -133,6 +148,31 @@ it('should tokenize function body', () => {
   ]))
 });
 
+it('should tokenize function params', () => {
+  const program = `
+  let function = (a, b, c) => a + b + c;
+  `;
+  const tokens = tokenize(program);
+  assert(eq(tokens, [
+    TOKEN_NAMES.LET,
+    [TOKEN_NAMES.SYMBOL, 'function'],
+    TOKEN_NAMES.ASSIGNMENT,
+    TOKEN_NAMES.OPEN_PARAN,
+    [TOKEN_NAMES.SYMBOL, 'a'],
+    TOKEN_NAMES.COMMA,
+    [TOKEN_NAMES.SYMBOL, 'b'],
+    TOKEN_NAMES.COMMA,
+    [TOKEN_NAMES.SYMBOL, 'c'],
+    TOKEN_NAMES.CLOSE_PARAN,
+    TOKEN_NAMES.ARROW,
+    [TOKEN_NAMES.SYMBOL, 'a'],
+    [TOKEN_NAMES.OPERATOR, '+'],
+    [TOKEN_NAMES.SYMBOL, 'b'],
+    [TOKEN_NAMES.OPERATOR, '+'],
+    [TOKEN_NAMES.SYMBOL, 'c'],
+    TOKEN_NAMES.END_STATEMENT
+  ]))
+});
 
 it('should tokenize `let obj = { a: 3 }`', () => {
   const program = `
@@ -205,3 +245,5 @@ it('should tokenize if else', () => {
     TOKEN_NAMES.CLOSE_BRACE
   ]))
 });
+
+console.log('Passed', passed, 'tests!');
