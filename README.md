@@ -35,12 +35,18 @@ let expr = match ([1, 2]) {
 - [x] `let var = 'string';`
 - [x] `var = 5;`
 - [x] `let function = () => 3;`
+- [x] function arguments in definition
+- [x] function arguments used in body
+- [ ] call function with arguments
 - [ ] functions with a body
-- [ ] function arguments
-- [ ] function arguments used in body
 - [x] function with variable lookup
 - [x] `let obj = { a: 3 }`
-- [ ] if & if else
+- [ ] if & if else & elif
+- [ ] match expressions
+- [ ] arrays
+- [ ] object deconstruction
+- [ ] array deconstruction
+- [x] math operators
 
 ## Interpreter
 

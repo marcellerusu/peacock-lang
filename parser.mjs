@@ -49,10 +49,10 @@ const fn = ({paramNames = [], body}) => ({
   body,
 });
 
-const fnCall = ({symbol, paramNames = []}) => ({
+const fnCall = ({symbol, paramExprs = []}) => ({
   type: STATEMENT_TYPE.FUNCTION_APPLICATION,
   symbol,
-  paramNames
+  paramExprs
 });
 
 const _return = ({expr}) => ({
@@ -75,11 +75,14 @@ const makeConsumer = tokens => (i, tokensToConsume) => {
       if (consumable.optional) {
         tokenValue = null;
         i--;
-      } else throw `Token mismatch -- expected ${consumable.token}, got ${token}`;
+      } else {
+        throw `Token mismatch -- expected ${consumable.token}, got ${token}`;
+      }
     } else {
       tokenValue = match(token, [
         [[TOKEN_NAMES.SYMBOL, any], ([_, sym]) => sym],
         [[TOKEN_NAMES.LITERAL, any], ([_, lit]) => lit],
+        [[TOKEN_NAMES.OPERATOR, any], ([_, op]) => op],
         [TOKEN_NAMES.MUT, t => t],
         [any, () => undefined]
       ]);
@@ -131,32 +134,63 @@ const parse = tokens => {
             return [assignment({symbol, expr}), i4]
           }],
           [TOKEN_NAMES.OPEN_PARAN, () => {
-            // TODO: func arguments
-            const [_, i3] = consume(i2, [
-              {type:TOKEN_NAMES.OPEN_PARAN},
-              {type:TOKEN_NAMES.CLOSE_PARAN},
-              {type:TOKEN_NAMES.END_STATEMENT},
+            // function application
+            const [_, i3] = consumeOne(i2, TOKEN_NAMES.OPEN_PARAN);
+            i = i3;
+            let expr;
+            const paramExprs = [];
+            while (tokens[i] !== TOKEN_NAMES.CLOSE_PARAN) {
+              [expr, i] = parseNode(tokens[i], STATEMENT_TYPE.FUNCTION_APPLICATION);
+              paramExprs.push(expr);
+              if (tokens[i] !== TOKEN_NAMES.COMMA) break;
+              [, i] = consumeOne(i, TOKEN_NAMES.COMMA);
+            }
+            const [__, i4] = consume(i, [
+              {token: TOKEN_NAMES.CLOSE_PARAN},
+              {token: TOKEN_NAMES.END_STATEMENT},
             ]);
-            return [fnCall({symbol}), i3];
+            return [fnCall({symbol, paramExprs}), i4];
+          }],
+          [[TOKEN_NAMES.OPERATOR, any], () => {
+            const [op, i3] = consumeOne(i2, [TOKEN_NAMES.OPERATOR, any])
+            i = i3;
+            const [sym2, i4] = consumeOne(i3, [TOKEN_NAMES.SYMBOL, any]);
+            return [fnCall({
+              symbol: op,
+              paramExprs: [
+                symbolLookup({symbol}),
+                symbolLookup({symbol: sym2})
+              ]
+            }), i4];
           }],
           [any, () => {
             assert(context === STATEMENT_TYPE.FUNCTION);
+            // inside a function definition - wtf
             return [symbolLookup({symbol}), i2];
           }]
         ]);
       }],
       [TOKEN_NAMES.OPEN_PARAN, () => {
-        // TODO: implement func args
-        const [_, i2] = consume(i, [
-          {token: TOKEN_NAMES.OPEN_PARAN},
-          {token: TOKEN_NAMES.CLOSE_PARAN},
-          {token: TOKEN_NAMES.ARROW},
-        ]);
+        // function definition
+        const [_, i2] = consumeOne(i, TOKEN_NAMES.OPEN_PARAN);
         i = i2;
-        const [expr, i3] = parseNode(tokens[i2], STATEMENT_TYPE.FUNCTION);
+        let sym;
+        const paramNames = [];
+        while (tokens[i] !== TOKEN_NAMES.CLOSE_PARAN) {
+          [sym, i] = consumeOne(i, [TOKEN_NAMES.SYMBOL, any]);
+          paramNames.push(sym);
+          if (tokens[i] !== TOKEN_NAMES.COMMA) break;
+          [, i] = consumeOne(i, TOKEN_NAMES.COMMA);
+        }
+        const [__, i3] = consume(i, [
+          {token:TOKEN_NAMES.CLOSE_PARAN},
+          {token:TOKEN_NAMES.ARROW},
+        ]);
+        i = i3;
+        const [expr, i4] = parseNode(tokens[i3], STATEMENT_TYPE.FUNCTION);
         // TODO: implement non-expr body
         const body = [_return({expr})];
-        return [fn({body}), i3];
+        return [fn({body, paramNames}), i4];
 
       }],
       [TOKEN_NAMES.OPEN_BRACE, () => {
