@@ -11,14 +11,14 @@ const globals = {
 
 const evalExpr = (expr, context) => match(expr.type, [
   [STATEMENT_TYPE.NUMBER_LITERAL, () => expr.value],
+  [STATEMENT_TYPE.SYMBOL_LOOKUP, () => context[expr.symbol].value],
   [STATEMENT_TYPE.FUNCTION, () => {
     const {paramNames, body} = expr;
     assert(paramNames.length === 0);
     assert(body.length === 1);
     const [ret] = body;
     assert(ret.type === STATEMENT_TYPE.RETURN);
-    const val = evalExpr(ret.expr, context);
-    return () => val;
+    return () => evalExpr(ret.expr, context);
   }],
   [STATEMENT_TYPE.FUNCTION_APPLICATION, () => {
     const {paramNames, symbol} = expr;
@@ -33,17 +33,18 @@ const evalExpr = (expr, context) => match(expr.type, [
     }
     return obj;
   }],
-  [any, () => { throw 'unimplemented -- evalExpr'; }]
+  [any, () => { console.log(expr); throw 'unimplemented -- evalExpr'; }]
 ])
 
-const interpret = (ast, context = {...globals}) => {
+const interpret = (ast, context =  {...globals}, global = {...globals}) => {
   assert(ast.type === STATEMENT_TYPE.PROGRAM);
+  const lookup = sym => context[sym] || global[sym];
   for (const statement of ast.body) {
     switch (statement.type) {
       case STATEMENT_TYPE.DECLARATION:
         const {symbol, mutable, expr} = statement;
-        if (context[symbol]) {
-          console.log(context);
+        if (lookup(symbol)) {
+          console.log(lookup(symbol));
           throw `'${symbol}' has already been declared`;
         }
         context[symbol] = { mutable, value: evalExpr(expr, context), };

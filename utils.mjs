@@ -22,7 +22,13 @@ export const eq = (a, b) => {
 }
 
 export const match = (val, branches) => {
-  const res = branches.find(([expr]) => eq(val, expr));
+  let res;
+  for (const [expr, fn] of branches) {
+    if (eq(val, expr)) {
+      res = [expr, fn];
+      break;
+    }
+  }
   if (!res) {
     console.log(val, branches);
     throw 'unmatch branch'  

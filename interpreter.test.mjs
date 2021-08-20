@@ -137,6 +137,56 @@ it('should eval object literals', () => {
   }));
 })
 
+
+it('should eval function application with variable lookup', () => {
+  const ast = {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      {
+        type: STATEMENT_TYPE.DECLARATION,
+        mutable: false,
+        symbol: 'x',
+        expr: {
+          type: STATEMENT_TYPE.NUMBER_LITERAL,
+          value: 5
+        }
+      },
+      {
+        type: STATEMENT_TYPE.DECLARATION,
+        mutable: false,
+        symbol: 'function',
+        expr: {
+          type: STATEMENT_TYPE.FUNCTION,
+          paramNames: [],
+          body: [
+            {
+              type: STATEMENT_TYPE.RETURN,
+              expr: {
+                type: STATEMENT_TYPE.SYMBOL_LOOKUP,
+                symbol: 'x'
+              }
+            }
+          ]
+        }
+      },
+      {
+        type: STATEMENT_TYPE.DECLARATION,
+        mutable: false,
+        symbol: 'a',
+        expr: {
+          type: STATEMENT_TYPE.FUNCTION_APPLICATION,
+          paramNames: [],
+          symbol: 'function'
+        }
+      },
+    ]
+  };
+  const globals = interpret(ast);
+
+  assert(typeof globals['function'].value === 'function');
+  assert(globals['a'].value === 5);
+});
+
 // it(`should parse mutable variable`, () => {
 //   const tokens = [
 //     TOKEN_NAMES.LET,

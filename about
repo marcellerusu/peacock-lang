@@ -7,10 +7,18 @@ let var = 3;
 
 let mut x = 5;
 
-let function = () => 3;
-let function = () => {
+let func = () => 3;
+let func = () => {
   //
 };
+
+let func = (a, b) => a + b;
+
+
+
+let arr = [1, 2];
+
+
 
 let obj = { a: 3 };
 

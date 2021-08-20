@@ -128,6 +128,45 @@ it(`should parse function`, () => {
 });
 
 
+it(`should parse function with variable lookup`, () => {
+  const tokens = [
+    TOKEN_NAMES.LET,
+    [TOKEN_NAMES.SYMBOL, 'function'],
+    TOKEN_NAMES.ASSIGNMENT,
+    TOKEN_NAMES.OPEN_PARAN,
+    TOKEN_NAMES.CLOSE_PARAN,
+    TOKEN_NAMES.ARROW,
+    [TOKEN_NAMES.SYMBOL, 'a'],
+    TOKEN_NAMES.END_STATEMENT
+  ];
+  const ast = parse(tokens);
+  // console.log(ast.body[0].expr.body);
+
+  assert(eq(ast, {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      {
+        type: STATEMENT_TYPE.DECLARATION,
+        mutable: false,
+        symbol: 'function',
+        expr: {
+          type: STATEMENT_TYPE.FUNCTION,
+          paramNames: [],
+          body: [
+            {
+              type: STATEMENT_TYPE.RETURN,
+              expr: {
+                type: STATEMENT_TYPE.SYMBOL_LOOKUP,
+                symbol: 'a'
+              }
+            }
+          ]
+        }
+      },
+    ]
+  }))
+});
+
 it(`should parse object literal`, () => {
   const tokens = [
     TOKEN_NAMES.LET,

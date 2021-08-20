@@ -1,5 +1,6 @@
 import {TOKEN_NAMES} from "./tokenizer.mjs";
 import {match, any, eq} from './utils.mjs';
+import assert from 'assert';
 
 export const STATEMENT_TYPE = {
   DECLARATION: 'DECLARATION',
@@ -10,6 +11,7 @@ export const STATEMENT_TYPE = {
   NUMBER_LITERAL: 'NUMBER_LITERAL',
   OBJECT_LITERAL: 'OBJECT_LITERAL',
   FUNCTION_APPLICATION: 'FUNCTION_APPLICATION',
+  SYMBOL_LOOKUP: 'SYMBOL_LOOKUP',
 };
 
 const declaration = ({symbol, expr, mutable}) => ({
@@ -52,6 +54,11 @@ const _return = ({expr}) => ({
   expr
 });
 
+const symbolLookup = ({symbol}) => ({
+  type: STATEMENT_TYPE.SYMBOL_LOOKUP,
+  symbol,
+});
+
 const makeConsumer = tokens => (i, tokensToConsume) => {
   const tokenValues = [];
   for (let consumable of tokensToConsume) {
@@ -84,7 +91,6 @@ const parse = tokens => {
   };
   const AST = { type: STATEMENT_TYPE.PROGRAM, body: [], };
   for (let i = 0; i < tokens.length; i++) {
-    const peek = () => tokens[i + 1];
     const parseNode = (token, context = undefined) => match(token, [
       [[TOKEN_NAMES.LITERAL, any], () => {
         const [value, i2] = consumeOne(i, token);
@@ -105,7 +111,7 @@ const parse = tokens => {
       [[TOKEN_NAMES.SYMBOL, any], () => {
         const [symbol, i2] = consumeOne(i, token);
         i = i2;
-        return match(peek(), [
+        return match(tokens[i2], [
           [TOKEN_NAMES.ASSIGNMENT, () => {
             const [_, i3] = consumeOne(i2, TOKEN_NAMES.ASSIGNMENT);
             i = i3;
@@ -120,6 +126,10 @@ const parse = tokens => {
               {type:TOKEN_NAMES.END_STATEMENT},
             ]);
             return [fnCall({symbol}), i3];
+          }],
+          [any, () => {
+            assert(context === STATEMENT_TYPE.FUNCTION);
+            return [symbolLookup({symbol}), i2];
           }]
         ]);
       }],
