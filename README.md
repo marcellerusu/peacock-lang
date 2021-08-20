@@ -1,5 +1,17 @@
 # WIP m-lang
 
+```
+# pattern matching
+
+let expr = match ([1, 2]) {
+  [] => 'Congrats... sorta',
+  [1] => 'Oh no',
+  [1, 2] => 'YES!'
+};
+
+```
+
+
 ## Tokenizer
 
 - [x] `let var = 3;`
@@ -11,10 +23,10 @@
 - [x] function arguments
 - [x] `let obj = { a: 3 }`
 - [x] if & if else
-- [ ] pattern matching
-- [ ] arrays
-- [ ] object deconstruction
-- [ ] array deconstruction
+- [x] match expressions
+- [x] arrays
+- [x] object deconstruction
+- [x] array deconstruction
 
 ## Parser
 

@@ -17,6 +17,9 @@ export const TOKEN_NAMES = {
   ELSE: 'ELSE',
   COMMA: 'COMMA',
   OPERATOR: 'OPERATOR',
+  OPEN_SQ_BRACE: 'OPEN_SQ_BRACE',
+  CLOSE_SQ_BRACE: 'CLOSE_SQ_BRACE',
+  MATCH: 'MATCH',
 };
 
 const TOKEN_TO_NAME = {
@@ -28,16 +31,19 @@ const TOKEN_TO_NAME = {
   '{': TOKEN_NAMES.OPEN_BRACE,
   'if': TOKEN_NAMES.IF,
   'else': TOKEN_NAMES.ELSE,
+  'match': TOKEN_NAMES.MATCH,
   '}': TOKEN_NAMES.CLOSE_BRACE,
   '(': TOKEN_NAMES.OPEN_PARAN,
   ')': TOKEN_NAMES.CLOSE_PARAN,
+  '[': TOKEN_NAMES.OPEN_SQ_BRACE,
+  ']': TOKEN_NAMES.CLOSE_SQ_BRACE,
   '=>': TOKEN_NAMES.ARROW,
   ':': TOKEN_NAMES.COLON,
   ';': TOKEN_NAMES.END_STATEMENT,
   ',': TOKEN_NAMES.COMMA,
 };
 
-const OPERATORS = {
+const UNARY_OPERATORS = {
   '+': [TOKEN_NAMES.OPERATOR, '+'],
   '-': [TOKEN_NAMES.OPERATOR, '-'],
   '*': [TOKEN_NAMES.OPERATOR, '*'],
@@ -47,15 +53,12 @@ const OPERATORS = {
 
 const isWhiteSpace = c => [' ', '\n'].includes(c);
 
-const takeWhileOf = program => (index, condFn) => {
+const takeUntilOf = program => (index, condFn) => {
   let str = program[index], cond;
-  const check = str => condFn(str, str + program[index + 1])  
-  while (!(cond = check(str)) && index < program.length) {
+  const check = str => condFn(program[index], str, str + program[index])  
+  while (!(cond = check(str)) && index < program.length - 1) {
     const c = program[++index];
-    if (isWhiteSpace(c)
-    // TODO THIS IS ULTRA SKETCH... to make '==' tokenize not as '=' '='
-    || (!check(str + c) && check(c))) {
-      cond = true;
+    if (cond = check(str)) {
       index -= 1;
       break;
     }
@@ -74,16 +77,27 @@ const getLiteralParser = str => {
 }
 
 const tokenize = program => {
-  const takeWhile = takeWhileOf(program);
+  const takeUntil = takeUntilOf(program);
   const tokens = [];
   for (let i = 0; i < program.length; i++) {
     const char = program[i];
     if (isWhiteSpace(char)) continue;
     // todo should we be checking OPERATORS[str] in the cb here?
-    const [newIndex, str] = takeWhile(i, (str, peek) => TOKEN_TO_NAME[str] && !TOKEN_TO_NAME[peek]);
+    let isParsingStr = char === '\'';
+    const [newIndex, str] = takeUntil(i, (nextChar, str, peek) =>
+      // cases ULTRA SKETCHY
+      // #1 - the next str is an operator
+      isParsingStr ?
+        ([...str].filter(c => c === '\'').length === 2) :
+        (
+          isWhiteSpace(nextChar)
+          || (TOKEN_TO_NAME[str] && !TOKEN_TO_NAME[peek])
+          || (TOKEN_TO_NAME[nextChar] && !TOKEN_TO_NAME[peek])
+        )
+    );
     i = newIndex;
-    if (OPERATORS[str]) {
-      tokens.push(OPERATORS[str]);
+    if (UNARY_OPERATORS[str]) {
+      tokens.push(UNARY_OPERATORS[str]);
     } else if (TOKEN_TO_NAME[str]) {
       tokens.push(TOKEN_TO_NAME[str]);
     } else if (getLiteralParser(str)) {

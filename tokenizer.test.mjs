@@ -77,11 +77,28 @@ it('should tokenize `let var = \'str\';`', () => {
   ]))
 });
 
+
+it('should tokenize `let var = \'str w spaces\';`', () => {
+  const program = `
+  let var = 'str w spaces';
+  `;
+  const tokens = tokenize(program);
+
+  assert(eq(tokens, [
+    TOKEN_NAMES.LET,
+    [TOKEN_NAMES.SYMBOL, 'var'],
+    TOKEN_NAMES.ASSIGNMENT,
+    [TOKEN_NAMES.LITERAL, 'str w spaces'],
+    TOKEN_NAMES.END_STATEMENT
+  ]))
+});
+
 it('should tokenize `let var = 3;`', () => {
   const program = `
   let var = 3;
   `;
   const tokens = tokenize(program);
+  // console.log(tokens);
 
   assert(eq(tokens, [
     TOKEN_NAMES.LET,
@@ -92,6 +109,98 @@ it('should tokenize `let var = 3;`', () => {
   ]))
 });
 
+
+it('should tokenize `let var = [1, a, \'234\'];`', () => {
+  const program = `
+  let var = [1, a, \'234\'];
+  `;
+  const tokens = tokenize(program);
+  assert(eq(tokens, [
+    TOKEN_NAMES.LET,
+    [TOKEN_NAMES.SYMBOL, 'var'],
+    TOKEN_NAMES.ASSIGNMENT,
+    TOKEN_NAMES.OPEN_SQ_BRACE,
+    [TOKEN_NAMES.LITERAL, 1],
+    TOKEN_NAMES.COMMA,
+    [TOKEN_NAMES.SYMBOL, 'a'],
+    TOKEN_NAMES.COMMA,
+    [TOKEN_NAMES.LITERAL, '234'],
+    TOKEN_NAMES.CLOSE_SQ_BRACE,
+    TOKEN_NAMES.END_STATEMENT
+  ]))
+});
+
+it('should tokenize `let [first, second, third] = [1, a, \'234\'];`', () => {
+  const program = `
+  let [first, second, third] = [1, a, \'234\'];
+  `;
+  const tokens = tokenize(program);
+  assert(eq(tokens, [
+    TOKEN_NAMES.LET,
+    TOKEN_NAMES.OPEN_SQ_BRACE,
+    [TOKEN_NAMES.SYMBOL, 'first'],
+    TOKEN_NAMES.COMMA,
+    [TOKEN_NAMES.SYMBOL, 'second'],
+    TOKEN_NAMES.COMMA,
+    [TOKEN_NAMES.SYMBOL, 'third'],
+    TOKEN_NAMES.CLOSE_SQ_BRACE,
+    TOKEN_NAMES.ASSIGNMENT,
+    TOKEN_NAMES.OPEN_SQ_BRACE,
+    [TOKEN_NAMES.LITERAL, 1],
+    TOKEN_NAMES.COMMA,
+    [TOKEN_NAMES.SYMBOL, 'a'],
+    TOKEN_NAMES.COMMA,
+    [TOKEN_NAMES.LITERAL, '234'],
+    TOKEN_NAMES.CLOSE_SQ_BRACE,
+    TOKEN_NAMES.END_STATEMENT
+  ]))
+});
+
+it('should tokenize pattern matching array', () => {
+  const program = `
+  let expr = match ([1, 2]) {
+    [] => 'Congrats... sorta',
+    [1] => 'Oh no',
+    [1, 2] => 'YES!'
+  };
+  `;
+  const tokens = tokenize(program);
+  // console.log(tokens);
+  assert(eq(tokens, [
+    TOKEN_NAMES.LET,
+    [TOKEN_NAMES.SYMBOL, 'expr'],
+    TOKEN_NAMES.ASSIGNMENT,
+    TOKEN_NAMES.MATCH,
+    TOKEN_NAMES.OPEN_PARAN,
+    TOKEN_NAMES.OPEN_SQ_BRACE,
+    [TOKEN_NAMES.LITERAL, 1],
+    TOKEN_NAMES.COMMA,
+    [TOKEN_NAMES.LITERAL, 2],
+    TOKEN_NAMES.CLOSE_SQ_BRACE,
+    TOKEN_NAMES.CLOSE_PARAN,
+    TOKEN_NAMES.OPEN_BRACE,
+    TOKEN_NAMES.OPEN_SQ_BRACE,
+    TOKEN_NAMES.CLOSE_SQ_BRACE,
+    TOKEN_NAMES.ARROW,
+    [TOKEN_NAMES.LITERAL, 'Congrats... sorta'],
+    TOKEN_NAMES.COMMA,
+    TOKEN_NAMES.OPEN_SQ_BRACE,
+    [TOKEN_NAMES.LITERAL, 1],
+    TOKEN_NAMES.CLOSE_SQ_BRACE,
+    TOKEN_NAMES.ARROW,
+    [TOKEN_NAMES.LITERAL, 'Oh no'],
+    TOKEN_NAMES.COMMA,
+    TOKEN_NAMES.OPEN_SQ_BRACE,
+    [TOKEN_NAMES.LITERAL, 1],
+    TOKEN_NAMES.COMMA,
+    [TOKEN_NAMES.LITERAL, 2],
+    TOKEN_NAMES.CLOSE_SQ_BRACE,
+    TOKEN_NAMES.ARROW,
+    [TOKEN_NAMES.LITERAL, 'YES!'],
+    TOKEN_NAMES.CLOSE_BRACE,
+    TOKEN_NAMES.END_STATEMENT
+  ]))
+});
 
 it('should tokenize `let mut var = 3;`', () => {
   const program = `
@@ -193,7 +302,26 @@ it('should tokenize `let obj = { a: 3 }`', () => {
   ]))
 });
 
+it('should tokenize `let { a } = { a: 3 }`', () => {
+  const program = `
+  let { a } = { a: 3 };
+  `;
+  const tokens = tokenize(program);
 
+  assert(eq(tokens, [
+    TOKEN_NAMES.LET,
+    TOKEN_NAMES.OPEN_BRACE,
+    [TOKEN_NAMES.SYMBOL, 'a'],
+    TOKEN_NAMES.CLOSE_BRACE,
+    TOKEN_NAMES.ASSIGNMENT,
+    TOKEN_NAMES.OPEN_BRACE,
+    [TOKEN_NAMES.SYMBOL, 'a'],
+    TOKEN_NAMES.COLON,
+    [TOKEN_NAMES.LITERAL, 3],
+    TOKEN_NAMES.CLOSE_BRACE,
+    TOKEN_NAMES.END_STATEMENT
+  ]))
+});
 it('should tokenize `if obj == { a: 3 } {`', () => {
   const program = `
   if obj == { a: 3 } {
