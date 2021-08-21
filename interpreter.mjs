@@ -9,6 +9,15 @@ const globals = {
   },
   '+': {
     native: (a, b) => a + b,
+  },
+  '-': {
+    native: (a, b) => a - b,
+  },
+  '*': {
+    native: (a, b) => a * b,
+  },
+  '/': {
+    native: (a, b) => a / b,
   }
 };
 

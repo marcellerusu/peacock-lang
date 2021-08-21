@@ -57,13 +57,13 @@ let expr = match ([1, 2]) {
 - [x] `let var = 3;`
 - [x] `let mut var = 5;`
 - [ ] `let var = 'string';`
-- [ ] `var = 5;`
+- [x] `var = 5;`
 - [x] `let function = () => 3;`
 - [x] `function()`
-- [ ] math operators
+- [x] math operators
 - [ ] functions with a body
-- [ ] function arguments
-- [ ] function arguments used in body
+- [x] function arguments
+- [x] function arguments used in body
 - [x] function with variable lookup
 - [x] `let obj = { a: 3 };`
 - [ ] arrays
