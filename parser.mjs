@@ -192,6 +192,7 @@ const parse = tokens => {
       [TOKEN_NAMES.OPEN_PARAN, () => {
         // function definition
         [, i] = consumeOne(i, TOKEN_NAMES.OPEN_PARAN);
+        // ---- PARSING FUNC PARAMS ----
         let sym;
         const paramNames = [];
         while (tokens[i] !== TOKEN_NAMES.CLOSE_PARAN) {
@@ -200,14 +201,17 @@ const parse = tokens => {
           if (tokens[i] !== TOKEN_NAMES.COMMA) break;
           [, i] = consumeOne(i, TOKEN_NAMES.COMMA);
         }
+        // ---- DONE PARSING FUNC PARAMS ----
         [, i] = consume(i, [
           {token: TOKEN_NAMES.CLOSE_PARAN},
           {token: TOKEN_NAMES.ARROW},
         ]);
         if (tokens[i] !== TOKEN_NAMES.OPEN_BRACE) {
+          // function expression
           const expr = parseNode(tokens[i], STATEMENT_TYPE.RETURN);
           return fn({body: [_return({expr})], paramNames});
         } else {
+          // function statement
           [, i] = consumeOne(i, TOKEN_NAMES.OPEN_BRACE);
           let expr = {}, body = [];
           while (expr.type !== STATEMENT_TYPE.RETURN && i < tokens.length) {
@@ -225,6 +229,7 @@ const parse = tokens => {
         // parsing an object literal
         assert(isExpression(context));
         [, i] = consumeOne(i, TOKEN_NAMES.OPEN_BRACE);
+        // ---- PARSING OBJECT PROPERTIES ----
         const value = {};
         while (true) {
           let varName;
@@ -241,6 +246,7 @@ const parse = tokens => {
           if (tokens[i] !== TOKEN_NAMES.COMMA) break;
           [, i] = consumeOne(i, TOKEN_NAMES.COMMA);
         }
+        // ---- DONE PARSING OBJECT PROPERTIES ----
         [, i] = consumeOne(i, TOKEN_NAMES.CLOSE_BRACE);
         return objectLiteral({value});
       }],
