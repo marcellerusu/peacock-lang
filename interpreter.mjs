@@ -6,6 +6,9 @@ const globals = {
   print: {
     mutable: false,
     value: console.log
+  },
+  '+': {
+    native: (a, b) => a + b,
   }
 };
 
@@ -15,6 +18,15 @@ const evalExpr = (expr, context) => match(expr.type, [
   [STATEMENT_TYPE.FUNCTION, () => expr],
   [STATEMENT_TYPE.FUNCTION_APPLICATION, () => {
     const {paramExprs, symbol} = expr;
+    if (context[symbol].native) {
+      const nativeFn = context[symbol].native
+      assert(nativeFn.length === paramExprs.length);
+      const args = [];
+      for (const expr of paramExprs) {
+        args.push(evalExpr(expr, context));
+      }
+      return nativeFn(...args);
+    }
     const {value: {paramNames, body}} = context[symbol];
     // TODO: implement currying
     assert(paramNames.length === paramExprs.length);
@@ -31,7 +43,7 @@ const evalExpr = (expr, context) => match(expr.type, [
     const {value} = expr;
     const obj = {};
     for (let key in value) {
-      obj[key] = evalExpr(value[key]);
+      obj[key] = evalExpr(value[key], context);
     }
     return obj;
   }],
@@ -39,6 +51,7 @@ const evalExpr = (expr, context) => match(expr.type, [
 ])
 
 const interpret = (ast, context = {}, global = {...globals}) => {
+  context = {...global};
   assert(ast.type === STATEMENT_TYPE.PROGRAM);
   const lookup = sym => context[sym] || global[sym];
   for (const statement of ast.body) {
@@ -55,7 +68,7 @@ const interpret = (ast, context = {}, global = {...globals}) => {
         const {symbol, expr} = statement;
         const variable = lookup(symbol);
         assert(variable.mutable);
-        context[symbol].value = evalExpr(expr);
+        context[symbol].value = evalExpr(expr, context);
       }],
       [any, () => {throw 'unimplemented -- interpret'}]
     ]);
