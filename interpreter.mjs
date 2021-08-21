@@ -40,18 +40,23 @@ const interpret = (ast, context = {}, global = {...globals}) => {
   assert(ast.type === STATEMENT_TYPE.PROGRAM);
   const lookup = sym => context[sym] || global[sym];
   for (const statement of ast.body) {
-    switch (statement.type) {
-      case STATEMENT_TYPE.DECLARATION:
+    match(statement.type, [
+      [STATEMENT_TYPE.DECLARATION, () => {
         const {symbol, mutable, expr} = statement;
         if (lookup(symbol)) {
           console.log(lookup(symbol));
           throw `'${symbol}' has already been declared`;
         }
         context[symbol] = { mutable, value: evalExpr(expr, context), };
-        break;
-      default:
-        throw 'unimplemented -- interpret'
-    }
+      }],
+      [STATEMENT_TYPE.ASSIGNMENT, () => {
+        const {symbol, expr} = statement;
+        const variable = lookup(symbol);
+        assert(variable.mutable);
+        context[symbol].value = evalExpr(expr);
+      }],
+      [any, () => {throw 'unimplemented -- interpret'}]
+    ]);
   }
   return context;
 };
