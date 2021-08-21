@@ -201,8 +201,8 @@ const parse = tokens => {
           [, i] = consumeOne(i, TOKEN_NAMES.COMMA);
         }
         [, i] = consume(i, [
-          {token:TOKEN_NAMES.CLOSE_PARAN},
-          {token:TOKEN_NAMES.ARROW},
+          {token: TOKEN_NAMES.CLOSE_PARAN},
+          {token: TOKEN_NAMES.ARROW},
         ]);
         if (tokens[i] !== TOKEN_NAMES.OPEN_BRACE) {
           const expr = parseNode(tokens[i], STATEMENT_TYPE.RETURN);
