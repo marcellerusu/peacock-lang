@@ -48,6 +48,7 @@ let expr = match ([1, 2]) {
 - [ ] object deconstruction
 - [ ] array deconstruction
 - [x] math operators
+- [ ] object property accessor (.)
 
 ## Interpreter
 
@@ -69,3 +70,4 @@ let expr = match ([1, 2]) {
 - [ ] match expressions
 - [ ] object deconstruction
 - [ ] array deconstruction
+- [ ] object property accessor (.)

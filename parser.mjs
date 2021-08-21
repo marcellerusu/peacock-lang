@@ -167,7 +167,7 @@ const parse = tokens => {
             return [fnCall({symbol, paramExprs}), i4];
           }],
           [[TOKEN_NAMES.OPERATOR, any], () => {
-            const [op, i3] = consumeOne(i2, [TOKEN_NAMES.OPERATOR, any])
+            const [op, i3] = consumeOne(i2, [TOKEN_NAMES.OPERATOR, any]);
             i = i3;
             const [sym2, i4] = consumeOne(i3, [TOKEN_NAMES.SYMBOL, any]);
             return [fnCall({
