@@ -117,84 +117,81 @@ const parse = tokens => {
   for (let i = 0; i < tokens.length; i++) {
     const parseNode = (token, context = undefined) => match(token, [
       [[TOKEN_NAMES.LITERAL, any], () => {
-        const [value, i2] = consumeOne(i, token);
+        let value;
+        [value, i] = consumeOne(i, token);
         if (typeof value === 'number') {
-          return [numberLiteral({value}), i2];
+          return numberLiteral({value});
         } else if (typeof value === 'string') {
-          return [stringLiteral({value}), i2];
+          return stringLiteral({value});
         } else {
           throw 'should not reach';
         }
       }],
       [TOKEN_NAMES.RETURN, () => {
-        i++;
-        const [expr, i2] = parseNode(tokens[i], STATEMENT_TYPE.RETURN);
-        [, i] = consumeOne(i2, TOKEN_NAMES.END_STATEMENT);
-        return [_return({expr}), i]
+        [, i] = consumeOne(i, TOKEN_NAMES.RETURN);
+        const expr = parseNode(tokens[i], STATEMENT_TYPE.RETURN);
+        [, i] = consumeOne(i, TOKEN_NAMES.END_STATEMENT);
+        return _return({expr});
       }],
       [TOKEN_NAMES.LET, () => {
-        const [[mutable, symbol], i2] = consume(i + 1, [
+        assert(!isExpression(context));
+        let mutable, symbol;
+        [, i] = consumeOne(i, TOKEN_NAMES.LET);
+        [[mutable, symbol], i] = consume(i, [
           {token: TOKEN_NAMES.MUT, optional: true},
           {token: [TOKEN_NAMES.SYMBOL, any]},
           {token: TOKEN_NAMES.ASSIGNMENT},
         ]);
-        i = i2;
-        const [expr, i3] = parseNode(tokens[i2], STATEMENT_TYPE.DECLARATION);
-        i = i3;
-        const [_, i4] = consumeOne(i3, TOKEN_NAMES.END_STATEMENT);
-        return [declaration({mutable, symbol, expr}), i4];
+        const expr = parseNode(tokens[i], STATEMENT_TYPE.DECLARATION);
+        [, i] = consumeOne(i, TOKEN_NAMES.END_STATEMENT);
+        return declaration({mutable, symbol, expr});
       }],
       [[TOKEN_NAMES.SYMBOL, any], () => {
-        const [symbol, i2] = consumeOne(i, token);
-        i = i2;
-        return match(tokens[i2], [
+        let symbol;
+        [symbol, i] = consumeOne(i, token);
+        return match(tokens[i], [
           [TOKEN_NAMES.ASSIGNMENT, () => {
-            const [_, i3] = consumeOne(i2, TOKEN_NAMES.ASSIGNMENT);
-            i = i3;
-            const [expr, i4] = parseNode(tokens[i3], STATEMENT_TYPE.ASSIGNMENT);
-            return [assignment({symbol, expr}), i4]
+            [, i] = consumeOne(i, TOKEN_NAMES.ASSIGNMENT);
+            const expr = parseNode(tokens[i], STATEMENT_TYPE.ASSIGNMENT);
+            return assignment({symbol, expr});
           }],
           [TOKEN_NAMES.OPEN_PARAN, () => {
             // function application
-            const [_, i3] = consumeOne(i2, TOKEN_NAMES.OPEN_PARAN);
-            i = i3;
-            let expr;
+            [, i] = consumeOne(i, TOKEN_NAMES.OPEN_PARAN);
             const paramExprs = [];
             while (tokens[i] !== TOKEN_NAMES.CLOSE_PARAN) {
-              [expr, i] = parseNode(tokens[i], STATEMENT_TYPE.FUNCTION_APPLICATION);
+              const expr = parseNode(tokens[i], STATEMENT_TYPE.FUNCTION_APPLICATION);
               paramExprs.push(expr);
               if (tokens[i] !== TOKEN_NAMES.COMMA) break;
               [, i] = consumeOne(i, TOKEN_NAMES.COMMA);
             }
-            const [__, i4] = consume(i, [
+            [, i] = consume(i, [
               {token: TOKEN_NAMES.CLOSE_PARAN},
               {token: TOKEN_NAMES.END_STATEMENT},
             ]);
-            return [fnCall({symbol, paramExprs}), i4];
+            return fnCall({symbol, paramExprs});
           }],
           [[TOKEN_NAMES.OPERATOR, any], () => {
-            const [op, i3] = consumeOne(i2, [TOKEN_NAMES.OPERATOR, any]);
-            i = i3;
-            const [sym2, i4] = consumeOne(i3, [TOKEN_NAMES.SYMBOL, any]);
-            return [fnCall({
+            let op, sym2;
+            [op, i] = consumeOne(i, [TOKEN_NAMES.OPERATOR, any]);
+            [sym2, i] = consumeOne(i, [TOKEN_NAMES.SYMBOL, any]);
+            return fnCall({
               symbol: op,
               paramExprs: [
                 symbolLookup({symbol}),
                 symbolLookup({symbol: sym2})
               ]
-            }), i4];
+            });
           }],
           [any, () => {
             assert(isExpression(context));
-            // inside a function definition - wtf
-            return [symbolLookup({symbol}), i2];
+            return symbolLookup({symbol});
           }]
         ]);
       }],
       [TOKEN_NAMES.OPEN_PARAN, () => {
         // function definition
-        const [_, i2] = consumeOne(i, TOKEN_NAMES.OPEN_PARAN);
-        i = i2;
+        [, i] = consumeOne(i, TOKEN_NAMES.OPEN_PARAN);
         let sym;
         const paramNames = [];
         while (tokens[i] !== TOKEN_NAMES.CLOSE_PARAN) {
@@ -203,78 +200,67 @@ const parse = tokens => {
           if (tokens[i] !== TOKEN_NAMES.COMMA) break;
           [, i] = consumeOne(i, TOKEN_NAMES.COMMA);
         }
-        const [__, i3] = consume(i, [
+        [, i] = consume(i, [
           {token:TOKEN_NAMES.CLOSE_PARAN},
           {token:TOKEN_NAMES.ARROW},
         ]);
-        i = i3;
-        // TODO: implement non-expr body
-        if (tokens[i3] !== TOKEN_NAMES.OPEN_BRACE) {
-          const [expr, i4] = parseNode(tokens[i3], STATEMENT_TYPE.RETURN);
-          return [fn({body: [_return({expr})], paramNames}), i4];
+        if (tokens[i] !== TOKEN_NAMES.OPEN_BRACE) {
+          const expr = parseNode(tokens[i], STATEMENT_TYPE.RETURN);
+          return fn({body: [_return({expr})], paramNames});
         } else {
           [, i] = consumeOne(i, TOKEN_NAMES.OPEN_BRACE);
           let expr = {}, body = [];
           while (expr.type !== STATEMENT_TYPE.RETURN && i < tokens.length) {
-            [expr, i] = parseNode(tokens[i], STATEMENT_TYPE.FUNCTION);
+            expr = parseNode(tokens[i], STATEMENT_TYPE.FUNCTION);
             body.push(expr);
           }
           if (i >= tokens.length || expr.type !== STATEMENT_TYPE.RETURN)
             throw `function statement does not have return statement!`;
           [, i] = consumeOne(i, TOKEN_NAMES.CLOSE_BRACE);
-          return [fn({body, paramNames}), i];
+          return fn({body, paramNames});
         }
 
       }],
       [TOKEN_NAMES.OPEN_BRACE, () => {
         // parsing an object literal
         assert(isExpression(context));
-        const [_, i2] = consumeOne(i, TOKEN_NAMES.OPEN_BRACE);
-        i = i2;
+        [, i] = consumeOne(i, TOKEN_NAMES.OPEN_BRACE);
         const value = {};
         while (true) {
-          let varName, i3;
+          let varName;
           // TODO: don't use try, implement peek
           try {
-            [[varName], i3] = consume(i, [
+            [[varName], i] = consume(i, [
               {token: [TOKEN_NAMES.SYMBOL, any]},
               {token: TOKEN_NAMES.COLON},
             ]);
           } catch (e) {
             break;
           }
-          i = i3;
-          const [expr, i4] = parseNode(tokens[i3], STATEMENT_TYPE.OBJECT_LITERAL);
-          i = i4;
-          value[varName] = expr;
+          value[varName] = parseNode(tokens[i], STATEMENT_TYPE.OBJECT_LITERAL);
           if (tokens[i] !== TOKEN_NAMES.COMMA) break;
-          const [_, i5] = consumeOne(i4, TOKEN_NAMES.COMMA);
-          i = i5;
+          [, i] = consumeOne(i, TOKEN_NAMES.COMMA);
         }
-        const [__, i6] = consumeOne(i, TOKEN_NAMES.CLOSE_BRACE);
-        return [objectLiteral({value}), i6];
+        [, i] = consumeOne(i, TOKEN_NAMES.CLOSE_BRACE);
+        return objectLiteral({value});
       }],
       [TOKEN_NAMES.OPEN_SQ_BRACE, () => {
         // parsing an array literal
         assert(isExpression(context));
-        let [_, i2] = consumeOne(i, TOKEN_NAMES.OPEN_SQ_BRACE);
-        i = i2;
+        [, i] = consumeOne(i, TOKEN_NAMES.OPEN_SQ_BRACE);
         const elements = [];
         while (tokens[i] !== TOKEN_NAMES.CLOSE_BRACE) {
-          let expr;
-          [expr, i] = parseNode(tokens[i], STATEMENT_TYPE.ARRAY_LITERAL);
-          elements.push(expr);
+          elements.push(parseNode(tokens[i], STATEMENT_TYPE.ARRAY_LITERAL));
           if (tokens[i] !== TOKEN_NAMES.COMMA) break;
-          [_, i] = consumeOne(i, TOKEN_NAMES.COMMA);
+          [, i] = consumeOne(i, TOKEN_NAMES.COMMA);
         }
-        [_, i] = consumeOne(i, TOKEN_NAMES.CLOSE_SQ_BRACE);
-        return [arrayLiteral({elements}), i];
+        [, i] = consumeOne(i, TOKEN_NAMES.CLOSE_SQ_BRACE);
+        return arrayLiteral({elements});
       }],
       [any, () => { throw 'did not match any ' + token}],
     ]);
-    const [astNode, newIndex] = parseNode(tokens[i]);
+    const astNode = parseNode(tokens[i]);
     AST.body.push(astNode);
-    i = newIndex;
   }
   return AST;
 };
