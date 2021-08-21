@@ -64,9 +64,8 @@ let expr = match ([1, 2]) {
 - [ ] function arguments used in body
 - [x] function with variable lookup
 - [x] `let obj = { a: 3 }`
-- [ ] if & if else
 - [ ] arrays
-- [ ] if & if else & elif
+- [ ] if, else & elif
 - [ ] match expressions
 - [ ] object deconstruction
 - [ ] array deconstruction
