@@ -12,18 +12,20 @@ const globals = {
 const evalExpr = (expr, context) => match(expr.type, [
   [STATEMENT_TYPE.NUMBER_LITERAL, () => expr.value],
   [STATEMENT_TYPE.SYMBOL_LOOKUP, () => context[expr.symbol].value],
-  [STATEMENT_TYPE.FUNCTION, () => {
-    const {paramNames, body} = expr;
-    assert(paramNames.length === 0);
-    assert(body.length === 1);
-    const [ret] = body;
-    assert(ret.type === STATEMENT_TYPE.RETURN);
-    return () => evalExpr(ret.expr, context);
-  }],
+  [STATEMENT_TYPE.FUNCTION, () => expr],
   [STATEMENT_TYPE.FUNCTION_APPLICATION, () => {
-    const {paramNames, symbol} = expr;
-    assert(paramNames.length === 0);
-    return context[symbol].value();
+    const {paramExprs, symbol} = expr;
+    const {value: {paramNames, body}} = context[symbol];
+    // TODO: implement currying
+    assert(paramNames.length === paramExprs.length);
+    // TODO: function statements
+    assert(body.length === 1);
+    const fnContext = {};
+    for (let i = 0; i < paramExprs.length; i++) {
+      // does this make the language lazy??
+      fnContext[paramNames[i]] = paramExprs[i];
+    }
+    return evalExpr(body[0].expr, {...context, ...fnContext});
   }],
   [STATEMENT_TYPE.OBJECT_LITERAL, () => {
     const {value} = expr;
