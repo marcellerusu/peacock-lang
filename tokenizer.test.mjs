@@ -321,6 +321,21 @@ it('should tokenize `let { a } = { a: 3 }`', () => {
     TOKEN_NAMES.END_STATEMENT
   ]))
 });
+
+it('should tokenize `obj.property`', () => {
+  const program = `
+  obj.property;
+  `;
+  const tokens = tokenize(program);
+
+  assert(eq(tokens, [
+    [TOKEN_NAMES.SYMBOL, 'obj'],
+    TOKEN_NAMES.PROPERTY_ACCESSOR,
+    [TOKEN_NAMES.SYMBOL, 'property'],
+    TOKEN_NAMES.END_STATEMENT
+  ]))
+});
+
 it('should tokenize `if obj == { a: 3 } {`', () => {
   const program = `
   if obj == { a: 3 } {
