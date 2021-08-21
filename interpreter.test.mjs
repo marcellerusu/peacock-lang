@@ -295,7 +295,7 @@ it(`should eval identity function`, () => {
 });
 
 
-it(`should parse function application with arguments`, () => {
+it(`should eval function application with arguments`, () => {
   const ast = {
     type: STATEMENT_TYPE.PROGRAM,
     body: [
@@ -352,61 +352,6 @@ it(`should parse function application with arguments`, () => {
 
   assert(global.four.value === 4)
 });
-
-
-// it(`should parse function with multiple args`, () => {
-//   const tokens = [
-//     TOKEN_NAMES.LET,
-//     [TOKEN_NAMES.SYMBOL, 'add'],
-//     TOKEN_NAMES.ASSIGNMENT,
-//     TOKEN_NAMES.OPEN_PARAN,
-//     [TOKEN_NAMES.SYMBOL, 'a'],
-//     TOKEN_NAMES.COMMA,
-//     [TOKEN_NAMES.SYMBOL, 'b'],
-//     TOKEN_NAMES.CLOSE_PARAN,
-//     TOKEN_NAMES.ARROW,
-//     [TOKEN_NAMES.SYMBOL, 'a'],
-//     [TOKEN_NAMES.OPERATOR, '+'],
-//     [TOKEN_NAMES.SYMBOL, 'b'],
-//     TOKEN_NAMES.END_STATEMENT
-//   ];
-//   const ast = parse(tokens);
-
-//   assert(eq(ast, {
-//     type: STATEMENT_TYPE.PROGRAM,
-//     body: [
-//       {
-//         type: STATEMENT_TYPE.DECLARATION,
-//         mutable: false,
-//         symbol: 'add',
-//         expr: {
-//           type: STATEMENT_TYPE.FUNCTION,
-//           paramNames: ['a', 'b'],
-//           body: [ 
-//             {
-//               type: STATEMENT_TYPE.RETURN,
-//               expr: {
-//                 type: STATEMENT_TYPE.FUNCTION_APPLICATION,
-//                 symbol: '+',
-//                 paramExprs: [
-//                   {
-//                     type: STATEMENT_TYPE.SYMBOL_LOOKUP,
-//                     symbol: 'a'
-//                   },
-//                   {
-//                     type: STATEMENT_TYPE.SYMBOL_LOOKUP,
-//                     symbol: 'b'
-//                   }
-//                 ]
-//               }
-//             }
-//           ]
-//         }
-//       },
-//     ]
-//   }))
-// });
-
 
 // it(`should parse function with body`, () => {
 //   const tokens = [
