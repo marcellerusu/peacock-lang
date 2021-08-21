@@ -14,6 +14,7 @@ export const STATEMENT_TYPE = {
   ARRAY_LITERAL: 'ARRAY_LITERAL',
   FUNCTION_APPLICATION: 'FUNCTION_APPLICATION',
   SYMBOL_LOOKUP: 'SYMBOL_LOOKUP',
+  PROPERTY_LOOKUP: 'PROPERTY_LOOKUP',
 };
 
 const declaration = ({symbol, expr, mutable}) => ({
@@ -71,6 +72,12 @@ const symbolLookup = ({symbol}) => ({
   symbol,
 });
 
+const propertyLookup = ({property, expr}) => ({
+  type: STATEMENT_TYPE.PROPERTY_LOOKUP,
+  property,
+  expr,
+})
+
 const makeConsumer = tokens => (i, tokensToConsume) => {
   const tokenValues = [];
   for (let consumable of tokensToConsume) {
@@ -104,7 +111,7 @@ const isExpression = context => [
   STATEMENT_TYPE.ASSIGNMENT,
   STATEMENT_TYPE.DECLARATION,
   STATEMENT_TYPE.ARRAY_LITERAL,
-  STATEMENT_TYPE.OBJECT_LITERAL
+  STATEMENT_TYPE.OBJECT_LITERAL,
 ].includes(context);
 
 const parse = tokens => {
@@ -183,6 +190,20 @@ const parse = tokens => {
               ]
             });
           }],
+          [TOKEN_NAMES.PROPERTY_ACCESSOR, () => {
+            // object dot notation
+            let property, propertyList = [];
+            while (tokens[i] === TOKEN_NAMES.PROPERTY_ACCESSOR) {
+              [, i] = consumeOne(i, TOKEN_NAMES.PROPERTY_ACCESSOR);
+              [property, i] = consumeOne(i, [TOKEN_NAMES.SYMBOL, any]);
+              propertyList.push(property);
+            }
+            let expr = symbolLookup({symbol});
+            for (const prop of propertyList) {
+              expr = propertyLookup({property: prop, expr});
+            }
+            return expr;
+          }],
           [any, () => {
             assert(isExpression(context));
             return symbolLookup({symbol});
@@ -246,8 +267,24 @@ const parse = tokens => {
           if (tokens[i] !== TOKEN_NAMES.COMMA) break;
           [, i] = consumeOne(i, TOKEN_NAMES.COMMA);
         }
-        // ---- DONE PARSING OBJECT PROPERTIES ----
         [, i] = consumeOne(i, TOKEN_NAMES.CLOSE_BRACE);
+        // ---- DONE PARSING OBJECT PROPERTIES ----
+        // CHECK IF doing property lookup----
+        if (tokens[i] === TOKEN_NAMES.PROPERTY_ACCESSOR) {
+          // TODO: this is duplicate code
+          let property, propertyList = [];
+          while (tokens[i] === TOKEN_NAMES.PROPERTY_ACCESSOR) {
+            [, i] = consumeOne(i, TOKEN_NAMES.PROPERTY_ACCESSOR);
+            [property, i] = consumeOne(i, [TOKEN_NAMES.SYMBOL, any]);
+            propertyList.push(property);
+          }
+          let expr = objectLiteral({value});
+          for (const prop of propertyList) {
+            expr = propertyLookup({property: prop, expr});
+          }
+          return expr;
+
+        }
         return objectLiteral({value});
       }],
       [TOKEN_NAMES.OPEN_SQ_BRACE, () => {

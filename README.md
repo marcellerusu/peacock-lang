@@ -26,7 +26,9 @@ let expr = match ([1, 2]) {
 - [x] match expressions
 - [x] arrays
 - [x] object deconstruction
+- [ ] object rest operator
 - [x] array deconstruction
+- [ ] array rest operator
 - [x] object property accessor (.)
 
 ## Parser
@@ -41,14 +43,14 @@ let expr = match ([1, 2]) {
 - [x] function arguments used in body
 - [x] call function with arguments
 - [x] function statements
-- [x] `let obj = { a: 3 }`
+- [x] `let obj = { a: 3 };`
 - [x] arrays
 - [ ] if, else & elif expressions
 - [ ] match expressions
 - [ ] object deconstruction
 - [ ] array deconstruction
 - [x] math operators
-- [ ] object property accessor (.)
+- [x] object property accessor (.)
 
 ## Interpreter
 
@@ -63,7 +65,7 @@ let expr = match ([1, 2]) {
 - [ ] function arguments
 - [ ] function arguments used in body
 - [x] function with variable lookup
-- [x] `let obj = { a: 3 }`
+- [x] `let obj = { a: 3 };`
 - [ ] arrays
 - [ ] if, else & elif
 - [ ] match expressions

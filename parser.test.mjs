@@ -412,6 +412,109 @@ it(`should parse object literal`, () => {
   }))
 });
 
+it(`should parse object dot notation on variable`, () => {
+  const tokens = [
+    [TOKEN_NAMES.SYMBOL, 'obj'],
+    TOKEN_NAMES.PROPERTY_ACCESSOR,
+    [TOKEN_NAMES.SYMBOL, 'a'],
+    TOKEN_NAMES.END_STATEMENT
+  ];
+  const ast = parse(tokens);
+
+  assert(eq(ast, {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      {
+        type: STATEMENT_TYPE.PROPERTY_LOOKUP,
+        expr: {
+          type: STATEMENT_TYPE.SYMBOL_LOOKUP,
+          symbol: 'obj',
+        },
+        property: 'a',
+      }
+    ]
+  }))
+});
+
+it(`should parse object dot notation on object`, () => {
+  const tokens = [
+    TOKEN_NAMES.LET,
+    [TOKEN_NAMES.SYMBOL, 'obj'],
+    TOKEN_NAMES.ASSIGNMENT,
+    TOKEN_NAMES.OPEN_BRACE,
+    [TOKEN_NAMES.SYMBOL, 'a'],
+    TOKEN_NAMES.COLON,
+    [TOKEN_NAMES.LITERAL, 3],
+    TOKEN_NAMES.COMMA,
+    [TOKEN_NAMES.SYMBOL, 'yesa'],
+    TOKEN_NAMES.COLON,
+    [TOKEN_NAMES.LITERAL, 5],
+    TOKEN_NAMES.COMMA,
+    TOKEN_NAMES.CLOSE_BRACE,
+    TOKEN_NAMES.PROPERTY_ACCESSOR,
+    [TOKEN_NAMES.SYMBOL, 'yesa'],
+    TOKEN_NAMES.END_STATEMENT
+  ];
+  const ast = parse(tokens);
+
+  assert(eq(ast, {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      {
+        type: STATEMENT_TYPE.DECLARATION,
+        mutable: false,
+        symbol: 'obj',
+        expr: {
+          type: STATEMENT_TYPE.PROPERTY_LOOKUP,
+          property: 'yesa',
+          expr: {
+            type: STATEMENT_TYPE.OBJECT_LITERAL,
+            value: {
+              a: {
+                type: STATEMENT_TYPE.NUMBER_LITERAL,
+                value: 3
+              },
+              yesa: {
+                type: STATEMENT_TYPE.NUMBER_LITERAL,
+                value: 5
+              }
+            }
+          },
+        }
+      }
+    ]
+  }))
+});
+
+it(`should parse nested object dot notation on variable`, () => {
+  const tokens = [
+    [TOKEN_NAMES.SYMBOL, 'obj'],
+    TOKEN_NAMES.PROPERTY_ACCESSOR,
+    [TOKEN_NAMES.SYMBOL, 'a'],
+    TOKEN_NAMES.PROPERTY_ACCESSOR,
+    [TOKEN_NAMES.SYMBOL, 'b'],
+    TOKEN_NAMES.END_STATEMENT
+  ];
+  const ast = parse(tokens);
+
+  assert(eq(ast, {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      {
+        type: STATEMENT_TYPE.PROPERTY_LOOKUP,
+        expr: {
+          type: STATEMENT_TYPE.PROPERTY_LOOKUP,
+          expr: {
+            type: STATEMENT_TYPE.SYMBOL_LOOKUP,
+            symbol: 'obj',
+          },
+          property: 'a',
+        },
+        property: 'b',
+      }
+    ]
+  }))
+});
 
 it(`should parse array literal`, () => {
   const tokens = [
