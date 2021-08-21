@@ -256,6 +256,31 @@ it('should tokenize function body', () => {
   ]))
 });
 
+
+it('should tokenize function body with return', () => {
+  const program = `
+  let function = () =>  {
+    return a;
+  };
+  `;
+  const tokens = tokenize(program);
+
+  assert(eq(tokens, [
+    TOKEN_NAMES.LET,
+    [TOKEN_NAMES.SYMBOL, 'function'],
+    TOKEN_NAMES.ASSIGNMENT,
+    TOKEN_NAMES.OPEN_PARAN,
+    TOKEN_NAMES.CLOSE_PARAN,
+    TOKEN_NAMES.ARROW,
+    TOKEN_NAMES.OPEN_BRACE,
+    TOKEN_NAMES.RETURN,
+    [TOKEN_NAMES.SYMBOL, 'a'],
+    TOKEN_NAMES.END_STATEMENT,
+    TOKEN_NAMES.CLOSE_BRACE,
+    TOKEN_NAMES.END_STATEMENT
+  ]))
+});
+
 it('should tokenize function params', () => {
   const program = `
   let function = (a, b, c) => a + b + c;

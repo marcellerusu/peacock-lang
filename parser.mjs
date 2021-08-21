@@ -126,6 +126,12 @@ const parse = tokens => {
           throw 'should not reach';
         }
       }],
+      [TOKEN_NAMES.RETURN, () => {
+        i++;
+        const [expr, i2] = parseNode(tokens[i], STATEMENT_TYPE.RETURN);
+        [, i] = consumeOne(i2, TOKEN_NAMES.END_STATEMENT);
+        return [_return({expr}), i]
+      }],
       [TOKEN_NAMES.LET, () => {
         const [[mutable, symbol], i2] = consume(i + 1, [
           {token: TOKEN_NAMES.MUT, optional: true},
@@ -203,10 +209,21 @@ const parse = tokens => {
         ]);
         i = i3;
         // TODO: implement non-expr body
-        assert(tokens[i3] !== TOKEN_NAMES.OPEN_BRACE);
-        const [expr, i4] = parseNode(tokens[i3], STATEMENT_TYPE.RETURN);
-        const body = [_return({expr})];
-        return [fn({body, paramNames}), i4];
+        if (tokens[i3] !== TOKEN_NAMES.OPEN_BRACE) {
+          const [expr, i4] = parseNode(tokens[i3], STATEMENT_TYPE.RETURN);
+          return [fn({body: [_return({expr})], paramNames}), i4];
+        } else {
+          [, i] = consumeOne(i, TOKEN_NAMES.OPEN_BRACE);
+          let expr = {}, body = [];
+          while (expr.type !== STATEMENT_TYPE.RETURN && i < tokens.length) {
+            [expr, i] = parseNode(tokens[i], STATEMENT_TYPE.FUNCTION);
+            body.push(expr);
+          }
+          if (i >= tokens.length || expr.type !== STATEMENT_TYPE.RETURN)
+            throw `function statement does not have return statement!`;
+          [, i] = consumeOne(i, TOKEN_NAMES.CLOSE_BRACE);
+          return [fn({body, paramNames}), i];
+        }
 
       }],
       [TOKEN_NAMES.OPEN_BRACE, () => {

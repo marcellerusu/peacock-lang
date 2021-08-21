@@ -18,7 +18,7 @@ let expr = match ([1, 2]) {
 - [x] `let mut var = 5;`
 - [x] `let var = 'string';`
 - [x] `let function = () => 3;`
-- [x] functions with a body
+- [x] functions with a body (& explicit return)
 - [x] math operators (+, -, *, /)
 - [x] function arguments
 - [x] `let obj = { a: 3 }`
@@ -40,10 +40,10 @@ let expr = match ([1, 2]) {
 - [x] function arguments in definition
 - [x] function arguments used in body
 - [x] call function with arguments
-- [ ] functions with a body
+- [x] functions with a body
 - [x] `let obj = { a: 3 }`
 - [x] arrays
-- [ ] if & if else & elif
+- [ ] if & if else & elif expressions
 - [ ] match expressions
 - [ ] object deconstruction
 - [ ] array deconstruction
