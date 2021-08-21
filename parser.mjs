@@ -99,7 +99,6 @@ const makeConsumer = tokens => (i, tokensToConsume) => {
 }
 
 const isExpression = context => [
-  // TODO wtf - func isn't an expression
   STATEMENT_TYPE.RETURN,
   STATEMENT_TYPE.FUNCTION_APPLICATION,
   STATEMENT_TYPE.ASSIGNMENT,
@@ -203,8 +202,9 @@ const parse = tokens => {
           {token:TOKEN_NAMES.ARROW},
         ]);
         i = i3;
-        const [expr, i4] = parseNode(tokens[i3], STATEMENT_TYPE.RETURN);
         // TODO: implement non-expr body
+        assert(tokens[i3] !== TOKEN_NAMES.OPEN_BRACE);
+        const [expr, i4] = parseNode(tokens[i3], STATEMENT_TYPE.RETURN);
         const body = [_return({expr})];
         return [fn({body, paramNames}), i4];
 
