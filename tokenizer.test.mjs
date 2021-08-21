@@ -8,7 +8,6 @@ let passed = 0;
 const it = (str, fn) => {
   console.log(`it - ${str}`);
   fn();
-  console.log('succeeded!')
   passed++;
 }
 

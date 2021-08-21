@@ -41,9 +41,9 @@ let expr = match ([1, 2]) {
 - [x] call function with arguments
 - [ ] functions with a body
 - [x] `let obj = { a: 3 }`
+- [x] arrays
 - [ ] if & if else & elif
 - [ ] match expressions
-- [ ] arrays
 - [ ] object deconstruction
 - [ ] array deconstruction
 - [x] math operators

@@ -3,10 +3,11 @@ import { eq } from './utils.mjs';
 import assert from 'assert';
 import interpret from './interpreter.mjs';
 
+let passed = 0;
 const it = (str, fn) => {
   console.log(`it - ${str}`);
   fn();
-  console.log('succeeded!')
+  passed++;
 }
 
 it('should eval `let var = 3;`', () => {
@@ -356,3 +357,4 @@ if obj == { a: 3 } {
   succeedBranch: null,
   failBranch: null
 */
+console.log('Passed', passed, 'tests!');

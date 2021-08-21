@@ -3,10 +3,11 @@ import { TOKEN_NAMES } from './tokenizer.mjs';
 import { eq } from './utils.mjs';
 import assert from 'assert';
 
+let passed = 0;
 const it = (str, fn) => {
   console.log(`it - ${str}`);
   fn();
-  console.log('succeeded!')
+  passed++;
 }
 
 it('should parse `let var = 3;`', () => {
@@ -366,6 +367,62 @@ it(`should parse object literal`, () => {
   }))
 });
 
+
+it(`should parse array literal`, () => {
+  const tokens = [
+    TOKEN_NAMES.LET,
+    [TOKEN_NAMES.SYMBOL, 'arr'],
+    TOKEN_NAMES.ASSIGNMENT,
+    TOKEN_NAMES.OPEN_SQ_BRACE,
+    [TOKEN_NAMES.LITERAL, 3],
+    TOKEN_NAMES.COMMA,
+    [TOKEN_NAMES.SYMBOL, 'a'],
+    TOKEN_NAMES.COMMA,
+    TOKEN_NAMES.OPEN_BRACE,
+    [TOKEN_NAMES.SYMBOL, 'b'],
+    TOKEN_NAMES.COLON,
+    [TOKEN_NAMES.LITERAL, 'str'],
+    TOKEN_NAMES.CLOSE_BRACE,
+    TOKEN_NAMES.CLOSE_SQ_BRACE,
+    TOKEN_NAMES.END_STATEMENT
+  ];
+  const ast = parse(tokens);
+
+  // let arr = [3, a, { b: 'str' }];
+  assert(eq(ast, {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      {
+        type: STATEMENT_TYPE.DECLARATION,
+        mutable: false,
+        symbol: 'arr',
+        expr: {
+          type: STATEMENT_TYPE.ARRAY_LITERAL,
+          elements: [
+            {
+              type: STATEMENT_TYPE.NUMBER_LITERAL,
+              value: 3
+            },
+            {
+              type: STATEMENT_TYPE.SYMBOL_LOOKUP,
+              symbol: 'a'
+            },
+            {
+              type: STATEMENT_TYPE.OBJECT_LITERAL,
+              value: {
+                b: {
+                  type: STATEMENT_TYPE.STRING_LITERAL,
+                  value: 'str'
+                }
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }))
+});
+
 /*
 
 if obj == { a: 3 } {
@@ -398,3 +455,5 @@ if obj == { a: 3 } {
   succeedBranch: null,
   failBranch: null
 */
+
+console.log('Passed', passed, 'tests!');

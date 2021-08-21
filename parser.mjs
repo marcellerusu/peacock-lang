@@ -11,6 +11,7 @@ export const STATEMENT_TYPE = {
   NUMBER_LITERAL: 'NUMBER_LITERAL',
   STRING_LITERAL: 'STRING_LITERAL',
   OBJECT_LITERAL: 'OBJECT_LITERAL',
+  ARRAY_LITERAL: 'ARRAY_LITERAL',
   FUNCTION_APPLICATION: 'FUNCTION_APPLICATION',
   SYMBOL_LOOKUP: 'SYMBOL_LOOKUP',
 };
@@ -31,17 +32,22 @@ const assignment = ({symbol, expr}) => ({
 const objectLiteral = ({ value }) => ({
   type: STATEMENT_TYPE.OBJECT_LITERAL,
   value,
+});
+
+const arrayLiteral = ({ elements }) => ({
+  type: STATEMENT_TYPE.ARRAY_LITERAL,
+  elements
 })
 
 const numberLiteral = ({ value }) => ({
   type: STATEMENT_TYPE.NUMBER_LITERAL,
   value,
-})
+});
 
 const stringLiteral = ({ value }) => ({
   type: STATEMENT_TYPE.STRING_LITERAL,
   value,
-})
+});
 
 const fn = ({paramNames = [], body}) => ({
   type: STATEMENT_TYPE.FUNCTION,
@@ -94,8 +100,12 @@ const makeConsumer = tokens => (i, tokensToConsume) => {
 
 const isExpression = context => [
   // TODO wtf - func isn't an expression
-  STATEMENT_TYPE.FUNCTION,
+  STATEMENT_TYPE.RETURN,
   STATEMENT_TYPE.FUNCTION_APPLICATION,
+  STATEMENT_TYPE.ASSIGNMENT,
+  STATEMENT_TYPE.DECLARATION,
+  STATEMENT_TYPE.ARRAY_LITERAL,
+  STATEMENT_TYPE.OBJECT_LITERAL
 ].includes(context);
 
 const parse = tokens => {
@@ -193,41 +203,55 @@ const parse = tokens => {
           {token:TOKEN_NAMES.ARROW},
         ]);
         i = i3;
-        const [expr, i4] = parseNode(tokens[i3], STATEMENT_TYPE.FUNCTION);
+        const [expr, i4] = parseNode(tokens[i3], STATEMENT_TYPE.RETURN);
         // TODO: implement non-expr body
         const body = [_return({expr})];
         return [fn({body, paramNames}), i4];
 
       }],
       [TOKEN_NAMES.OPEN_BRACE, () => {
-        if ([STATEMENT_TYPE.ASSIGNMENT, STATEMENT_TYPE.DECLARATION].includes(context)) {
-          const [_, i2] = consumeOne(i, TOKEN_NAMES.OPEN_BRACE);
-          i = i2;
-          const value = {};
-          while (true) {
-            let varName, i3;
-            // TODO: don't use try, implement peek
-            try {
-              [[varName], i3] = consume(i, [
-                {token: [TOKEN_NAMES.SYMBOL, any]},
-                {token: TOKEN_NAMES.COLON},
-              ]);
-            } catch (e) {
-              break;
-            }
-            i = i3;
-            const [expr, i4] = parseNode(tokens[i3], STATEMENT_TYPE.OBJECT_LITERAL);
-            i = i4;
-            value[varName] = expr;
-            const [_, i5] = consumeOne(i4, TOKEN_NAMES.COMMA);
-            i = i5;
+        // parsing an object literal
+        assert(isExpression(context));
+        const [_, i2] = consumeOne(i, TOKEN_NAMES.OPEN_BRACE);
+        i = i2;
+        const value = {};
+        while (true) {
+          let varName, i3;
+          // TODO: don't use try, implement peek
+          try {
+            [[varName], i3] = consume(i, [
+              {token: [TOKEN_NAMES.SYMBOL, any]},
+              {token: TOKEN_NAMES.COLON},
+            ]);
+          } catch (e) {
+            break;
           }
-          const [__, i6] = consumeOne(i, TOKEN_NAMES.CLOSE_BRACE);
-          return [objectLiteral({value}), i6];
-        } else {
-          console.log({context});
-          throw 'unimplemented';
+          i = i3;
+          const [expr, i4] = parseNode(tokens[i3], STATEMENT_TYPE.OBJECT_LITERAL);
+          i = i4;
+          value[varName] = expr;
+          if (tokens[i] !== TOKEN_NAMES.COMMA) break;
+          const [_, i5] = consumeOne(i4, TOKEN_NAMES.COMMA);
+          i = i5;
         }
+        const [__, i6] = consumeOne(i, TOKEN_NAMES.CLOSE_BRACE);
+        return [objectLiteral({value}), i6];
+      }],
+      [TOKEN_NAMES.OPEN_SQ_BRACE, () => {
+        // parsing an array literal
+        assert(isExpression(context));
+        let [_, i2] = consumeOne(i, TOKEN_NAMES.OPEN_SQ_BRACE);
+        i = i2;
+        const elements = [];
+        while (tokens[i] !== TOKEN_NAMES.CLOSE_BRACE) {
+          let expr;
+          [expr, i] = parseNode(tokens[i], STATEMENT_TYPE.ARRAY_LITERAL);
+          elements.push(expr);
+          if (tokens[i] !== TOKEN_NAMES.COMMA) break;
+          [_, i] = consumeOne(i, TOKEN_NAMES.COMMA);
+        }
+        [_, i] = consumeOne(i, TOKEN_NAMES.CLOSE_SQ_BRACE);
+        return [arrayLiteral({elements}), i];
       }],
       [any, () => { throw 'did not match any ' + token}],
     ]);
