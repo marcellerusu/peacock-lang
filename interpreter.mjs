@@ -57,7 +57,7 @@ const evalExpr = (expr, context, closureContext = {}) => match(expr.type, [
   [STATEMENT_TYPE.OBJECT_LITERAL, () => {
     const obj = {};
     for (let key in expr.value) {
-      obj[key] = evalExpr(value[key], context, closureContext).value;
+      obj[key] = evalExpr(expr.value[key], context, closureContext).value;
     }
     return {value: obj};
   }],

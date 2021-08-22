@@ -372,6 +372,17 @@ it('should eval curried a + b', () => {
   assert(global.g.value === 3)
 });
 
+
+it('should eval directly curried a + b', () => {
+  const program = parse(tokenize(`
+  let f = (a) => (b) => a + b;
+  let h = f(1)(2);
+  `));
+  const global = interpret(program);
+
+  assert(global.h.value === 3)
+});
+
 it('should eval arr', () => {
   const program = parse(tokenize(`
   let arr = [1, 'str', {a: 3}];  
