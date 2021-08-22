@@ -13,7 +13,6 @@ import parse, {
   propertyLookup,
   makeConsumer,
 } from './parser.mjs';
-import diff from './diff.mjs';
 import tokenize, { TOKEN_NAMES } from './tokenizer.mjs';
 import { eq } from './utils.mjs';
 import assert from 'assert';
