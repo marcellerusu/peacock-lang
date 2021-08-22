@@ -44,6 +44,7 @@ let expr = match ([1, 2]) {
 - [x] function arguments used in body
 - [x] call function with arguments
 - [x] function statements
+- [ ] arbitrarily nested function calls
 - [x] `let obj = { a: 3 };`
  - [ ] objects with functions as values
 - [x] arrays

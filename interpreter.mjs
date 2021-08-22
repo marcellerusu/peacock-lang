@@ -55,19 +55,15 @@ const evalExpr = (expr, context, closureContext = {}) => match(expr.type, [
     return evalExpr(body[0].expr, context, fnContext);
   }],
   [STATEMENT_TYPE.OBJECT_LITERAL, () => {
-    const {value} = expr;
     const obj = {};
-    for (let key in value) {
+    for (let key in expr.value) {
       obj[key] = evalExpr(value[key], context, closureContext).value;
     }
     return {value: obj};
   }],
-  [STATEMENT_TYPE.ARRAY_LITERAL, () => {
-    return {
-      value: expr.elements.map(el =>
-        evalExpr(el, context, closureContext).value)
-    };
-  }],
+  [STATEMENT_TYPE.ARRAY_LITERAL, () => ({
+    value: expr.elements.map(el => evalExpr(el, context, closureContext).value)
+  })],
   [STATEMENT_TYPE.PROPERTY_LOOKUP, () => {
     const {property, expr: _expr} = expr;
     const object = evalExpr(_expr, context, closureContext).value;
@@ -76,8 +72,6 @@ const evalExpr = (expr, context, closureContext = {}) => match(expr.type, [
   }],
   [any, () => { console.log(expr); throw 'unimplemented -- evalExpr'; }]
 ]);
-
-
 
 const interpret = (ast, context = {}, global = {...globals}) => {
   context = {...global};
