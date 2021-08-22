@@ -42,8 +42,10 @@ const evalExpr = (expr, context) => match(expr.type, [
     assert(body.length === 1);
     const fnContext = {};
     for (let i = 0; i < paramExprs.length; i++) {
-      // does this make the language lazy??
-      fnContext[paramNames[i]] = paramExprs[i];
+      fnContext[paramNames[i]] = {
+        mutable: false,
+        value: evalExpr(paramExprs[i], context)
+      };
     }
     return evalExpr(body[0].expr, {...context, ...fnContext});
   }],
