@@ -385,7 +385,7 @@ it(`should eval object dot notation on object`, () => {
   assert(global.yesa.value === 5);
 });
 
-it(`should parse nested object dot notation on variable`, () => {
+it(`should eval nested object dot notation on variable`, () => {
   const ast = {
     type: STATEMENT_TYPE.PROGRAM,
     body: [
