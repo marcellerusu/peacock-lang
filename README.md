@@ -45,7 +45,7 @@ let expr = match ([1, 2]) {
 - [x] call function with arguments
 - [x] function statements
 - [x] `let obj = { a: 3 };`
- - [-] objects with functions as values
+ - [ ] objects with functions as values
 - [x] arrays
 - [ ] if, else & elif expressions
 - [ ] match expressions
@@ -62,8 +62,12 @@ let expr = match ([1, 2]) {
 - [x] `var = 5;`
 - [x] `let function = () => 3;`
 - [x] `function()`
-- [x] math operators
-  - [ ] in variable declaration
+- [x] operators
+  - [ ] rhs should be any expression
+    - [x] number literal
+    - [x] symbol lookup
+    - [ ] object property lookup
+  - [ ] lhs should be any expression
 - [x] functions with a body
 - [x] function arguments
 - [x] function arguments used in body
