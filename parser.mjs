@@ -17,68 +17,68 @@ export const STATEMENT_TYPE = {
   PROPERTY_LOOKUP: 'PROPERTY_LOOKUP',
 };
 
-const declaration = ({symbol, expr, mutable}) => ({
+export const declaration = ({symbol, expr, mutable}) => ({
   type: STATEMENT_TYPE.DECLARATION,
   mutable: !!mutable,
   symbol,
   expr
 });
 
-const assignment = ({symbol, expr}) => ({
+export const assignment = ({symbol, expr}) => ({
   type: STATEMENT_TYPE.ASSIGNMENT,
   symbol,
   expr
 });
 
-const objectLiteral = ({ value }) => ({
+export const objectLiteral = ({ value }) => ({
   type: STATEMENT_TYPE.OBJECT_LITERAL,
   value,
 });
 
-const arrayLiteral = ({ elements }) => ({
+export const arrayLiteral = ({ elements }) => ({
   type: STATEMENT_TYPE.ARRAY_LITERAL,
   elements
 })
 
-const numberLiteral = ({ value }) => ({
+export const numberLiteral = ({ value }) => ({
   type: STATEMENT_TYPE.NUMBER_LITERAL,
   value,
 });
 
-const stringLiteral = ({ value }) => ({
+export const stringLiteral = ({ value }) => ({
   type: STATEMENT_TYPE.STRING_LITERAL,
   value,
 });
 
-const fn = ({paramNames = [], body}) => ({
+export const fn = ({paramNames = [], body}) => ({
   type: STATEMENT_TYPE.FUNCTION,
   paramNames,
   body,
 });
 
-const fnCall = ({symbol, paramExprs = []}) => ({
+export const fnCall = ({expr, paramExprs = []}) => ({
   type: STATEMENT_TYPE.FUNCTION_APPLICATION,
-  symbol,
+  expr,
   paramExprs
 });
 
-const _return = ({expr}) => ({
+export const _return = ({expr}) => ({
   type: STATEMENT_TYPE.RETURN,
   expr
 });
 
-const symbolLookup = ({symbol}) => ({
+export const symbolLookup = ({symbol}) => ({
   type: STATEMENT_TYPE.SYMBOL_LOOKUP,
   symbol,
 });
 
-const propertyLookup = ({property, expr}) => ({
+export const propertyLookup = ({property, expr}) => ({
   type: STATEMENT_TYPE.PROPERTY_LOOKUP,
   property,
   expr,
 })
 
-const makeConsumer = tokens => (i, tokensToConsume) => {
+export const makeConsumer = tokens => (i, tokensToConsume) => {
   const tokenValues = [];
   for (let consumable of tokensToConsume) {
     const token = tokens[i++];
@@ -122,6 +122,32 @@ const parse = tokens => {
   };
   const AST = { type: STATEMENT_TYPE.PROGRAM, body: [], };
   for (let i = 0; i < tokens.length; i++) {
+    const parseFunctionCall = expr => {
+      [, i] = consumeOne(i, TOKEN_NAMES.OPEN_PARAN);
+      const paramExprs = [];
+      while (tokens[i] !== TOKEN_NAMES.CLOSE_PARAN) {
+        const expr = parseNode(tokens[i], STATEMENT_TYPE.FUNCTION_APPLICATION);
+        paramExprs.push(expr);
+        if (tokens[i] !== TOKEN_NAMES.COMMA) break;
+        [, i] = consumeOne(i, TOKEN_NAMES.COMMA);
+      }
+      [, i] = consumeOne(i, TOKEN_NAMES.CLOSE_PARAN);
+      return fnCall({ expr, paramExprs });
+    };
+
+    const parseDotNotation = expr => {
+      let property, propertyList = [];
+      while (tokens[i] === TOKEN_NAMES.PROPERTY_ACCESSOR) {
+        [, i] = consumeOne(i, TOKEN_NAMES.PROPERTY_ACCESSOR);
+        [property, i] = consumeOne(i, [TOKEN_NAMES.SYMBOL, any]);
+        propertyList.push(property);
+      }
+      for (const prop of propertyList) {
+        expr = propertyLookup({property: prop, expr});
+      }
+      return expr;
+    };
+
     const parseNode = (token, context = undefined) => match(token, [
       [[TOKEN_NAMES.LITERAL, any], () => {
         let value;
@@ -162,45 +188,20 @@ const parse = tokens => {
             const expr = parseNode(tokens[i], STATEMENT_TYPE.ASSIGNMENT);
             return assignment({symbol, expr});
           }],
-          [TOKEN_NAMES.OPEN_PARAN, () => {
-            // function application
-            [, i] = consumeOne(i, TOKEN_NAMES.OPEN_PARAN);
-            const paramExprs = [];
-            while (tokens[i] !== TOKEN_NAMES.CLOSE_PARAN) {
-              const expr = parseNode(tokens[i], STATEMENT_TYPE.FUNCTION_APPLICATION);
-              paramExprs.push(expr);
-              if (tokens[i] !== TOKEN_NAMES.COMMA) break;
-              [, i] = consumeOne(i, TOKEN_NAMES.COMMA);
-            }
-            [, i] = consumeOne(i, TOKEN_NAMES.CLOSE_PARAN);
-            return fnCall({symbol, paramExprs});
-          }],
+          [TOKEN_NAMES.OPEN_PARAN, () => parseFunctionCall(symbolLookup({symbol}))],
           [[TOKEN_NAMES.OPERATOR, any], () => {
             let op;
             [op, i] = consumeOne(i, [TOKEN_NAMES.OPERATOR, any]);
             const expr = parseNode(tokens[i], STATEMENT_TYPE.FUNCTION_APPLICATION);
             return fnCall({
-              symbol: op,
+              expr: symbolLookup({symbol: op}),
               paramExprs: [
                 symbolLookup({symbol}),
                 expr
               ]
             });
           }],
-          [TOKEN_NAMES.PROPERTY_ACCESSOR, () => {
-            // object dot notation
-            let property, propertyList = [];
-            while (tokens[i] === TOKEN_NAMES.PROPERTY_ACCESSOR) {
-              [, i] = consumeOne(i, TOKEN_NAMES.PROPERTY_ACCESSOR);
-              [property, i] = consumeOne(i, [TOKEN_NAMES.SYMBOL, any]);
-              propertyList.push(property);
-            }
-            let expr = symbolLookup({symbol});
-            for (const prop of propertyList) {
-              expr = propertyLookup({property: prop, expr});
-            }
-            return expr;
-          }],
+          [TOKEN_NAMES.PROPERTY_ACCESSOR, () => parseDotNotation(symbolLookup({symbol}))],
           [any, () => {
             assert(isExpression(context));
             return symbolLookup({symbol});
@@ -270,18 +271,7 @@ const parse = tokens => {
         // ---- DONE PARSING OBJECT PROPERTIES ----
         // CHECK IF doing property lookup----
         if (tokens[i] === TOKEN_NAMES.PROPERTY_ACCESSOR) {
-          // TODO: this is duplicate code
-          let property, propertyList = [];
-          while (tokens[i] === TOKEN_NAMES.PROPERTY_ACCESSOR) {
-            [, i] = consumeOne(i, TOKEN_NAMES.PROPERTY_ACCESSOR);
-            [property, i] = consumeOne(i, [TOKEN_NAMES.SYMBOL, any]);
-            propertyList.push(property);
-          }
-          let expr = objectLiteral({value});
-          for (const prop of propertyList) {
-            expr = propertyLookup({property: prop, expr});
-          }
-          return expr;
+          return parseDotNotation(objectLiteral({value}))
 
         }
         return objectLiteral({value});
