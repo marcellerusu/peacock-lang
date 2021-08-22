@@ -16,6 +16,7 @@ let expr = match ([1, 2]) {
 
 - [x] `let var = 3;`
 - [x] `let mut var = 5;`
+- [ ] comments - # -- take out here
 - [x] `let var = 'string';`
 - [x] `let function = () => 3;`
 - [x] functions with a body (& explicit return)
@@ -44,6 +45,7 @@ let expr = match ([1, 2]) {
 - [x] call function with arguments
 - [x] function statements
 - [x] `let obj = { a: 3 };`
+ - [-] objects with functions as values
 - [x] arrays
 - [ ] if, else & elif expressions
 - [ ] match expressions
