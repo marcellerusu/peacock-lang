@@ -1,4 +1,5 @@
-import { STATEMENT_TYPE } from './parser.mjs';
+import parse, { STATEMENT_TYPE } from './parser.mjs';
+import tokenize from './tokenizer.mjs';
 import { eq } from './utils.mjs';
 import assert from 'assert';
 import interpret from './interpreter.mjs';
@@ -64,6 +65,7 @@ it('should eval function', () => {
   assert(eq(globals['function'].value, {
     type: STATEMENT_TYPE.FUNCTION,
     paramNames: [],
+    curryContext: {},
     body: [
       {
         type: STATEMENT_TYPE.RETURN,
@@ -430,6 +432,17 @@ it(`should eval nested object dot notation on variable`, () => {
   const global = interpret(ast);
   assert(global.b.value === 5);
 });
+
+it('should eval curried a + b', () => {
+  const program = parse(tokenize(`
+  let f = (a) => (b) => a + b;
+  let h = f(1);
+  let g = h(2);
+  `));
+  const global = interpret(program);
+
+  assert(global.g.value === 3)
+})
 
 // it(`should parse array literal`, () => {
 //   const tokens = [

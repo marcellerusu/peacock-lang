@@ -3,11 +3,12 @@ import tokenize from "./tokenizer.mjs";
 import parse from "./parser.mjs";
 
 const program = `
-let add = (a, b) => a + b;
-let add2 = (a) => add(2, a);
-
-print(add(3, 4));
+let f = (a) => (b) => a + b;
+let h = f(1);
+let g = h(2);
 `;
 
-interpret(parse(tokenize(program)));
+const global = interpret(parse(tokenize(program)));
+
+console.log(JSON.stringify(global.g.value))
 
