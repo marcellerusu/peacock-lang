@@ -1,4 +1,19 @@
-import parse, {STATEMENT_TYPE} from './parser.mjs';
+import parse, {
+  STATEMENT_TYPE,
+  declaration,
+  assignment,
+  objectLiteral,
+  arrayLiteral,
+  numberLiteral,
+  stringLiteral,
+  fn,
+  fnCall,
+  _return,
+  symbolLookup,
+  propertyLookup,
+  makeConsumer,
+} from './parser.mjs';
+import diff from './diff.mjs';
 import tokenize, { TOKEN_NAMES } from './tokenizer.mjs';
 import { eq } from './utils.mjs';
 import assert from 'assert';
@@ -19,19 +34,15 @@ it('should parse `let var = 3;`', () => {
     TOKEN_NAMES.END_STATEMENT
   ];
   const ast = parse(tokens);
-
+  console.log(ast.body[0]);
   assert(eq(ast, {
     type: STATEMENT_TYPE.PROGRAM,
     body: [
-      {
-        type: STATEMENT_TYPE.DECLARATION,
+      declaration({
         symbol: 'var',
         mutable: false,
-        expr: {
-          type: STATEMENT_TYPE.NUMBER_LITERAL,
-          value: 3
-        }
-      },
+        expr: numberLiteral({value: 3})
+      })
     ]
   }))
 });
@@ -50,15 +61,11 @@ it('should parse `let var = \'abc\';`', () => {
   assert(eq(ast, {
     type: STATEMENT_TYPE.PROGRAM,
     body: [
-      {
-        type: STATEMENT_TYPE.DECLARATION,
+      declaration({
         symbol: 'var',
         mutable: false,
-        expr: {
-          type: STATEMENT_TYPE.STRING_LITERAL,
-          value: 'abc'
-        }
-      },
+        expr: stringLiteral({value: 'abc'})
+      })
     ]
   }))
 });
@@ -78,15 +85,11 @@ it(`should parse mutable variable`, () => {
   assert(eq(ast, {
     type: STATEMENT_TYPE.PROGRAM,
     body: [
-      {
-        type: STATEMENT_TYPE.DECLARATION,
-        mutable: true,
+      declaration({
         symbol: 'var',
-        expr: {
-          type: STATEMENT_TYPE.NUMBER_LITERAL,
-          value: 3
-        }
-      },
+        mutable: true,
+        expr: numberLiteral({value: 3})
+      }),
     ]
   }))
 });
@@ -104,14 +107,7 @@ it(`should parse variable assignment`, () => {
   assert(eq(ast, {
     type: STATEMENT_TYPE.PROGRAM,
     body: [
-      {
-        type: STATEMENT_TYPE.ASSIGNMENT,
-        symbol: 'var',
-        expr: {
-          type: STATEMENT_TYPE.NUMBER_LITERAL,
-          value: 3
-        }
-      },
+      assignment({symbol: 'var', expr: numberLiteral({value: 3})}),
     ]
   }))
 });
@@ -128,29 +124,15 @@ it(`should parse function`, () => {
     TOKEN_NAMES.END_STATEMENT
   ];
   const ast = parse(tokens);
-  // console.log(ast.body[0].expr.body);
 
   assert(eq(ast, {
     type: STATEMENT_TYPE.PROGRAM,
     body: [
-      {
-        type: STATEMENT_TYPE.DECLARATION,
-        mutable: false,
+      declaration({
         symbol: 'function',
-        expr: {
-          type: STATEMENT_TYPE.FUNCTION,
-          paramNames: [],
-          body: [
-            {
-              type: STATEMENT_TYPE.RETURN,
-              expr: {
-                type: STATEMENT_TYPE.NUMBER_LITERAL,
-                value: 3
-              }
-            }
-          ]
-        }
-      },
+        mutable: false,
+        expr: fn({paramNames: [], body: [_return({expr: numberLiteral({value: 3})})]})
+      })
     ]
   }))
 });
@@ -173,24 +155,11 @@ it(`should parse function with variable lookup`, () => {
   assert(eq(ast, {
     type: STATEMENT_TYPE.PROGRAM,
     body: [
-      {
-        type: STATEMENT_TYPE.DECLARATION,
-        mutable: false,
+      declaration({
         symbol: 'function',
-        expr: {
-          type: STATEMENT_TYPE.FUNCTION,
-          paramNames: [],
-          body: [
-            {
-              type: STATEMENT_TYPE.RETURN,
-              expr: {
-                type: STATEMENT_TYPE.SYMBOL_LOOKUP,
-                symbol: 'a'
-              }
-            }
-          ]
-        }
-      },
+        mutable: false,
+        expr: fn({paramNames: [], body: [_return({expr: symbolLookup({symbol: 'a'})})]})
+      })
     ]
   }))
 });
@@ -213,24 +182,11 @@ it(`should parse identity function`, () => {
   assert(eq(ast, {
     type: STATEMENT_TYPE.PROGRAM,
     body: [
-      {
-        type: STATEMENT_TYPE.DECLARATION,
-        mutable: false,
+      declaration({
         symbol: 'id',
-        expr: {
-          type: STATEMENT_TYPE.FUNCTION,
-          paramNames: ['x'],
-          body: [ 
-            {
-              type: STATEMENT_TYPE.RETURN,
-              expr: {
-                type: STATEMENT_TYPE.SYMBOL_LOOKUP,
-                symbol: 'x'
-              }
-            }
-          ]
-        }
-      },
+        mutable: false,
+        expr: fn({paramNames: ['x'], body: [_return({expr: symbolLookup({symbol: 'x'})})]})
+      }),
     ]
   }))
 });
@@ -251,20 +207,13 @@ it(`should parse function application with arguments`, () => {
   assert(eq(ast, {
     type: STATEMENT_TYPE.PROGRAM,
     body: [
-      {
-        type: STATEMENT_TYPE.FUNCTION_APPLICATION,
-        symbol: 'add',
+      fnCall({
+        expr: symbolLookup({symbol: 'add'}),
         paramExprs: [
-          {
-            type: STATEMENT_TYPE.SYMBOL_LOOKUP,
-            symbol: 'a'
-          },
-          {
-            type: STATEMENT_TYPE.SYMBOL_LOOKUP,
-            symbol: 'b'
-          }
+          symbolLookup({symbol: 'a'}),
+          symbolLookup({symbol: 'b'}),
         ]
-      },
+      }),
     ]
   }))
 });
@@ -291,34 +240,19 @@ it(`should parse function with multiple args`, () => {
   assert(eq(ast, {
     type: STATEMENT_TYPE.PROGRAM,
     body: [
-      {
-        type: STATEMENT_TYPE.DECLARATION,
-        mutable: false,
+      declaration({
         symbol: 'add',
-        expr: {
-          type: STATEMENT_TYPE.FUNCTION,
+        mutable: false,
+        expr: fn({
           paramNames: ['a', 'b'],
-          body: [ 
-            {
-              type: STATEMENT_TYPE.RETURN,
-              expr: {
-                type: STATEMENT_TYPE.FUNCTION_APPLICATION,
-                symbol: '+',
-                paramExprs: [
-                  {
-                    type: STATEMENT_TYPE.SYMBOL_LOOKUP,
-                    symbol: 'a'
-                  },
-                  {
-                    type: STATEMENT_TYPE.SYMBOL_LOOKUP,
-                    symbol: 'b'
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      },
+          body: [_return({
+            expr: fnCall({
+              expr: symbolLookup({symbol: '+'}),
+              paramExprs: [symbolLookup({symbol: 'a'}), symbolLookup({symbol: 'b'})]
+            })
+          })]
+        })
+      }),
     ]
   }))
 });
@@ -346,24 +280,14 @@ it(`should parse function with body`, () => {
   assert(eq(ast, {
     type: STATEMENT_TYPE.PROGRAM,
     body: [
-      {
-        type: STATEMENT_TYPE.DECLARATION,
-        mutable: false,
+      declaration({
         symbol: 'function',
-        expr: {
-          type: STATEMENT_TYPE.FUNCTION,
+        mutable: false,
+        expr: fn({
           paramNames: [],
-          body: [
-            {
-              type: STATEMENT_TYPE.RETURN,
-              expr: {
-                type: STATEMENT_TYPE.SYMBOL_LOOKUP,
-                symbol: 'a'
-              }
-            }
-          ]
-        }
-      },
+          body: [_return({expr: symbolLookup({symbol: 'a'})})]
+        })
+      }),
     ]
   }))
 });
@@ -391,24 +315,11 @@ it(`should parse object literal`, () => {
   assert(eq(ast, {
     type: STATEMENT_TYPE.PROGRAM,
     body: [
-      {
-        type: STATEMENT_TYPE.DECLARATION,
-        mutable: false,
+      declaration({
         symbol: 'obj',
-        expr: {
-          type: STATEMENT_TYPE.OBJECT_LITERAL,
-          value: {
-            a: {
-              type: STATEMENT_TYPE.NUMBER_LITERAL,
-              value: 3
-            },
-            yesa: {
-              type: STATEMENT_TYPE.NUMBER_LITERAL,
-              value: 5
-            }
-          }
-        }
-      }
+        mutable: false,
+        expr: objectLiteral({value: { a: numberLiteral({value: 3}), yesa: numberLiteral({value: 5})}})
+      })
     ]
   }))
 });
@@ -596,7 +507,7 @@ it('should parse assignment with variable & literal', () => {
         symbol: 'b',
         expr: {
           type: STATEMENT_TYPE.FUNCTION_APPLICATION,
-          symbol: '+',
+          expr: symbolLookup({symbol: '+'}),
           paramExprs: [
             {
               type: STATEMENT_TYPE.SYMBOL_LOOKUP,
@@ -633,6 +544,50 @@ it('should parse function statements', () => {
           body: []
         }
       }
+    ]
+  }))
+});
+
+it('should parse double function application', () => {
+  const program = tokenize(`
+  let f = (a) => (b) => a + b;
+  let h = f(1)(2);
+  `);
+  const ast = parse(program);
+  assert(eq(ast, {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      declaration({
+        mutable: false,
+        symbol: 'f',
+        expr: fn({
+          paramNames: ['a'],
+          body: [
+            _return({
+              expr: fn({
+                paramNames: ['b'],
+                body: [
+                  _return({expr: fnCall({
+                    expr: symbolLookup({symbol: '+'}),
+                    paramExprs: [symbolLookup({symbol: 'a'}), symbolLookup({symbol: 'b'})]
+                  })})
+                ]
+              })
+            })
+          ]
+        })
+      }),
+      declaration({
+        mutable: false,
+        symbol: 'h',
+        expr: fnCall({
+          expr: fnCall({
+            expr: symbolLookup({symbol: 'f'}),
+            paramExprs: [numberLiteral({value: 1})]
+          }),
+          paramExprs: [numberLiteral({value: 2})]
+        })
+      })
     ]
   }))
 })

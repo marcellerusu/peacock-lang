@@ -115,31 +115,31 @@ const isExpression = context => [
 ].includes(context);
 
 const parse = tokens => {
-  const consume = makeConsumer(tokens);
-  const consumeOne = (i, token) => {
-    const [[val], i2] = consume(i, [{token}]);
-    return [val, i2];
-  };
   const AST = { type: STATEMENT_TYPE.PROGRAM, body: [], };
   for (let i = 0; i < tokens.length; i++) {
+    const consume = consumables => {
+      const [arr, i2] = makeConsumer(tokens)(i, consumables);
+      i = i2;
+      return arr;
+    };
+    const consumeOne = token => consume([{token}])[0];
     const parseFunctionCall = expr => {
-      [, i] = consumeOne(i, TOKEN_NAMES.OPEN_PARAN);
+      consumeOne(TOKEN_NAMES.OPEN_PARAN);
       const paramExprs = [];
       while (tokens[i] !== TOKEN_NAMES.CLOSE_PARAN) {
         paramExprs.push(parseNode(tokens[i], STATEMENT_TYPE.FUNCTION_APPLICATION));
         if (tokens[i] !== TOKEN_NAMES.COMMA) break;
-        [, i] = consumeOne(i, TOKEN_NAMES.COMMA);
+        consumeOne(TOKEN_NAMES.COMMA);
       }
-      [, i] = consumeOne(i, TOKEN_NAMES.CLOSE_PARAN);
+      consumeOne(TOKEN_NAMES.CLOSE_PARAN);
       return fnCall({ expr, paramExprs });
     };
 
     const parseDotNotation = expr => {
-      let property, propertyList = [];
+      const propertyList = [];
       while (tokens[i] === TOKEN_NAMES.PROPERTY_ACCESSOR) {
-        [, i] = consumeOne(i, TOKEN_NAMES.PROPERTY_ACCESSOR);
-        [property, i] = consumeOne(i, [TOKEN_NAMES.SYMBOL, any]);
-        propertyList.push(property);
+        consumeOne(TOKEN_NAMES.PROPERTY_ACCESSOR);
+        propertyList.push(consumeOne([TOKEN_NAMES.SYMBOL, any]));
       }
       for (const prop of propertyList) {
         expr = propertyLookup({property: prop, expr});
@@ -148,14 +148,14 @@ const parse = tokens => {
     };
 
     const parseObjectLiteral = () => {
-      [, i] = consumeOne(i, TOKEN_NAMES.OPEN_BRACE);
+      consumeOne(TOKEN_NAMES.OPEN_BRACE);
       // ---- PARSING OBJECT PROPERTIES ----
       const value = {};
       while (true) {
         let varName;
         // TODO: don't use try, implement peek
         try {
-          [[varName], i] = consume(i, [
+          [varName] = consume([
             {token: [TOKEN_NAMES.SYMBOL, any]},
             {token: TOKEN_NAMES.COLON},
           ]);
@@ -164,32 +164,30 @@ const parse = tokens => {
         }
         value[varName] = parseNode(tokens[i], STATEMENT_TYPE.OBJECT_LITERAL);
         if (tokens[i] !== TOKEN_NAMES.COMMA) break;
-        [, i] = consumeOne(i, TOKEN_NAMES.COMMA);
+        consumeOne(TOKEN_NAMES.COMMA);
       }
-      [, i] = consumeOne(i, TOKEN_NAMES.CLOSE_BRACE);
+      consumeOne(TOKEN_NAMES.CLOSE_BRACE);
       return value;
     };
 
     const parseArrayLiteral = () => {
-      [, i] = consumeOne(i, TOKEN_NAMES.OPEN_SQ_BRACE);
+      consumeOne(TOKEN_NAMES.OPEN_SQ_BRACE);
       const elements = [];
       while (tokens[i] !== TOKEN_NAMES.CLOSE_SQ_BRACE) {
         elements.push(parseNode(tokens[i], STATEMENT_TYPE.ARRAY_LITERAL));
         if (tokens[i] !== TOKEN_NAMES.COMMA) break;
-        [, i] = consumeOne(i, TOKEN_NAMES.COMMA);
+        consumeOne(TOKEN_NAMES.COMMA);
       }
-      [, i] = consumeOne(i, TOKEN_NAMES.CLOSE_SQ_BRACE);
+      consumeOne(TOKEN_NAMES.CLOSE_SQ_BRACE);
       return elements;
     };
 
     const parseFunctionDefinitionArgs = () => {
-      let sym;
       const paramNames = [];
       while (tokens[i] !== TOKEN_NAMES.CLOSE_PARAN) {
-        [sym, i] = consumeOne(i, [TOKEN_NAMES.SYMBOL, any]);
-        paramNames.push(sym);
+        paramNames.push(consumeOne([TOKEN_NAMES.SYMBOL, any]));
         if (tokens[i] !== TOKEN_NAMES.COMMA) break;
-        [, i] = consumeOne(i, TOKEN_NAMES.COMMA);
+        consumeOne(TOKEN_NAMES.COMMA);
       }
       return paramNames;
     };
@@ -201,7 +199,7 @@ const parse = tokens => {
         return [_return({expr})];
       } else {
         // function statement
-        [, i] = consumeOne(i, TOKEN_NAMES.OPEN_BRACE);
+        consumeOne(TOKEN_NAMES.OPEN_BRACE);
         let expr = {}, body = [];
         while (
           expr.type !== STATEMENT_TYPE.RETURN
@@ -211,15 +209,14 @@ const parse = tokens => {
           expr = parseNode(tokens[i], STATEMENT_TYPE.FUNCTION)
           body.push(expr);
         }
-        [, i] = consumeOne(i, TOKEN_NAMES.CLOSE_BRACE);
+        consumeOne(TOKEN_NAMES.CLOSE_BRACE);
         return body;
       }
     }
 
     const parseNode = (token, context = undefined) => match(token, [
       [[TOKEN_NAMES.LITERAL, any], () => {
-        let value;
-        [value, i] = consumeOne(i, token);
+        const value = consumeOne(token);
         if (typeof value === 'number') {
           return numberLiteral({value});
         } else if (typeof value === 'string') {
@@ -229,37 +226,43 @@ const parse = tokens => {
         }
       }],
       [TOKEN_NAMES.RETURN, () => {
-        [, i] = consumeOne(i, TOKEN_NAMES.RETURN);
+        consumeOne(TOKEN_NAMES.RETURN);
         const expr = parseNode(tokens[i], STATEMENT_TYPE.RETURN);
-        [, i] = consumeOne(i, TOKEN_NAMES.END_STATEMENT);
+        consumeOne(TOKEN_NAMES.END_STATEMENT);
         return _return({expr});
       }],
       [TOKEN_NAMES.LET, () => {
         assert(!isExpression(context));
-        let mutable, symbol;
-        [, i] = consumeOne(i, TOKEN_NAMES.LET);
-        [[mutable, symbol], i] = consume(i, [
+        consumeOne(TOKEN_NAMES.LET);
+        const [mutable, symbol] = consume([
           {token: TOKEN_NAMES.MUT, optional: true},
           {token: [TOKEN_NAMES.SYMBOL, any]},
           {token: TOKEN_NAMES.ASSIGNMENT},
         ]);
         const expr = parseNode(tokens[i], STATEMENT_TYPE.DECLARATION);
-        [, i] = consumeOne(i, TOKEN_NAMES.END_STATEMENT);
+        consumeOne(TOKEN_NAMES.END_STATEMENT);
         return declaration({mutable, symbol, expr});
       }],
       [[TOKEN_NAMES.SYMBOL, any], () => {
-        let symbol;
-        [symbol, i] = consumeOne(i, token);
+        const symbol = consumeOne(token);
         return match(tokens[i], [
           [TOKEN_NAMES.ASSIGNMENT, () => {
-            [, i] = consumeOne(i, TOKEN_NAMES.ASSIGNMENT);
+            consumeOne(TOKEN_NAMES.ASSIGNMENT);
             const expr = parseNode(tokens[i], STATEMENT_TYPE.ASSIGNMENT);
             return assignment({symbol, expr});
           }],
-          [TOKEN_NAMES.OPEN_PARAN, () => parseFunctionCall(symbolLookup({symbol}))],
+          [TOKEN_NAMES.OPEN_PARAN, () => {
+            const call = parseFunctionCall(symbolLookup({symbol}));
+            if (tokens[i] === TOKEN_NAMES.END_STATEMENT) return call;
+            // TODO: this is no good, it only goes one property more
+            return match(tokens[i], [
+              [TOKEN_NAMES.PROPERTY_ACCESSOR, () => parseDotNotation(call)],
+              [TOKEN_NAMES.OPEN_PARAN, () => parseFunctionCall(call)],
+              [any, () => assert(tokens[i] === STATEMENT_TYPE.END_STATEMENT)]
+            ]);
+          }],
           [[TOKEN_NAMES.OPERATOR, any], () => {
-            let op;
-            [op, i] = consumeOne(i, [TOKEN_NAMES.OPERATOR, any]);
+            const op = consumeOne([TOKEN_NAMES.OPERATOR, any]);
             const expr = parseNode(tokens[i], STATEMENT_TYPE.FUNCTION_APPLICATION);
             return fnCall({
               expr: symbolLookup({symbol: op}),
@@ -278,12 +281,10 @@ const parse = tokens => {
       }],
       [TOKEN_NAMES.OPEN_PARAN, () => {
         // function definition
-        [, i] = consumeOne(i, TOKEN_NAMES.OPEN_PARAN);
+        consumeOne(TOKEN_NAMES.OPEN_PARAN);
         const paramNames = parseFunctionDefinitionArgs();
-        [, i] = consume(i, [
-          {token: TOKEN_NAMES.CLOSE_PARAN},
-          {token: TOKEN_NAMES.ARROW},
-        ]);
+        consumeOne(TOKEN_NAMES.CLOSE_PARAN);
+        consumeOne(TOKEN_NAMES.ARROW);
         return fn({body: parseFunctionBody(), paramNames});
       }],
       [TOKEN_NAMES.OPEN_BRACE, () => {
