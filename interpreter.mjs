@@ -20,54 +20,64 @@ const globals = {
   }
 };
 
-// TODO: remove curryContext or rename to closure context
-const evalExpr = (expr, context, curryContext = {}) => match(expr.type, [
-  [STATEMENT_TYPE.NUMBER_LITERAL, () => expr.value],
-  [STATEMENT_TYPE.STRING_LITERAL, () => expr.value],
-  [STATEMENT_TYPE.SYMBOL_LOOKUP, () => {
-    return (curryContext[expr.symbol] || context[expr.symbol]).value
-  }],
-  [STATEMENT_TYPE.FUNCTION, () => ({...expr, curryContext})],
+const evalExpr = (expr, context, closureContext = {}) => match(expr.type, [
+  [STATEMENT_TYPE.NUMBER_LITERAL, () => expr],
+  [STATEMENT_TYPE.STRING_LITERAL, () => expr],
+  [STATEMENT_TYPE.SYMBOL_LOOKUP, () => closureContext[expr.symbol] || context[expr.symbol]],
+  [STATEMENT_TYPE.FUNCTION, () => ({value: {...expr, closureContext}})],
   [STATEMENT_TYPE.FUNCTION_APPLICATION, () => {
-    const {paramExprs, symbol} = expr;
-    if (context[symbol].native) {
-      const nativeFn = context[symbol].native
+    const {paramExprs, expr: fnExpr} = expr;
+    const fn = evalExpr(fnExpr, context, closureContext);
+    if (fn.native) {
+      const nativeFn = fn.native
       const args = [];
       for (const expr of paramExprs) {
-        args.push(evalExpr(expr, context, curryContext));
+        const val = evalExpr(expr, context, closureContext);
+        assert(typeof val.value !== 'undefined');
+        args.push(val.value);
       }
-      return nativeFn(...args);
+      return { value: nativeFn(...args) };
     }
-    const {value: {paramNames, body, curryContext: cContext = curryContext}} = context[symbol];
+    assert(typeof fn.value !== 'undefined');
+    const {paramNames, body, closureContext: oldClosureContext} = fn.value;
     // TODO: implement currying
     assert(paramNames.length === paramExprs.length);
-    // TODO: function statements
-    assert(body.length === 1);
-    const fnContext = {...cContext};
+    const fnContext = {...oldClosureContext};
     for (let i = 0; i < paramExprs.length; i++) {
-      if (cContext[paramNames[i]]) throw `no duplicate param names`;
+      if (closureContext[paramNames[i]]) throw `no duplicate param names`;
       fnContext[paramNames[i]] = {
         mutable: false,
-        value: evalExpr(paramExprs[i], context, cContext)
+        ...evalExpr(paramExprs[i], context, closureContext)
       };
     }
+    // TODO: function statements
+    assert(body.length === 1);
     return evalExpr(body[0].expr, context, fnContext);
   }],
   [STATEMENT_TYPE.OBJECT_LITERAL, () => {
     const {value} = expr;
     const obj = {};
     for (let key in value) {
-      obj[key] = evalExpr(value[key], context);
+      obj[key] = evalExpr(value[key], context, closureContext).value;
     }
-    return obj;
+    return {value: obj};
+  }],
+  [STATEMENT_TYPE.ARRAY_LITERAL, () => {
+    return {
+      value: expr.elements.map(el =>
+        evalExpr(el, context, closureContext).value)
+    };
   }],
   [STATEMENT_TYPE.PROPERTY_LOOKUP, () => {
     const {property, expr: _expr} = expr;
-    const object = evalExpr(_expr, context);
-    return object[property];
+    const object = evalExpr(_expr, context, closureContext).value;
+    assert(typeof object === 'object');
+    return { value: object[property] };
   }],
   [any, () => { console.log(expr); throw 'unimplemented -- evalExpr'; }]
-])
+]);
+
+
 
 const interpret = (ast, context = {}, global = {...globals}) => {
   context = {...global};
@@ -81,13 +91,13 @@ const interpret = (ast, context = {}, global = {...globals}) => {
           console.log(lookup(symbol));
           throw `'${symbol}' has already been declared`;
         }
-        context[symbol] = { mutable, value: evalExpr(expr, context), };
+        context[symbol] = { mutable, ...evalExpr(expr, context), };
       }],
       [STATEMENT_TYPE.ASSIGNMENT, () => {
         const {symbol, expr} = statement;
         const variable = lookup(symbol);
         assert(variable.mutable);
-        context[symbol].value = evalExpr(expr, context);
+        context[symbol].value = evalExpr(expr, context).value;
       }],
       [STATEMENT_TYPE.FUNCTION_APPLICATION, () => evalExpr(statement, context)],
       [any, () => {throw 'unimplemented -- interpret ' + statement.type}]

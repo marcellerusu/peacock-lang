@@ -73,7 +73,7 @@ let expr = match ([1, 2]) {
 - [x] function arguments used in body
 - [x] function with variable lookup
 - [x] `let obj = { a: 3 };`
-- [ ] arrays
+- [x] arrays
 - [ ] if, else & elif
 - [ ] match expressions
 - [ ] object deconstruction

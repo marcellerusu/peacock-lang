@@ -28,11 +28,9 @@ it('should eval `let var = 3;`', () => {
   }
 
   const globals = interpret(ast);
+  // console.log(globals);
 
-  assert(eq(globals['var'], {
-    mutable: false,
-    value: 3
-  }));
+  assert(globals['var'].value === 3);
 });
 
 it('should eval function', () => {
@@ -61,20 +59,23 @@ it('should eval function', () => {
   };
 
   const globals = interpret(ast);
-
-  assert(eq(globals['function'].value, {
-    type: STATEMENT_TYPE.FUNCTION,
-    paramNames: [],
-    curryContext: {},
-    body: [
-      {
-        type: STATEMENT_TYPE.RETURN,
-        expr: {
-          type: STATEMENT_TYPE.NUMBER_LITERAL,
-          value: 3
+  // console.log(globals['function'])
+  assert(eq(globals['function'], {
+    mutable: false,
+    value: {
+      type: STATEMENT_TYPE.FUNCTION,
+      paramNames: [],
+      closureContext: {},
+      body: [
+        {
+          type: STATEMENT_TYPE.RETURN,
+          expr: {
+            type: STATEMENT_TYPE.NUMBER_LITERAL,
+            value: 3
+          }
         }
-      }
-    ]
+      ]
+    }
   }));
 })
 
@@ -107,7 +108,10 @@ it('should eval function application', () => {
         expr: {
           type: STATEMENT_TYPE.FUNCTION_APPLICATION,
           paramExprs: [],
-          symbol: 'function'
+          expr: {
+            type: STATEMENT_TYPE.SYMBOL_LOOKUP,  
+            symbol: 'function'
+          }
         }
       },
     ]
@@ -145,6 +149,8 @@ it('should eval object literals', () => {
   };
 
   const globals = interpret(ast);
+  // console.log(globals.obj);
+
 
   assert(eq(globals['obj'].value, {
     a: 3,
@@ -154,49 +160,13 @@ it('should eval object literals', () => {
 
 
 it('should eval function application with variable lookup', () => {
-  const ast = {
-    type: STATEMENT_TYPE.PROGRAM,
-    body: [
-      {
-        type: STATEMENT_TYPE.DECLARATION,
-        mutable: false,
-        symbol: 'x',
-        expr: {
-          type: STATEMENT_TYPE.NUMBER_LITERAL,
-          value: 5
-        }
-      },
-      {
-        type: STATEMENT_TYPE.DECLARATION,
-        mutable: false,
-        symbol: 'function',
-        expr: {
-          type: STATEMENT_TYPE.FUNCTION,
-          paramNames: [],
-          body: [
-            {
-              type: STATEMENT_TYPE.RETURN,
-              expr: {
-                type: STATEMENT_TYPE.SYMBOL_LOOKUP,
-                symbol: 'x'
-              }
-            }
-          ]
-        }
-      },
-      {
-        type: STATEMENT_TYPE.DECLARATION,
-        mutable: false,
-        symbol: 'a',
-        expr: {
-          type: STATEMENT_TYPE.FUNCTION_APPLICATION,
-          paramExprs: [],
-          symbol: 'function'
-        }
-      },
-    ]
-  };
+  const ast = parse(tokenize(`
+  let x = 5;
+  let function = () => x;
+  let a = function();
+  `));
   const globals = interpret(ast);
+  // console.log(globals);
 
   // assert(typeof globals['function'].value === 'function');
   assert(globals['a'].value === 5);
@@ -279,7 +249,10 @@ it(`should eval identity function`, () => {
         symbol: 'var',
         expr: {
           type: STATEMENT_TYPE.FUNCTION_APPLICATION,
-          symbol: 'id',
+          expr: {
+            type: STATEMENT_TYPE.SYMBOL_LOOKUP,  
+            symbol: 'id'
+          },
           paramExprs: [
             {
               type: STATEMENT_TYPE.NUMBER_LITERAL,
@@ -298,59 +271,13 @@ it(`should eval identity function`, () => {
 
 
 it(`should eval function application with arguments`, () => {
-  const ast = {
-    type: STATEMENT_TYPE.PROGRAM,
-    body: [
-      {
-        type: STATEMENT_TYPE.DECLARATION,
-        mutable: false,
-        symbol: 'add',
-        expr: {
-          type: STATEMENT_TYPE.FUNCTION,
-          paramNames: ['a', 'b'],
-          body: [ 
-            {
-              type: STATEMENT_TYPE.RETURN,
-              expr: {
-                type: STATEMENT_TYPE.FUNCTION_APPLICATION,
-                symbol: '+',
-                paramExprs: [
-                  {
-                    type: STATEMENT_TYPE.SYMBOL_LOOKUP,
-                    symbol: 'a'
-                  },
-                  {
-                    type: STATEMENT_TYPE.SYMBOL_LOOKUP,
-                    symbol: 'b'
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      },
-      {
-        type: STATEMENT_TYPE.DECLARATION,
-        symbol: 'four',
-        mutable: false,
-        expr: {
-          type: STATEMENT_TYPE.FUNCTION_APPLICATION,
-          symbol: 'add',
-          paramExprs: [
-            {
-              type: STATEMENT_TYPE.NUMBER_LITERAL,
-              value: 1
-            },
-            {
-              type: STATEMENT_TYPE.NUMBER_LITERAL,
-              value: 3
-            }
-          ]
-        }
-      },
-    ]
-  };
+  const ast = parse(tokenize(`
+  let add = (a, b) => a + b;
+  let four = add(1, 3);
+  `));
   const global = interpret(ast);
+
+  // console.log(global.four);
 
   assert(global.four.value === 4)
 });
@@ -384,6 +311,7 @@ it(`should eval object dot notation on object`, () => {
     ]
   };
   const global = interpret(ast);
+  // console.log(global);
   assert(global.yesa.value === 5);
 });
 
@@ -442,6 +370,14 @@ it('should eval curried a + b', () => {
   const global = interpret(program);
 
   assert(global.g.value === 3)
+});
+
+it('should eval arr', () => {
+  const program = parse(tokenize(`
+  let arr = [1, 'str', {a: 3}];  
+  `));
+  const global = interpret(program);
+  assert(eq(global.arr.value, [1, 'str', {a: 3}]))
 })
 
 // it(`should parse array literal`, () => {
