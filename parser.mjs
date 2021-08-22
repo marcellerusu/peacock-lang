@@ -176,14 +176,14 @@ const parse = tokens => {
             return fnCall({symbol, paramExprs});
           }],
           [[TOKEN_NAMES.OPERATOR, any], () => {
-            let op, sym2;
+            let op;
             [op, i] = consumeOne(i, [TOKEN_NAMES.OPERATOR, any]);
-            [sym2, i] = consumeOne(i, [TOKEN_NAMES.SYMBOL, any]);
+            const expr = parseNode(tokens[i], STATEMENT_TYPE.FUNCTION_APPLICATION);
             return fnCall({
               symbol: op,
               paramExprs: [
                 symbolLookup({symbol}),
-                symbolLookup({symbol: sym2})
+                expr
               ]
             });
           }],
@@ -232,12 +232,14 @@ const parse = tokens => {
           // function statement
           [, i] = consumeOne(i, TOKEN_NAMES.OPEN_BRACE);
           let expr = {}, body = [];
-          while (expr.type !== STATEMENT_TYPE.RETURN && i < tokens.length) {
-            expr = parseNode(tokens[i], STATEMENT_TYPE.FUNCTION);
+          while (
+            expr.type !== STATEMENT_TYPE.RETURN
+            && tokens[i] !== TOKEN_NAMES.CLOSE_BRACE
+            && i < tokens.length
+          ) {
+            expr = parseNode(tokens[i], STATEMENT_TYPE.FUNCTION)
             body.push(expr);
           }
-          if (i >= tokens.length || expr.type !== STATEMENT_TYPE.RETURN)
-            throw `function statement does not have return statement!`;
           [, i] = consumeOne(i, TOKEN_NAMES.CLOSE_BRACE);
           return fn({body, paramNames});
         }

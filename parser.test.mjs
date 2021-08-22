@@ -1,5 +1,5 @@
 import parse, {STATEMENT_TYPE} from './parser.mjs';
-import { TOKEN_NAMES } from './tokenizer.mjs';
+import tokenize, { TOKEN_NAMES } from './tokenizer.mjs';
 import { eq } from './utils.mjs';
 import assert from 'assert';
 
@@ -339,6 +339,7 @@ it(`should parse function with body`, () => {
     TOKEN_NAMES.CLOSE_BRACE,
     TOKEN_NAMES.END_STATEMENT
   ];
+  // console.log(tokens);
   const ast = parse(tokens);
   // console.log(ast.body[0].expr.body);
 
@@ -571,6 +572,71 @@ it(`should parse array literal`, () => {
   }))
 });
 
+it('should parse assignment with variable & literal', () => {
+  const program = tokenize(`
+  let a = 1;
+  let b = a + 1;
+  `);
+  const ast = parse(program);
+  assert(eq(ast, {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      {
+        type: STATEMENT_TYPE.DECLARATION,
+        mutable: false,
+        symbol: 'a',
+        expr: {
+          type: STATEMENT_TYPE.NUMBER_LITERAL,
+          value: 1
+        }
+      },
+      {
+        type: STATEMENT_TYPE.DECLARATION,
+        mutable: false,
+        symbol: 'b',
+        expr: {
+          type: STATEMENT_TYPE.FUNCTION_APPLICATION,
+          symbol: '+',
+          paramExprs: [
+            {
+              type: STATEMENT_TYPE.SYMBOL_LOOKUP,
+              symbol: 'a'
+            },
+            {
+              type: STATEMENT_TYPE.NUMBER_LITERAL,
+              value: 1
+            }
+          ]
+        }
+      }
+    ]
+  }));
+});
+
+it('should parse function statements', () => {
+  const program = tokenize(`
+  let makeCounter = () => {
+  };
+  `);
+  // console.log(program);
+  const ast = parse(program);
+  assert(eq(ast, {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      {
+        type: STATEMENT_TYPE.DECLARATION,
+        mutable: false,
+        symbol: 'makeCounter',
+        expr: {
+          type: STATEMENT_TYPE.FUNCTION,
+          paramNames: [],
+          body: []
+        }
+      }
+    ]
+  }))
+})
+
 /*
 
 if obj == { a: 3 } {
@@ -603,5 +669,7 @@ if obj == { a: 3 } {
   succeedBranch: null,
   failBranch: null
 */
+
+
 
 console.log('Passed', passed, 'tests!');
