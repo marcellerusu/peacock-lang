@@ -172,10 +172,7 @@ const parse = tokens => {
               if (tokens[i] !== TOKEN_NAMES.COMMA) break;
               [, i] = consumeOne(i, TOKEN_NAMES.COMMA);
             }
-            [, i] = consume(i, [
-              {token: TOKEN_NAMES.CLOSE_PARAN},
-              {token: TOKEN_NAMES.END_STATEMENT},
-            ]);
+            [, i] = consumeOne(i, TOKEN_NAMES.CLOSE_PARAN);
             return fnCall({symbol, paramExprs});
           }],
           [[TOKEN_NAMES.OPERATOR, any], () => {
@@ -302,6 +299,8 @@ const parse = tokens => {
       }],
       [any, () => { throw 'did not match any ' + token}],
     ]);
+    // TODO: W T F
+    if (i !== 0) --i;
     const astNode = parseNode(tokens[i]);
     AST.body.push(astNode);
   }

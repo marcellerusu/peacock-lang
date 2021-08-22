@@ -353,197 +353,83 @@ it(`should eval function application with arguments`, () => {
   assert(global.four.value === 4)
 });
 
-// it(`should parse function with body`, () => {
-//   const tokens = [
-//     TOKEN_NAMES.LET,
-//     [TOKEN_NAMES.SYMBOL, 'function'],
-//     TOKEN_NAMES.ASSIGNMENT,
-//     TOKEN_NAMES.OPEN_PARAN,
-//     TOKEN_NAMES.CLOSE_PARAN,
-//     TOKEN_NAMES.ARROW,
-//     TOKEN_NAMES.OPEN_BRACE,
-//     TOKEN_NAMES.RETURN,
-//     [TOKEN_NAMES.SYMBOL, 'a'],
-//     TOKEN_NAMES.END_STATEMENT,
-//     TOKEN_NAMES.CLOSE_BRACE,
-//     TOKEN_NAMES.END_STATEMENT
-//   ];
-//   const ast = parse(tokens);
-//   // console.log(ast.body[0].expr.body);
+it(`should eval object dot notation on object`, () => {
+  const ast = {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      {
+        type: STATEMENT_TYPE.DECLARATION,
+        mutable: false,
+        symbol: 'yesa',
+        expr: {
+          type: STATEMENT_TYPE.PROPERTY_LOOKUP,
+          property: 'yesa',
+          expr: {
+            type: STATEMENT_TYPE.OBJECT_LITERAL,
+            value: {
+              a: {
+                type: STATEMENT_TYPE.NUMBER_LITERAL,
+                value: 3
+              },
+              yesa: {
+                type: STATEMENT_TYPE.NUMBER_LITERAL,
+                value: 5
+              }
+            }
+          },
+        }
+      }
+    ]
+  };
+  const global = interpret(ast);
+  assert(global.yesa.value === 5);
+});
 
-//   assert(eq(ast, {
-//     type: STATEMENT_TYPE.PROGRAM,
-//     body: [
-//       {
-//         type: STATEMENT_TYPE.DECLARATION,
-//         mutable: false,
-//         symbol: 'function',
-//         expr: {
-//           type: STATEMENT_TYPE.FUNCTION,
-//           paramNames: [],
-//           body: [
-//             {
-//               type: STATEMENT_TYPE.RETURN,
-//               expr: {
-//                 type: STATEMENT_TYPE.SYMBOL_LOOKUP,
-//                 symbol: 'a'
-//               }
-//             }
-//           ]
-//         }
-//       },
-//     ]
-//   }))
-// });
-
-
-// it(`should parse object literal`, () => {
-//   const tokens = [
-//     TOKEN_NAMES.LET,
-//     [TOKEN_NAMES.SYMBOL, 'obj'],
-//     TOKEN_NAMES.ASSIGNMENT,
-//     TOKEN_NAMES.OPEN_BRACE,
-//     [TOKEN_NAMES.SYMBOL, 'a'],
-//     TOKEN_NAMES.COLON,
-//     [TOKEN_NAMES.LITERAL, 3],
-//     TOKEN_NAMES.COMMA,
-//     [TOKEN_NAMES.SYMBOL, 'yesa'],
-//     TOKEN_NAMES.COLON,
-//     [TOKEN_NAMES.LITERAL, 5],
-//     TOKEN_NAMES.COMMA,
-//     TOKEN_NAMES.CLOSE_BRACE,
-//     TOKEN_NAMES.END_STATEMENT
-//   ];
-//   const ast = parse(tokens);
-
-//   assert(eq(ast, {
-//     type: STATEMENT_TYPE.PROGRAM,
-//     body: [
-//       {
-//         type: STATEMENT_TYPE.DECLARATION,
-//         mutable: false,
-//         symbol: 'obj',
-//         expr: {
-//           type: STATEMENT_TYPE.OBJECT_LITERAL,
-//           value: {
-//             a: {
-//               type: STATEMENT_TYPE.NUMBER_LITERAL,
-//               value: 3
-//             },
-//             yesa: {
-//               type: STATEMENT_TYPE.NUMBER_LITERAL,
-//               value: 5
-//             }
-//           }
-//         }
-//       }
-//     ]
-//   }))
-// });
-
-// it(`should parse object dot notation on variable`, () => {
-//   const tokens = [
-//     [TOKEN_NAMES.SYMBOL, 'obj'],
-//     TOKEN_NAMES.PROPERTY_ACCESSOR,
-//     [TOKEN_NAMES.SYMBOL, 'a'],
-//     TOKEN_NAMES.END_STATEMENT
-//   ];
-//   const ast = parse(tokens);
-
-//   assert(eq(ast, {
-//     type: STATEMENT_TYPE.PROGRAM,
-//     body: [
-//       {
-//         type: STATEMENT_TYPE.PROPERTY_LOOKUP,
-//         expr: {
-//           type: STATEMENT_TYPE.SYMBOL_LOOKUP,
-//           symbol: 'obj',
-//         },
-//         property: 'a',
-//       }
-//     ]
-//   }))
-// });
-
-// it(`should parse object dot notation on object`, () => {
-//   const tokens = [
-//     TOKEN_NAMES.LET,
-//     [TOKEN_NAMES.SYMBOL, 'obj'],
-//     TOKEN_NAMES.ASSIGNMENT,
-//     TOKEN_NAMES.OPEN_BRACE,
-//     [TOKEN_NAMES.SYMBOL, 'a'],
-//     TOKEN_NAMES.COLON,
-//     [TOKEN_NAMES.LITERAL, 3],
-//     TOKEN_NAMES.COMMA,
-//     [TOKEN_NAMES.SYMBOL, 'yesa'],
-//     TOKEN_NAMES.COLON,
-//     [TOKEN_NAMES.LITERAL, 5],
-//     TOKEN_NAMES.COMMA,
-//     TOKEN_NAMES.CLOSE_BRACE,
-//     TOKEN_NAMES.PROPERTY_ACCESSOR,
-//     [TOKEN_NAMES.SYMBOL, 'yesa'],
-//     TOKEN_NAMES.END_STATEMENT
-//   ];
-//   const ast = parse(tokens);
-
-//   assert(eq(ast, {
-//     type: STATEMENT_TYPE.PROGRAM,
-//     body: [
-//       {
-//         type: STATEMENT_TYPE.DECLARATION,
-//         mutable: false,
-//         symbol: 'obj',
-//         expr: {
-//           type: STATEMENT_TYPE.PROPERTY_LOOKUP,
-//           property: 'yesa',
-//           expr: {
-//             type: STATEMENT_TYPE.OBJECT_LITERAL,
-//             value: {
-//               a: {
-//                 type: STATEMENT_TYPE.NUMBER_LITERAL,
-//                 value: 3
-//               },
-//               yesa: {
-//                 type: STATEMENT_TYPE.NUMBER_LITERAL,
-//                 value: 5
-//               }
-//             }
-//           },
-//         }
-//       }
-//     ]
-//   }))
-// });
-
-// it(`should parse nested object dot notation on variable`, () => {
-//   const tokens = [
-//     [TOKEN_NAMES.SYMBOL, 'obj'],
-//     TOKEN_NAMES.PROPERTY_ACCESSOR,
-//     [TOKEN_NAMES.SYMBOL, 'a'],
-//     TOKEN_NAMES.PROPERTY_ACCESSOR,
-//     [TOKEN_NAMES.SYMBOL, 'b'],
-//     TOKEN_NAMES.END_STATEMENT
-//   ];
-//   const ast = parse(tokens);
-
-//   assert(eq(ast, {
-//     type: STATEMENT_TYPE.PROGRAM,
-//     body: [
-//       {
-//         type: STATEMENT_TYPE.PROPERTY_LOOKUP,
-//         expr: {
-//           type: STATEMENT_TYPE.PROPERTY_LOOKUP,
-//           expr: {
-//             type: STATEMENT_TYPE.SYMBOL_LOOKUP,
-//             symbol: 'obj',
-//           },
-//           property: 'a',
-//         },
-//         property: 'b',
-//       }
-//     ]
-//   }))
-// });
+it(`should parse nested object dot notation on variable`, () => {
+  const ast = {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      {
+        type: STATEMENT_TYPE.DECLARATION,
+        mutable: false,
+        symbol: 'obj',
+        expr: {
+          type: STATEMENT_TYPE.OBJECT_LITERAL,
+          value: {
+            a: {
+              type: STATEMENT_TYPE.OBJECT_LITERAL,
+              value: {
+                b: {
+                  type: STATEMENT_TYPE.NUMBER_LITERAL,
+                  value: 5
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        type: STATEMENT_TYPE.DECLARATION,
+        mutable: false,  
+        symbol: 'b',
+        expr: {
+          type: STATEMENT_TYPE.PROPERTY_LOOKUP,
+          expr: {
+            type: STATEMENT_TYPE.PROPERTY_LOOKUP,
+            expr: {
+              type: STATEMENT_TYPE.SYMBOL_LOOKUP,
+              symbol: 'obj',
+            },
+            property: 'a',
+          },
+          property: 'b',
+        }
+      }
+    ]
+  };
+  const global = interpret(ast);
+  assert(global.b.value === 5);
+});
 
 // it(`should parse array literal`, () => {
 //   const tokens = [

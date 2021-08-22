@@ -4,8 +4,7 @@ import { match, any } from './utils.mjs';
 
 const globals = {
   print: {
-    mutable: false,
-    value: console.log
+    native: console.log
   },
   '+': {
     native: (a, b) => a + b,
@@ -23,13 +22,13 @@ const globals = {
 
 const evalExpr = (expr, context) => match(expr.type, [
   [STATEMENT_TYPE.NUMBER_LITERAL, () => expr.value],
+  [STATEMENT_TYPE.STRING_LITERAL, () => expr.value],
   [STATEMENT_TYPE.SYMBOL_LOOKUP, () => context[expr.symbol].value],
   [STATEMENT_TYPE.FUNCTION, () => expr],
   [STATEMENT_TYPE.FUNCTION_APPLICATION, () => {
     const {paramExprs, symbol} = expr;
     if (context[symbol].native) {
       const nativeFn = context[symbol].native
-      assert(nativeFn.length === paramExprs.length);
       const args = [];
       for (const expr of paramExprs) {
         args.push(evalExpr(expr, context));
@@ -56,6 +55,11 @@ const evalExpr = (expr, context) => match(expr.type, [
     }
     return obj;
   }],
+  [STATEMENT_TYPE.PROPERTY_LOOKUP, () => {
+    const {property, expr: _expr} = expr;
+    const object = evalExpr(_expr, context);
+    return object[property];
+  }],
   [any, () => { console.log(expr); throw 'unimplemented -- evalExpr'; }]
 ])
 
@@ -79,7 +83,8 @@ const interpret = (ast, context = {}, global = {...globals}) => {
         assert(variable.mutable);
         context[symbol].value = evalExpr(expr, context);
       }],
-      [any, () => {throw 'unimplemented -- interpret'}]
+      [STATEMENT_TYPE.FUNCTION_APPLICATION, () => evalExpr(statement, context)],
+      [any, () => {throw 'unimplemented -- interpret ' + statement.type}]
     ]);
   }
   return context;
