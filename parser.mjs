@@ -1,5 +1,5 @@
-import {TOKEN_NAMES} from "./tokenizer.mjs";
-import {match, any, eq} from './utils.mjs';
+import { TOKEN_NAMES } from "./tokenizer.mjs";
+import { match, any, eq } from './utils.mjs';
 import assert from 'assert';
 
 export const STATEMENT_TYPE = {
@@ -38,7 +38,7 @@ export const objectLiteral = ({ value }) => ({
 export const arrayLiteral = ({ elements }) => ({
   type: STATEMENT_TYPE.ARRAY_LITERAL,
   elements
-})
+});
 
 export const numberLiteral = ({ value }) => ({
   type: STATEMENT_TYPE.NUMBER_LITERAL,
@@ -76,7 +76,7 @@ export const propertyLookup = ({property, expr}) => ({
   type: STATEMENT_TYPE.PROPERTY_LOOKUP,
   property,
   expr,
-})
+});
 
 export const makeConsumer = tokens => (i, tokensToConsume) => {
   const tokenValues = [];
@@ -103,7 +103,7 @@ export const makeConsumer = tokens => (i, tokensToConsume) => {
     if (typeof tokenValue !== 'undefined') tokenValues.push(tokenValue);
   }
   return [tokenValues, i];
-}
+};
 
 const isExpression = context => [
   STATEMENT_TYPE.RETURN,
@@ -143,7 +143,7 @@ const parse = tokens => {
         propertyList.push(consumeOne([TOKEN_NAMES.SYMBOL, any]));
       }
       for (const prop of propertyList) {
-        expr = propertyLookup({property: prop, expr});
+        expr = propertyLookup({ property: prop, expr });
       }
       return expr;
     };
@@ -188,7 +188,7 @@ const parse = tokens => {
       if (tokens[i] !== TOKEN_NAMES.OPEN_BRACE) {
         // function expression
         const expr = parseNode(tokens[i], STATEMENT_TYPE.RETURN);
-        return [_return({expr})];
+        return [_return({ expr })];
       } else {
         // function statement
         consumeOne(TOKEN_NAMES.OPEN_BRACE);
@@ -209,7 +209,7 @@ const parse = tokens => {
     const parseOperatorExpr = firstArg => {
       const op = consumeOne([TOKEN_NAMES.OPERATOR, any]);
       return fnCall({
-        expr: symbolLookup({symbol: op}),
+        expr: symbolLookup({ symbol: op }),
         paramExprs: [
           firstArg,
           parseNode(tokens[i], STATEMENT_TYPE.FUNCTION_APPLICATION)
@@ -222,9 +222,9 @@ const parse = tokens => {
         const value = consumeOne(token);
         let literal;
         if (typeof value === 'number') {
-          literal = numberLiteral({value});
+          literal = numberLiteral({ value });
         } else if (typeof value === 'string') {
-          literal = stringLiteral({value});
+          literal = stringLiteral({ value });
         } else {
           throw 'should not reach';
         }
@@ -237,20 +237,20 @@ const parse = tokens => {
         consumeOne(TOKEN_NAMES.RETURN);
         const expr = parseNode(tokens[i], STATEMENT_TYPE.RETURN);
         consumeOne(TOKEN_NAMES.END_STATEMENT);
-        return _return({expr});
+        return _return({ expr });
       }],
       [TOKEN_NAMES.LET, () => {
         assert(!isExpression(context));
         consumeOne(TOKEN_NAMES.LET);
         const [mutable, symbol] = consume([
-          {token: TOKEN_NAMES.MUT, optional: true},
-          {token: [TOKEN_NAMES.SYMBOL, any]},
-          {token: TOKEN_NAMES.ASSIGNMENT},
+          { token: TOKEN_NAMES.MUT, optional: true },
+          { token: [TOKEN_NAMES.SYMBOL, any] },
+          { token: TOKEN_NAMES.ASSIGNMENT },
         ]);
         const expr = parseNode(tokens[i], STATEMENT_TYPE.DECLARATION);
 
         consumeOne(TOKEN_NAMES.END_STATEMENT);
-        return declaration({mutable: !!mutable, symbol, expr});
+        return declaration({ mutable: !!mutable, symbol, expr });
       }],
       [[TOKEN_NAMES.SYMBOL, any], function parseSymbol(symToken, prevExpr) {
         let symbol
@@ -261,19 +261,19 @@ const parse = tokens => {
             assert(isSymbol);
             consumeOne(TOKEN_NAMES.ASSIGNMENT);
             const expr = parseNode(tokens[i], STATEMENT_TYPE.ASSIGNMENT);
-            return assignment({symbol, expr});
+            return assignment({ symbol, expr });
           }],
           [TOKEN_NAMES.OPEN_PARAN, () => {
-            const call = parseFunctionCall(prevExpr || symbolLookup({symbol}));
+            const call = parseFunctionCall(prevExpr || symbolLookup({ symbol }));
             if (tokens[i] === TOKEN_NAMES.END_STATEMENT) return call;
             return parseSymbol(tokens[i], call);
           }],
           [[TOKEN_NAMES.OPERATOR, any], () => {
             if (!prevExpr) assert(isSymbol);
-            return parseOperatorExpr(prevExpr || symbolLookup({symbol}));
+            return parseOperatorExpr(prevExpr || symbolLookup({ symbol }));
           }],
           [TOKEN_NAMES.PROPERTY_ACCESSOR, () => {
-            const expr = parseDotNotation(prevExpr || symbolLookup({symbol}));
+            const expr = parseDotNotation(prevExpr || symbolLookup({ symbol }));
             // check if reached end of expression
             if (
               tokens[i] === TOKEN_NAMES.END_STATEMENT || tokens[i] === TOKEN_NAMES.CLOSE_PARAN
@@ -282,7 +282,7 @@ const parse = tokens => {
           }],
           [any, () => {
             assert(isExpression(context));
-            return symbolLookup({symbol});
+            return symbolLookup({ symbol });
           }]
         ]);
       }],
@@ -292,21 +292,21 @@ const parse = tokens => {
         const paramNames = parseFunctionDefinitionArgs();
         consumeOne(TOKEN_NAMES.CLOSE_PARAN);
         consumeOne(TOKEN_NAMES.ARROW);
-        return fn({body: parseFunctionBody(), paramNames});
+        return fn({ body: parseFunctionBody(), paramNames });
       }],
       [TOKEN_NAMES.OPEN_BRACE, () => {
         assert(isExpression(context));
         const value = parseObjectLiteral();
         if (tokens[i] === TOKEN_NAMES.PROPERTY_ACCESSOR) {
-          return parseDotNotation(objectLiteral({value}))
+          return parseDotNotation(objectLiteral({ value }))
         }
-        return objectLiteral({value});
+        return objectLiteral({ value });
       }],
       [TOKEN_NAMES.OPEN_SQ_BRACE, () => {
         assert(isExpression(context));
-        return arrayLiteral({elements: parseArrayLiteral()});
+        return arrayLiteral({ elements: parseArrayLiteral() });
       }],
-      [any, () => { throw 'did not match any ' + token}],
+      [any, () => { throw 'did not match any ' + token }],
     ]);
     // TODO: W T F
     if (i !== 0) --i;
