@@ -194,8 +194,7 @@ const parse = tokens => {
         consumeOne(TOKEN_NAMES.OPEN_BRACE);
         let expr = {}, body = [];
         while (
-          expr.type !== STATEMENT_TYPE.RETURN
-          && tokens[i] !== TOKEN_NAMES.CLOSE_BRACE
+          tokens[i] !== TOKEN_NAMES.CLOSE_BRACE
           && i < tokens.length
         ) {
           expr = parseNode(tokens[i], STATEMENT_TYPE.FUNCTION)
@@ -265,7 +264,11 @@ const parse = tokens => {
           }],
           [TOKEN_NAMES.OPEN_PARAN, () => {
             const call = parseFunctionCall(prevExpr || symbolLookup({ symbol }));
-            if (tokens[i] === TOKEN_NAMES.END_STATEMENT) return call;
+            if (tokens[i] === TOKEN_NAMES.END_STATEMENT) {
+              if (isExpression(context)) return call;
+              consumeOne(TOKEN_NAMES.END_STATEMENT); // for top level function application
+              return call;
+            }
             return parseSymbol(tokens[i], call);
           }],
           [[TOKEN_NAMES.OPERATOR, any], () => {
