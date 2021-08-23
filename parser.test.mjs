@@ -710,8 +710,50 @@ it('should parse object with operator expressions inside', () => {
   }));
 });
 
-// TODO: double function call inside a function call 
-// print(add(2)(2)); currently fails
+it('should parse fn call inside fn call', () => {
+  const program = tokenize(`
+  print(f());
+  `);
+  const ast = parse(program);
+  assert(eq(ast, {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      fnCall({
+        expr: symbolLookup({symbol: 'print'}),
+        paramExprs: [
+          fnCall({
+            expr: symbolLookup({symbol: 'f'}),
+            paramExprs: []
+          })
+        ]
+      })
+    ]
+  }));
+});
+
+it('should parse double nested fn call inside fn call', () => {
+  const program = tokenize(`
+  print(f()());
+  `);
+  const ast = parse(program);
+  assert(eq(ast, {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      fnCall({
+        expr: symbolLookup({symbol: 'print'}),
+        paramExprs: [
+          fnCall({
+            expr: fnCall({
+              expr: symbolLookup({symbol: 'f'}),
+              paramExprs: [],
+            }),
+            paramExprs: []
+          })
+        ]
+      })
+    ]
+  }));
+})
 
 /*
 
