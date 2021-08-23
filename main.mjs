@@ -3,15 +3,11 @@ import tokenize from "./tokenizer.mjs";
 import parse from "./parser.mjs";
 
 const program = `
-let h = {
-  a: () => 3,
-  b: {
-    c: () => 6
-  }
+let f = () => {
+  return { x: 3 };
 };
-let b = h.a();
-let c = h.b.c();
-print(b, c);
+let c = f();
+print(f().x);
 `;
 
 const global = interpret(parse(tokenize(program)));

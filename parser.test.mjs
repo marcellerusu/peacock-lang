@@ -33,7 +33,7 @@ it('should parse `let var = 3;`', () => {
     TOKEN_NAMES.END_STATEMENT
   ];
   const ast = parse(tokens);
-  console.log(ast.body[0]);
+  // console.log(ast.body[0]);
   assert(eq(ast, {
     type: STATEMENT_TYPE.PROGRAM,
     body: [
@@ -591,7 +591,7 @@ it('should parse double function application', () => {
   }))
 })
 
-it('should call function from object property', () => {
+it('should parse call function from object property', () => {
   const program = tokenize(`
   let h = {
     a: () => 3
@@ -628,6 +628,62 @@ it('should call function from object property', () => {
     ]
   }))
 });
+
+it('should parse object dot operator within function call', () => {
+  const program = tokenize(`
+  print(c.x);
+  `);
+  const ast = parse(program);
+  // console.log(ast.body[0])
+  assert(eq(ast, {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      fnCall({
+        expr: symbolLookup({symbol: 'print'}),
+        paramExprs: [
+          propertyLookup({
+            property: 'x',
+            expr: symbolLookup({symbol: 'c'})
+          })
+        ]
+      })
+    ]
+  }))
+});
+
+it('should parse dot operator after function call', () => {
+  const program = tokenize(`
+  let f = () => {
+    return { x: 3 };
+  };
+  let c = f().x;
+  `);
+  const ast = parse(program);
+  assert(eq(ast, {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      declaration({
+        mutable: false,
+        symbol: 'f',
+        expr: fn({
+          paramNames: [],
+          body: [_return({expr: objectLiteral({value: {x: numberLiteral({value: 3})}})})]
+        })
+      }),
+      declaration({
+        mutable: false,
+        symbol: 'c',
+        expr: propertyLookup({
+          property: 'x',
+          expr: fnCall({
+            expr: symbolLookup({symbol: 'f'}),
+            paramExprs: []
+          })
+        })
+      })
+    ]
+  }))
+})
 
 
 // TODO: double function call inside a function call 

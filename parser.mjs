@@ -127,7 +127,8 @@ const parse = tokens => {
       consumeOne(TOKEN_NAMES.OPEN_PARAN);
       const paramExprs = [];
       while (tokens[i] !== TOKEN_NAMES.CLOSE_PARAN) {
-        paramExprs.push(parseNode(tokens[i], STATEMENT_TYPE.FUNCTION_APPLICATION));
+        const expr = parseNode(tokens[i], STATEMENT_TYPE.FUNCTION_APPLICATION);
+        paramExprs.push(expr);
         if (tokens[i] !== TOKEN_NAMES.COMMA) break;
         consumeOne(TOKEN_NAMES.COMMA);
       }
@@ -273,8 +274,11 @@ const parse = tokens => {
             });
           }],
           [TOKEN_NAMES.PROPERTY_ACCESSOR, () => {
-            const expr = parseDotNotation(symbolLookup({symbol}));
-            if (tokens[i] === TOKEN_NAMES.END_STATEMENT) return expr;
+            const expr = parseDotNotation(prevExpr || symbolLookup({symbol}));
+            // check if reached end of expression
+            if (
+              tokens[i] === TOKEN_NAMES.END_STATEMENT || tokens[i] === TOKEN_NAMES.CLOSE_PARAN
+            ) return expr;
             return parseSymbol(tokens[i], expr);
           }],
           [any, () => {
