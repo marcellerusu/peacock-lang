@@ -206,6 +206,17 @@ const parse = tokens => {
       }
     };
 
+    const parseOperatorExpr = firstArg => {
+      const op = consumeOne([TOKEN_NAMES.OPERATOR, any]);
+      return fnCall({
+        expr: symbolLookup({symbol: op}),
+        paramExprs: [
+          firstArg,
+          parseNode(tokens[i], STATEMENT_TYPE.FUNCTION_APPLICATION)
+        ]
+      });
+    };
+
     const parseNode = (token, context = undefined) => match(token, [
       [[TOKEN_NAMES.LITERAL, any], () => {
         const value = consumeOne(token);
@@ -218,14 +229,7 @@ const parse = tokens => {
           throw 'should not reach';
         }
         if (eq(tokens[i], [TOKEN_NAMES.OPERATOR, any])) {
-          const op = consumeOne([TOKEN_NAMES.OPERATOR, any]);
-          return fnCall({
-            expr: symbolLookup({symbol: op}),
-            paramExprs: [
-              literal,
-              parseNode(tokens[i], context)
-            ]
-          })
+          return parseOperatorExpr(literal);
         }
         return literal;
       }],
@@ -265,16 +269,8 @@ const parse = tokens => {
             return parseSymbol(tokens[i], call);
           }],
           [[TOKEN_NAMES.OPERATOR, any], () => {
-            const op = consumeOne([TOKEN_NAMES.OPERATOR, any]);
-            const expr = parseNode(tokens[i], STATEMENT_TYPE.FUNCTION_APPLICATION);
             if (!prevExpr) assert(isSymbol);
-            return fnCall({
-              expr: symbolLookup({symbol: op}),
-              paramExprs: [
-                prevExpr || symbolLookup({symbol}),
-                expr
-              ]
-            });
+            return parseOperatorExpr(prevExpr || symbolLookup({symbol}));
           }],
           [TOKEN_NAMES.PROPERTY_ACCESSOR, () => {
             const expr = parseDotNotation(prevExpr || symbolLookup({symbol}));
