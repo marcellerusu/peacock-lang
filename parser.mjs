@@ -253,12 +253,11 @@ const parse = tokens => {
           }],
           [TOKEN_NAMES.OPEN_PARAN, () => {
             const call = parseFunctionCall(symbolLookup({symbol}));
-            if (tokens[i] === TOKEN_NAMES.END_STATEMENT) return call;
             // TODO: this is no good, it only goes one property more
             return match(tokens[i], [
               [TOKEN_NAMES.PROPERTY_ACCESSOR, () => parseDotNotation(call)],
               [TOKEN_NAMES.OPEN_PARAN, () => parseFunctionCall(call)],
-              [any, () => assert(tokens[i] === STATEMENT_TYPE.END_STATEMENT)]
+              [any, () => call]
             ]);
           }],
           [[TOKEN_NAMES.OPERATOR, any], () => {
