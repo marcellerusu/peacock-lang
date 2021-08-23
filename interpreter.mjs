@@ -1,10 +1,10 @@
 import assert from 'assert';
 import { STATEMENT_TYPE } from "./parser.mjs";
-import { match, any } from './utils.mjs';
+import { match, any, eq } from './utils.mjs';
 
 const globals = {
   print: {
-    native: console.log
+    native: console.log,
   },
   '+': {
     native: (a, b) => a + b,
@@ -17,6 +17,20 @@ const globals = {
   },
   '/': {
     native: (a, b) => a / b,
+  },
+  '==': {
+    native: (a, b) => eq(a, b),
+  },
+  '!=': {
+    native: (a, b) => !eq(a, b),
+  },
+  'true': {
+    mutable: false,
+    value: true,
+  },
+  'false': {
+    mutable: false,
+    value: false,
   }
 };
 

@@ -30,8 +30,6 @@ const TOKEN_TO_NAME = {
   'let': TOKEN_NAMES.LET,
   'mut': TOKEN_NAMES.MUT,
   '=': TOKEN_NAMES.ASSIGNMENT,
-  '==': TOKEN_NAMES.EQUALS,
-  '!=': TOKEN_NAMES.NOT_EQUALS,
   '{': TOKEN_NAMES.OPEN_BRACE,
   'if': TOKEN_NAMES.IF,
   'else': TOKEN_NAMES.ELSE,
@@ -56,6 +54,8 @@ const UNARY_OPERATORS = {
   '-': [TOKEN_NAMES.OPERATOR, '-'],
   '*': [TOKEN_NAMES.OPERATOR, '*'],
   '/': [TOKEN_NAMES.OPERATOR, '/'],
+  '==': [TOKEN_NAMES.OPERATOR, '=='],
+  '!=': [TOKEN_NAMES.OPERATOR, '!='],
   // '|>': [TOKEN_NAMES.OPERATOR, '|>'],
 };
 
@@ -84,6 +84,8 @@ const getLiteralParser = str => {
   }
 };
 
+const lookup = str => TOKEN_TO_NAME[str] || UNARY_OPERATORS[str];
+
 const tokenize = program => {
   const takeUntil = takeUntilOf(program);
   const tokens = [];
@@ -99,8 +101,8 @@ const tokenize = program => {
         ([...str].filter(c => c === '\'').length === 2) :
         (
           isWhiteSpace(nextChar)
-          || (TOKEN_TO_NAME[str] && !TOKEN_TO_NAME[peek])
-          || (TOKEN_TO_NAME[nextChar] && !TOKEN_TO_NAME[peek])
+          || (lookup(str) && !lookup(peek))
+          || (lookup(nextChar) && !lookup(peek))
         )
     );
     i = newIndex;

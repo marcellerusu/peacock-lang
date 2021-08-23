@@ -11,7 +11,7 @@ import parse, {
   _return,
   symbolLookup,
   propertyLookup,
-  makeConsumer,
+  conditional,
 } from './parser.mjs';
 import tokenize, { TOKEN_NAMES } from './tokenizer.mjs';
 import { eq } from './utils.mjs';
@@ -753,7 +753,102 @@ it('should parse double nested fn call inside fn call', () => {
       })
     ]
   }));
-})
+});
+
+it('should parse if cond', () => {
+  const program = tokenize(`
+  if (a == 3) {
+  }
+  `);
+  const ast = parse(program);
+
+  assert(eq(ast, {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      conditional({
+        expr: fnCall({
+          expr: symbolLookup({ symbol: '==' }),
+          paramExprs: [
+            symbolLookup({ symbol: 'a' }),
+            numberLiteral({ value: 3 })
+          ]
+        }),
+        passFn: fn({body: []}),
+        failFn: fn({body: []})
+      })
+    ]
+  }))
+});
+
+it('should parse if else cond', () => {
+  const program = tokenize(`
+  if (a == 3) {
+    return 'str';
+  } else {
+    return 5;
+  }
+  `);
+  const ast = parse(program);
+
+  assert(eq(ast, {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      conditional({
+        expr: fnCall({
+          expr: symbolLookup({ symbol: '==' }),
+          paramExprs: [
+            symbolLookup({ symbol: 'a' }),
+            numberLiteral({ value: 3 })
+          ]
+        }),
+        passFn: fn({body: [_return({expr: stringLiteral({value: 'str'})})]}),
+        failFn: fn({body: [_return({expr: numberLiteral({value: 5})})]})
+      })
+    ]
+  }))
+});
+
+it('should parse if elif else cond', () => {
+  const program = tokenize(`
+  if (a == 3) {
+    return 'str';
+  } elif (b == 4) {
+  } else {
+    return 5;
+  }
+  `);
+  const ast = parse(program);
+  assert(eq(ast, {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      conditional({
+        expr: fnCall({
+          expr: symbolLookup({ symbol: '==' }),
+          paramExprs: [
+            symbolLookup({ symbol: 'a' }),
+            numberLiteral({ value: 3 })
+          ]
+        }),
+        passFn: fn({body: [_return({expr: stringLiteral({value: 'str'})})]}),
+        failFn: fn({
+          body: [
+            conditional({
+              expr: fnCall({
+                expr: symbolLookup({ symbol: '==' }),
+                paramExprs: [
+                  symbolLookup({ symbol: 'b' }),
+                  numberLiteral({ value: 4 })
+                ]
+              }),
+              passFn: fn({body: []}),
+              failFn: fn({body: [_return({expr: numberLiteral({value: 5})})]})
+            })
+          ]
+        })
+      })
+    ]
+  }))
+});
 
 /*
 

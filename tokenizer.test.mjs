@@ -164,7 +164,6 @@ it('should tokenize pattern matching array', () => {
   };
   `;
   const tokens = tokenize(program);
-  // console.log(tokens);
   assert(eq(tokens, [
     TOKEN_NAMES.LET,
     [TOKEN_NAMES.SYMBOL, 'expr'],
@@ -370,7 +369,7 @@ it('should tokenize `if obj == { a: 3 } {`', () => {
   assert(eq(tokens, [
     TOKEN_NAMES.IF,
     [TOKEN_NAMES.SYMBOL, 'obj'],
-    TOKEN_NAMES.EQUALS,
+    [TOKEN_NAMES.OPERATOR, '=='],
     TOKEN_NAMES.OPEN_BRACE,
     [TOKEN_NAMES.SYMBOL, 'a'],
     TOKEN_NAMES.COLON,
@@ -383,7 +382,7 @@ it('should tokenize `if obj == { a: 3 } {`', () => {
 
 it('should tokenize if else', () => {
   const program = `
-  if obj == { a: 3 } {
+  if (obj == { a: 3 }) {
     let a = 4;
   } else {
 
@@ -393,13 +392,15 @@ it('should tokenize if else', () => {
 
   assert(eq(tokens, [
     TOKEN_NAMES.IF,
+    TOKEN_NAMES.OPEN_PARAN,
     [TOKEN_NAMES.SYMBOL, 'obj'],
-    TOKEN_NAMES.EQUALS,
+    [TOKEN_NAMES.OPERATOR, '=='],
     TOKEN_NAMES.OPEN_BRACE,
     [TOKEN_NAMES.SYMBOL, 'a'],
     TOKEN_NAMES.COLON,
     [TOKEN_NAMES.LITERAL, 3],
     TOKEN_NAMES.CLOSE_BRACE,
+    TOKEN_NAMES.CLOSE_PARAN,
     TOKEN_NAMES.OPEN_BRACE,
     TOKEN_NAMES.LET,
     [TOKEN_NAMES.SYMBOL, 'a'],
@@ -416,25 +417,27 @@ it('should tokenize if else', () => {
 
 it('should tokenize if elif else', () => {
   const program = `
-  if obj == { a: 3 } {
+  if (obj == { a: 3 }) {
     let a = 4;
-  } elif b == true {
+  } elif (b == true) {
     let b = 4;
   } else {
     let c = 4;
   }
   `;
   const tokens = tokenize(program);
-
+  // console.log(tokens);
   assert(eq(tokens, [
     TOKEN_NAMES.IF,
+    TOKEN_NAMES.OPEN_PARAN,
     [TOKEN_NAMES.SYMBOL, 'obj'],
-    TOKEN_NAMES.EQUALS,
+    [TOKEN_NAMES.OPERATOR, '=='],
     TOKEN_NAMES.OPEN_BRACE,
     [TOKEN_NAMES.SYMBOL, 'a'],
     TOKEN_NAMES.COLON,
     [TOKEN_NAMES.LITERAL, 3],
     TOKEN_NAMES.CLOSE_BRACE,
+    TOKEN_NAMES.CLOSE_PARAN,
     TOKEN_NAMES.OPEN_BRACE,
     TOKEN_NAMES.LET,
     [TOKEN_NAMES.SYMBOL, 'a'],
@@ -443,9 +446,11 @@ it('should tokenize if elif else', () => {
     TOKEN_NAMES.END_STATEMENT,
     TOKEN_NAMES.CLOSE_BRACE,
     TOKEN_NAMES.ELIF,
+    TOKEN_NAMES.OPEN_PARAN,
     [TOKEN_NAMES.SYMBOL, 'b'],
-    TOKEN_NAMES.EQUALS,
+    [TOKEN_NAMES.OPERATOR, '=='],
     [TOKEN_NAMES.SYMBOL, 'true'],
+    TOKEN_NAMES.CLOSE_PARAN,
     TOKEN_NAMES.OPEN_BRACE,
     TOKEN_NAMES.LET,
     [TOKEN_NAMES.SYMBOL, 'b'],

@@ -4,13 +4,12 @@ const eqArr = (a1, a2) =>
 
 
 export const eq = (a, b) => {
+  if (a === b) return true;
   if (a === any || b === any) {
     return true;
   }
   if (typeof a !== typeof b) return false;
-  if (a === b) {
-    return true;
-  } else if (Array.isArray(a) && Array.isArray(a)) {
+  if (Array.isArray(a) && Array.isArray(a)) {
     return eqArr(a, b);
   } else if (typeof a === 'object') {
     const aKeys = Object.keys(a);

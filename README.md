@@ -47,7 +47,7 @@ let expr = match ([1, 2]) {
 - [x] arbitrarily nested function calls
 - [x] objects
 - [x] arrays
-- [ ] if, else & elif expressions
+- [x] if, else & elif expressions
 - [ ] match expressions
 - [ ] object deconstruction
 - [ ] array deconstruction
@@ -63,7 +63,7 @@ let expr = match ([1, 2]) {
 - [x] `let function = () => 3;`
 - [x] `function()`
 - [x] operators
-- [ ] functions with multiple statements
+- [x] functions with multiple statements
 - [x] function arguments
 - [x] function arguments used in body
 - [x] function with variable lookup

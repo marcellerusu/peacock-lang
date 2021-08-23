@@ -15,16 +15,17 @@ export const STATEMENT_TYPE = {
   FUNCTION_APPLICATION: 'FUNCTION_APPLICATION',
   SYMBOL_LOOKUP: 'SYMBOL_LOOKUP',
   PROPERTY_LOOKUP: 'PROPERTY_LOOKUP',
+  CONDITIONAL: 'CONDITIONAL'
 };
 
-export const declaration = ({symbol, expr, mutable}) => ({
+export const declaration = ({ symbol, expr, mutable }) => ({
   type: STATEMENT_TYPE.DECLARATION,
   mutable: !!mutable,
   symbol,
   expr
 });
 
-export const assignment = ({symbol, expr}) => ({
+export const assignment = ({ symbol, expr }) => ({
   type: STATEMENT_TYPE.ASSIGNMENT,
   symbol,
   expr
@@ -50,32 +51,39 @@ export const stringLiteral = ({ value }) => ({
   value,
 });
 
-export const fn = ({paramNames = [], body}) => ({
+export const fn = ({ paramNames = [], body }) => ({
   type: STATEMENT_TYPE.FUNCTION,
   paramNames,
   body,
 });
 
-export const fnCall = ({expr, paramExprs = []}) => ({
+export const fnCall = ({ expr, paramExprs = [] }) => ({
   type: STATEMENT_TYPE.FUNCTION_APPLICATION,
   expr,
   paramExprs
 });
 
-export const _return = ({expr}) => ({
+export const _return = ({ expr }) => ({
   type: STATEMENT_TYPE.RETURN,
   expr
 });
 
-export const symbolLookup = ({symbol}) => ({
+export const symbolLookup = ({ symbol }) => ({
   type: STATEMENT_TYPE.SYMBOL_LOOKUP,
   symbol,
 });
 
-export const propertyLookup = ({property, expr}) => ({
+export const propertyLookup = ({ property, expr }) => ({
   type: STATEMENT_TYPE.PROPERTY_LOOKUP,
   property,
   expr,
+});
+
+export const conditional = ({ expr, passFn, failFn = null }) => ({
+  type: STATEMENT_TYPE.CONDITIONAL,
+  expr,
+  passFn,
+  failFn
 });
 
 export const makeConsumer = tokens => (i, tokensToConsume) => {
@@ -112,6 +120,7 @@ const isExpression = context => [
   STATEMENT_TYPE.DECLARATION,
   STATEMENT_TYPE.ARRAY_LITERAL,
   STATEMENT_TYPE.OBJECT_LITERAL,
+  STATEMENT_TYPE.CONDITIONAL
 ].includes(context);
 
 const parse = tokens => {
@@ -184,6 +193,15 @@ const parse = tokens => {
       return paramNames;
     };
 
+    const parseStatements = () => {
+      const body = [];
+      while (tokens[i] !== TOKEN_NAMES.CLOSE_BRACE && i < tokens.length) {
+        const expr = parseNode(tokens[i], STATEMENT_TYPE.FUNCTION)
+        body.push(expr);
+      }
+      return body;
+    };
+
     const parseFunctionBody = () => {
       if (tokens[i] !== TOKEN_NAMES.OPEN_BRACE) {
         // function expression
@@ -192,14 +210,7 @@ const parse = tokens => {
       } else {
         // function statement
         consumeOne(TOKEN_NAMES.OPEN_BRACE);
-        let expr = {}, body = [];
-        while (
-          tokens[i] !== TOKEN_NAMES.CLOSE_BRACE
-          && i < tokens.length
-        ) {
-          expr = parseNode(tokens[i], STATEMENT_TYPE.FUNCTION)
-          body.push(expr);
-        }
+        const body = parseStatements();
         consumeOne(TOKEN_NAMES.CLOSE_BRACE);
         return body;
       }
@@ -213,6 +224,30 @@ const parse = tokens => {
           firstArg,
           parseNode(tokens[i], STATEMENT_TYPE.FUNCTION_APPLICATION)
         ]
+      });
+    };
+
+    const parseConditional = () => {
+      consumeOne(TOKEN_NAMES.OPEN_PARAN);
+      const expr = parseNode(tokens[i], STATEMENT_TYPE.CONDITIONAL);
+      consumeOne(TOKEN_NAMES.CLOSE_PARAN);
+      consumeOne(TOKEN_NAMES.OPEN_BRACE);
+      const passBody = parseStatements();
+      consumeOne(TOKEN_NAMES.CLOSE_BRACE);
+      let failBody = [];
+      if (tokens[i] === TOKEN_NAMES.ELSE) {
+        consumeOne(TOKEN_NAMES.ELSE);
+        consumeOne(TOKEN_NAMES.OPEN_BRACE);
+        failBody = parseStatements();
+        consumeOne(TOKEN_NAMES.CLOSE_BRACE);
+      } else if (tokens[i] === TOKEN_NAMES.ELIF) {
+        consumeOne(TOKEN_NAMES.ELIF);
+        failBody = [parseConditional()];
+      }
+      return conditional({
+        expr,
+        passFn: fn({ body: passBody }),
+        failFn: fn({ body: failBody })
       });
     };
 
@@ -237,6 +272,10 @@ const parse = tokens => {
         const expr = parseNode(tokens[i], STATEMENT_TYPE.RETURN);
         consumeOne(TOKEN_NAMES.END_STATEMENT);
         return _return({ expr });
+      }],
+      [TOKEN_NAMES.IF, () => {
+        consumeOne(TOKEN_NAMES.IF);
+        return parseConditional();
       }],
       [TOKEN_NAMES.LET, () => {
         assert(!isExpression(context));
