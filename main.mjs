@@ -4,7 +4,7 @@ import parse from "./parser.mjs";
 
 const program = `
 let f = () => {
-  return { x: 3 };
+  return { x: 1 + 3 };
 };
 let c = f();
 print(f().x);

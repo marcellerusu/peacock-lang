@@ -209,13 +209,25 @@ const parse = tokens => {
     const parseNode = (token, context = undefined) => match(token, [
       [[TOKEN_NAMES.LITERAL, any], () => {
         const value = consumeOne(token);
+        let literal;
         if (typeof value === 'number') {
-          return numberLiteral({value});
+          literal = numberLiteral({value});
         } else if (typeof value === 'string') {
-          return stringLiteral({value});
+          literal = stringLiteral({value});
         } else {
           throw 'should not reach';
         }
+        if (eq(tokens[i], [TOKEN_NAMES.OPERATOR, any])) {
+          const op = consumeOne([TOKEN_NAMES.OPERATOR, any]);
+          return fnCall({
+            expr: symbolLookup({symbol: op}),
+            paramExprs: [
+              literal,
+              parseNode(tokens[i], context)
+            ]
+          })
+        }
+        return literal;
       }],
       [TOKEN_NAMES.RETURN, () => {
         consumeOne(TOKEN_NAMES.RETURN);

@@ -685,6 +685,30 @@ it('should parse dot operator after function call', () => {
   }))
 })
 
+it('should parse object with operator expressions inside', () => {
+  const program = tokenize(`
+  let f = { x: 1 + 3 };
+  `);
+  const ast = parse(program);
+  assert(eq(ast, {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      declaration({
+        mutable: false,
+        symbol: 'f',
+        expr: objectLiteral({value: {
+          x: fnCall({
+            expr: symbolLookup({symbol: '+'}),
+            paramExprs: [
+              numberLiteral({value: 1}),
+              numberLiteral({value: 3})
+            ]
+          })
+        }})
+      })
+    ]
+  }));
+});
 
 // TODO: double function call inside a function call 
 // print(add(2)(2)); currently fails
