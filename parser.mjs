@@ -150,19 +150,10 @@ const parse = tokens => {
 
     const parseObjectLiteral = () => {
       consumeOne(TOKEN_NAMES.OPEN_BRACE);
-      // ---- PARSING OBJECT PROPERTIES ----
       const value = {};
-      while (true) {
-        let varName;
-        // TODO: don't use try, implement peek
-        try {
-          [varName] = consume([
-            {token: [TOKEN_NAMES.SYMBOL, any]},
-            {token: TOKEN_NAMES.COLON},
-          ]);
-        } catch (e) {
-          break;
-        }
+      while (tokens[i] !== TOKEN_NAMES.CLOSE_BRACE) {
+        const varName = consumeOne([TOKEN_NAMES.SYMBOL, any]);
+        consumeOne(TOKEN_NAMES.COLON);
         value[varName] = parseNode(tokens[i], STATEMENT_TYPE.OBJECT_LITERAL);
         if (tokens[i] !== TOKEN_NAMES.COMMA) break;
         consumeOne(TOKEN_NAMES.COMMA);
