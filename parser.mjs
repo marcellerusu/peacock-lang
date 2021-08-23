@@ -212,7 +212,7 @@ const parse = tokens => {
         consumeOne(TOKEN_NAMES.CLOSE_BRACE);
         return body;
       }
-    }
+    };
 
     const parseNode = (token, context = undefined) => match(token, [
       [[TOKEN_NAMES.LITERAL, any], () => {
@@ -240,38 +240,43 @@ const parse = tokens => {
           {token: TOKEN_NAMES.ASSIGNMENT},
         ]);
         const expr = parseNode(tokens[i], STATEMENT_TYPE.DECLARATION);
+
         consumeOne(TOKEN_NAMES.END_STATEMENT);
-        return declaration({mutable, symbol, expr});
+        return declaration({mutable: !!mutable, symbol, expr});
       }],
-      [[TOKEN_NAMES.SYMBOL, any], () => {
-        const symbol = consumeOne(token);
+      [[TOKEN_NAMES.SYMBOL, any], function parseSymbol(symToken, prevExpr) {
+        let symbol
+        if (!prevExpr) symbol = consumeOne(symToken);
+        const isSymbol = typeof symbol !== 'undefined';
         return match(tokens[i], [
           [TOKEN_NAMES.ASSIGNMENT, () => {
+            assert(isSymbol);
             consumeOne(TOKEN_NAMES.ASSIGNMENT);
             const expr = parseNode(tokens[i], STATEMENT_TYPE.ASSIGNMENT);
             return assignment({symbol, expr});
           }],
           [TOKEN_NAMES.OPEN_PARAN, () => {
-            const call = parseFunctionCall(symbolLookup({symbol}));
-            // TODO: this is no good, it only goes one property more
-            return match(tokens[i], [
-              [TOKEN_NAMES.PROPERTY_ACCESSOR, () => parseDotNotation(call)],
-              [TOKEN_NAMES.OPEN_PARAN, () => parseFunctionCall(call)],
-              [any, () => call]
-            ]);
+            const call = parseFunctionCall(prevExpr || symbolLookup({symbol}));
+            if (tokens[i] === TOKEN_NAMES.END_STATEMENT) return call;
+            return parseSymbol(tokens[i], call);
           }],
           [[TOKEN_NAMES.OPERATOR, any], () => {
             const op = consumeOne([TOKEN_NAMES.OPERATOR, any]);
             const expr = parseNode(tokens[i], STATEMENT_TYPE.FUNCTION_APPLICATION);
+            if (!prevExpr) assert(isSymbol);
             return fnCall({
               expr: symbolLookup({symbol: op}),
               paramExprs: [
-                symbolLookup({symbol}),
+                prevExpr || symbolLookup({symbol}),
                 expr
               ]
             });
           }],
-          [TOKEN_NAMES.PROPERTY_ACCESSOR, () => parseDotNotation(symbolLookup({symbol}))],
+          [TOKEN_NAMES.PROPERTY_ACCESSOR, () => {
+            const expr = parseDotNotation(symbolLookup({symbol}));
+            if (tokens[i] === TOKEN_NAMES.END_STATEMENT) return expr;
+            return parseSymbol(tokens[i], expr);
+          }],
           [any, () => {
             assert(isExpression(context));
             return symbolLookup({symbol});

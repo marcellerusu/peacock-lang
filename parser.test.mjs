@@ -591,6 +591,48 @@ it('should parse double function application', () => {
   }))
 })
 
+it('should call function from object property', () => {
+  const program = tokenize(`
+  let h = {
+    a: () => 3
+  };
+  let b = h.a();
+  `);
+  const ast = parse(program);
+  assert(eq(ast, {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [  
+      declaration({
+        mutable: false,
+        symbol: 'h',
+        expr: objectLiteral({
+          value: {
+            a: fn({
+              paramNames: [],
+              body: [_return({expr: numberLiteral({value: 3})})]
+            })
+          }
+        })
+      }),
+      declaration({
+        mutable: false,
+        symbol: 'b',
+        expr: fnCall({
+          expr: propertyLookup({
+            property: 'a',
+            expr: symbolLookup({symbol: 'h'})
+          }),
+          paramExprs: []
+        })
+      })
+    ]
+  }))
+});
+
+
+// TODO: double function call inside a function call 
+// print(add(2)(2)); currently fails
+
 /*
 
 if obj == { a: 3 } {
