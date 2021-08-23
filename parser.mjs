@@ -282,7 +282,7 @@ const parse = tokens => {
           }],
           [any, () => {
             assert(isExpression(context));
-            return symbolLookup({ symbol });
+            return prevExpr || symbolLookup({ symbol });
           }]
         ]);
       }],
