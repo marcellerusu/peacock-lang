@@ -48,6 +48,7 @@ let expr = match ([1, 2]) {
 - [x] objects
 - [x] arrays
 - [x] if, else & elif expressions
+ - [ ] single line if elif else
 - [ ] match expressions
 - [ ] object deconstruction
 - [ ] array deconstruction
@@ -69,7 +70,7 @@ let expr = match ([1, 2]) {
 - [x] function with variable lookup
 - [x] `let obj = { a: 3 };`
 - [x] arrays
-- [ ] if, else & elif
+- [x] if, else & elif
 - [ ] match expressions
 - [ ] object deconstruction
 - [ ] array deconstruction

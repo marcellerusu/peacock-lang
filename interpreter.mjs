@@ -2,7 +2,7 @@ import assert from 'assert';
 import { STATEMENT_TYPE } from "./parser.mjs";
 import { match, any, eq } from './utils.mjs';
 
-const globals = {
+export const getGlobals = () => ({
   print: {
     native: console.log,
   },
@@ -24,6 +24,12 @@ const globals = {
   '!=': {
     native: (a, b) => !eq(a, b),
   },
+  '>': {
+    native: (a, b) => a > b,
+  },
+  '<': {
+    native: (a, b) => a > b,
+  },
   'true': {
     mutable: false,
     value: true,
@@ -32,7 +38,10 @@ const globals = {
     mutable: false,
     value: false,
   }
-};
+});
+
+export let globals = getGlobals();
+export const refreshGlobals = () => globals = getGlobals();
 
 const evalParamExprs = (paramExprs, context, closureContext) => {
   const args = [];
@@ -50,6 +59,15 @@ const evalExpr = (expr, context, closureContext = {}) => match(expr.type, [
   [STATEMENT_TYPE.RETURN, () => evalExpr(expr.expr, context, closureContext)],
   [STATEMENT_TYPE.SYMBOL_LOOKUP, () => closureContext[expr.symbol] || context[expr.symbol]],
   [STATEMENT_TYPE.FUNCTION, () => ({ value: { ...expr, closureContext } })],
+  [STATEMENT_TYPE.CONDITIONAL, () => {
+    const { expr: condExpr, pass, fail } = expr;
+    const { value: cond } = evalExpr(condExpr, context, closureContext);
+    if (cond) {
+      return evalExpr(pass, context, closureContext);
+    } else {
+      return evalExpr(fail, context, closureContext);
+    }
+  }],
   [STATEMENT_TYPE.FUNCTION_APPLICATION, () => {
     const { paramExprs, expr: fnExpr } = expr;
     const fn = evalExpr(fnExpr, context, closureContext);
@@ -59,7 +77,7 @@ const evalExpr = (expr, context, closureContext = {}) => match(expr.type, [
     }
     assert(typeof fn.value !== 'undefined');
     const { paramNames, body, closureContext: oldClosureContext } = fn.value;
-    // TODO: implement currying
+    // TODO: implement auto currying
     assert(paramNames.length === paramExprs.length);
     const fnContext = { ...oldClosureContext };
     for (let i = 0; i < paramExprs.length; i++) {
@@ -95,12 +113,14 @@ const evalExpr = (expr, context, closureContext = {}) => match(expr.type, [
   [any, () => { console.log(expr); throw 'unimplemented -- evalExpr'; }]
 ]);
 
-const interpret = (ast, context = {...globals}, closureContext = {}) => {
+const interpret = (ast, context = globals, closureContext = {}) => {
   const isFunction = ast.type === STATEMENT_TYPE.FUNCTION;
+  // console.log(isFunction);
   assert(ast.type === STATEMENT_TYPE.PROGRAM || isFunction);
   const lookup = s => closureContext[s] || context[s];
-  for (const statement of ast.body) {
-    const value = match(statement.type, [
+  let value, statement;
+  for (statement of ast.body) {
+    value = match(statement.type, [
       [STATEMENT_TYPE.DECLARATION, () => {
         const { symbol, mutable, expr } = statement;
         if (lookup(symbol)) {
@@ -125,7 +145,10 @@ const interpret = (ast, context = {...globals}, closureContext = {}) => {
     if (isFunction && statement.type === STATEMENT_TYPE.RETURN)
       return value;
   }
-  return context;
+  // TODO: I don't fully understand why this is necessary
+  if (statement.type === STATEMENT_TYPE.CONDITIONAL)
+    return value;
+  return null;
 };
 
 export default interpret;

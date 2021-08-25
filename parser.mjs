@@ -79,11 +79,11 @@ export const propertyLookup = ({ property, expr }) => ({
   expr,
 });
 
-export const conditional = ({ expr, passFn, failFn = null }) => ({
+export const conditional = ({ expr, pass, fail = null }) => ({
   type: STATEMENT_TYPE.CONDITIONAL,
   expr,
-  passFn,
-  failFn
+  pass,
+  fail
 });
 
 export const makeConsumer = tokens => (i, tokensToConsume) => {
@@ -246,8 +246,8 @@ const parse = tokens => {
       }
       return conditional({
         expr,
-        passFn: fn({ body: passBody }),
-        failFn: fn({ body: failBody })
+        pass: fnCall({ expr: fn({ body: passBody }) }),
+        fail: fnCall({ expr: fn({ body: failBody }) })
       });
     };
 

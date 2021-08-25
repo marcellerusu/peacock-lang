@@ -761,6 +761,7 @@ it('should parse if cond', () => {
   }
   `);
   const ast = parse(program);
+  // console.log(JSON.stringify(ast, null, 2));
 
   assert(eq(ast, {
     type: STATEMENT_TYPE.PROGRAM,
@@ -773,8 +774,8 @@ it('should parse if cond', () => {
             numberLiteral({ value: 3 })
           ]
         }),
-        passFn: fn({body: []}),
-        failFn: fn({body: []})
+        pass: fnCall({ expr: fn({ body: [] }) }),
+        fail: fnCall({ expr: fn({ body: [] }) })
       })
     ]
   }))
@@ -801,8 +802,8 @@ it('should parse if else cond', () => {
             numberLiteral({ value: 3 })
           ]
         }),
-        passFn: fn({body: [_return({expr: stringLiteral({value: 'str'})})]}),
-        failFn: fn({body: [_return({expr: numberLiteral({value: 5})})]})
+        pass: fnCall({ expr: fn({ body: [_return({ expr: stringLiteral({value: 'str'}) })] }) }),
+        fail: fnCall({ expr: fn({ body: [_return({ expr: numberLiteral({value: 5}) })] }) })
       })
     ]
   }))
@@ -829,8 +830,8 @@ it('should parse if elif else cond', () => {
             numberLiteral({ value: 3 })
           ]
         }),
-        passFn: fn({body: [_return({expr: stringLiteral({value: 'str'})})]}),
-        failFn: fn({
+        pass: fnCall({ expr: fn({ body: [_return({ expr: stringLiteral({value: 'str'}) })] }) }),
+        fail: fnCall({ expr: fn({
           body: [
             conditional({
               expr: fnCall({
@@ -840,11 +841,11 @@ it('should parse if elif else cond', () => {
                   numberLiteral({ value: 4 })
                 ]
               }),
-              passFn: fn({body: []}),
-              failFn: fn({body: [_return({expr: numberLiteral({value: 5})})]})
+              pass: fnCall({ expr: fn({ body: [] }) }),
+              fail: fnCall({ expr: fn({ body: [_return({ expr: numberLiteral({value: 5}) })] }) })
             })
           ]
-        })
+        }) })
       })
     ]
   }))

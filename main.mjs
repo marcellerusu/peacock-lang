@@ -3,12 +3,13 @@ import tokenize from "./tokenizer.mjs";
 import parse from "./parser.mjs";
 
 const program = `
-let f = () => {
-  let a = 3;
-  return a + 3;
+let str = if (3 != 3) {
+  return 5;
+} else {
+  return 'strrr';
 };
-let c = f();
+print(str);
 `;
 
-const global = interpret(parse(tokenize(program)));
+interpret(parse(tokenize(program)));
 // console.log(JSON.stringify(global, null, 2));

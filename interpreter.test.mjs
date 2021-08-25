@@ -2,10 +2,11 @@ import parse, { STATEMENT_TYPE } from './parser.mjs';
 import tokenize from './tokenizer.mjs';
 import { eq } from './utils.mjs';
 import assert from 'assert';
-import interpret from './interpreter.mjs';
+import interpret, { globals, refreshGlobals } from './interpreter.mjs';
 
 let passed = 0;
 const it = (str, fn) => {
+  refreshGlobals();
   console.log(`it - ${str}`);
   fn();
   passed++;
@@ -27,7 +28,7 @@ it('should eval `let var = 3;`', () => {
     ]
   }
 
-  const globals = interpret(ast);
+  interpret(ast);
   // console.log(globals);
 
   assert(globals['var'].value === 3);
@@ -58,7 +59,7 @@ it('should eval function', () => {
     ]
   };
 
-  const globals = interpret(ast);
+  interpret(ast);
   // console.log(globals['function'])
   assert(eq(globals['function'], {
     mutable: false,
@@ -116,7 +117,7 @@ it('should eval function application', () => {
       },
     ]
   };
-  const globals = interpret(ast);
+  interpret(ast);
   // console.log(globals);
 
   assert(globals['a'].value === 3);
@@ -148,7 +149,7 @@ it('should eval object literals', () => {
     ]
   };
 
-  const globals = interpret(ast);
+  interpret(ast);
   // console.log(globals.obj);
 
 
@@ -165,7 +166,7 @@ it('should eval function application with variable lookup', () => {
   let function = () => x;
   let a = function();
   `));
-  const globals = interpret(ast);
+  interpret(ast);
   // console.log(globals);
 
   // assert(typeof globals['function'].value === 'function');
@@ -187,9 +188,9 @@ it(`should eval mutable variable`, () => {
       },
     ]
   };
-  const global = interpret(ast);
-  assert(global['var'].value === 3)
-  assert(global['var'].mutable)
+  interpret(ast);
+  assert(globals['var'].value === 3)
+  assert(globals['var'].mutable)
 });
 
 it(`should eval variable assignment`, () => {
@@ -215,10 +216,10 @@ it(`should eval variable assignment`, () => {
       },
     ]
   };
-  const global = interpret(ast);
+  interpret(ast);
   // console.log(global)
 
-  assert(global['var'].value === 3)
+  assert(globals['var'].value === 3)
 });
 
 it(`should eval identity function`, () => {
@@ -263,10 +264,10 @@ it(`should eval identity function`, () => {
       }
     ]
   };
-  const global = interpret(ast);
+  interpret(ast);
   // console.log(global);
 
-  assert(global['var'].value === 12345);
+  assert(globals['var'].value === 12345);
 });
 
 
@@ -275,11 +276,11 @@ it(`should eval function application with arguments`, () => {
   let add = (a, b) => a + b;
   let four = add(1, 3);
   `));
-  const global = interpret(ast);
+  interpret(ast);
 
   // console.log(global.four);
 
-  assert(global.four.value === 4)
+  assert(globals.four.value === 4)
 });
 
 it(`should eval object dot notation on object`, () => {
@@ -310,9 +311,9 @@ it(`should eval object dot notation on object`, () => {
       }
     ]
   };
-  const global = interpret(ast);
+  interpret(ast);
   // console.log(global);
-  assert(global.yesa.value === 5);
+  assert(globals.yesa.value === 5);
 });
 
 it(`should eval nested object dot notation on variable`, () => {
@@ -357,8 +358,8 @@ it(`should eval nested object dot notation on variable`, () => {
       }
     ]
   };
-  const global = interpret(ast);
-  assert(global.b.value === 5);
+  interpret(ast);
+  assert(globals.b.value === 5);
 });
 
 it('should eval curried a + b', () => {
@@ -367,9 +368,9 @@ it('should eval curried a + b', () => {
   let h = f(1);
   let g = h(2);
   `));
-  const global = interpret(program);
+  interpret(program);
 
-  assert(global.g.value === 3)
+  assert(globals.g.value === 3)
 });
 
 
@@ -378,17 +379,17 @@ it('should eval directly curried a + b', () => {
   let f = (a) => (b) => a + b;
   let h = f(1)(2);
   `));
-  const global = interpret(program);
+  interpret(program);
 
-  assert(global.h.value === 3)
+  assert(globals.h.value === 3)
 });
 
 it('should eval arr', () => {
   const program = parse(tokenize(`
   let arr = [1, 'str', {a: 3}];  
   `));
-  const global = interpret(program);
-  assert(eq(global.arr.value, [1, 'str', {a: 3}]))
+  interpret(program);
+  assert(eq(globals.arr.value, [1, 'str', {a: 3}]))
 })
 
 it('should eval multi-statement functions', () => {
@@ -399,8 +400,46 @@ it('should eval multi-statement functions', () => {
   };
   let c = f();
   `));
-  const global = interpret(program);
-  assert(eq(global.c.value, 6))
-})
+  interpret(program);
+  assert(eq(globals.c.value, 6))
+});
+
+it('should eval if cond', () => {
+  const program = parse(tokenize(`
+  let five = if (3 == 3) {
+    return 5;
+  };
+  `));
+  interpret(program);
+  // console.log(global.five);
+  assert(globals.five.value === 5);
+});
+
+it('should eval if else cond', () => {
+  const program = parse(tokenize(`
+  let str = if (3 != 3) {
+    return 5;
+  } else {
+    return 'str';
+  };
+  `));
+  interpret(program);
+  // console.log(global.five);
+  assert(globals.str.value === 'str');
+});
+
+it('should eval if elif else cond', () => {
+  const program = parse(tokenize(`
+  let a = '3';
+  let f = if (a == 3) {
+    return 5;
+  } elif (a == '3') {
+    return 'str';
+  };
+  `));
+  interpret(program);
+  // console.log(globals);
+  assert(globals.f.value === 'str');
+});
 
 console.log('Passed', passed, 'tests!');
