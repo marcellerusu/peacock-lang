@@ -3,10 +3,13 @@ import tokenize from "./tokenizer.mjs";
 import parse from "./parser.mjs";
 
 const program = `
-let arr = [1, 2, 3];
-let three = arr[2];
-print(three);
+let expr = match ([1, 2]) {
+  [] => 'Congrats... sorta',
+  [1] => 'Oh no',
+  [1, a] => 'YES! ' + a
+};
+print(expr);
 `;
 
-interpret(parse(tokenize(program)));
+const global = interpret(parse(tokenize(program)));
 // console.log(JSON.stringify(global, null, 2));

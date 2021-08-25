@@ -30,14 +30,6 @@ export const getGlobals = () => ({
   '<': {
     native: (a, b) => a > b,
   },
-  'true': {
-    mutable: false,
-    value: true,
-  },
-  'false': {
-    mutable: false,
-    value: false,
-  }
 });
 
 export let globals = getGlobals();
@@ -56,6 +48,7 @@ const evalParamExprs = (paramExprs, context, closureContext) => {
 const evalExpr = (expr, context, closureContext = {}) => match(expr.type, [
   [STATEMENT_TYPE.NUMBER_LITERAL, () => expr],
   [STATEMENT_TYPE.STRING_LITERAL, () => expr],
+  [STATEMENT_TYPE.BOOLEAN_LITERAL, () => expr],
   [STATEMENT_TYPE.RETURN, () => evalExpr(expr.expr, context, closureContext)],
   [STATEMENT_TYPE.SYMBOL_LOOKUP, () => closureContext[expr.symbol] || context[expr.symbol]],
   [STATEMENT_TYPE.ARRAY_LOOKUP, () => {
@@ -102,6 +95,7 @@ const evalExpr = (expr, context, closureContext = {}) => match(expr.type, [
       fnContext
     );
   }],
+  [STATEMENT_TYPE.BOUND_VARIABLE, () => ({ value: any })],
   [STATEMENT_TYPE.OBJECT_LITERAL, () => {
     const obj = {};
     for (let key in expr.value) {
@@ -117,6 +111,16 @@ const evalExpr = (expr, context, closureContext = {}) => match(expr.type, [
     const object = evalExpr(_expr, context, closureContext).value;
     assert(typeof object === 'object');
     return { value: object[property] };
+  }],
+  [STATEMENT_TYPE.MATCH_EXPRESSION, () => {
+    const { expr: matchExpr, cases } = expr;
+    const { value } = evalExpr(matchExpr);
+    for (const { expr: caseExpr, invoke } of cases) {
+      if (eq(evalExpr(caseExpr).value, value)) {
+        return evalExpr(invoke);
+      }
+    }
+    return { value: null };
   }],
   [any, () => { console.log(expr); throw 'unimplemented -- evalExpr'; }]
 ]);

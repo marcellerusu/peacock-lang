@@ -8,7 +8,7 @@ let f = (a, b) => a + b;
 let add1 = f(1);
 print(add1(2)); # 3
 
-## pattern matching [ not started ]
+## pattern matching [ done ]
 
 ```
 let expr = match ([1, 2]) {
@@ -87,7 +87,7 @@ will probably just use immutable.js for this
 - [x] arrays
  - [x] index lookup
 - [x] if, else & elif
-- [ ] match expressions
+- [x] match expressions
 - [ ] object deconstruction
 - [ ] array deconstruction
 - [x] object property accessor (.)

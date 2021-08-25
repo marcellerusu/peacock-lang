@@ -451,4 +451,49 @@ it('should eval array lookup on symbol', () => {
   assert(globals.three.value === 3);
 });
 
+it('should eval pattern matching', () => {
+  const program = parse(tokenize(`
+  let wtf = match ([1, 2]) {
+    [a] => a,
+    [a, 2] => 'wtf'
+  };
+  `));
+  interpret(program);
+  assert(globals.wtf.value === 'wtf');
+})
+
+
+it('should eval pattern matching w bound variable not first', () => {
+  const program = parse(tokenize(`
+  let wtf = match ([1, 2]) {
+    [a] => a,
+    [1, a] => 'wtf'
+  };
+  `));
+  interpret(program);
+  assert(globals.wtf.value === 'wtf');
+})
+
+it('should eval pattern matching w bound variable not first 2', () => {
+  const program = parse(tokenize(`
+  let wtf = match ([1, 2]) {
+    [1, a] => 'wtf'
+  };
+  `));
+  interpret(program);
+  assert(globals.wtf.value === 'wtf');
+})
+
+
+it('should eval pattern matching w bound variable not first 3', () => {
+  const program = parse(tokenize(`
+  let wtf = match ([1, 2]) {
+    [1, a] => a
+  };
+  `));
+  interpret(program);
+  // console.log(JSON.stringify(program, null, 2));
+  assert(globals.wtf.value === 2);
+})
+
 console.log('Passed', passed, 'tests!');

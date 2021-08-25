@@ -346,12 +346,15 @@ const parse = tokens => {
         for (let i = 0; i < expr.elements.length; i++) {
           const elem = expr.elements[i];
           if (elem.type === STATEMENT_TYPE.BOUND_VARIABLE) {
-            return findBoundVariable(elem, found, arrayLookup({ expr: prevExpr, index: i }));
+            const val = findBoundVariable(elem, found, arrayLookup({ expr: prevExpr, index: i }));
+            if (val) return val;
           } else if (expr.type === STATEMENT_TYPE.ARRAY_LITERAL
             || expr.type === STATEMENT_TYPE.OBJECT_LITERAL) {
-            return findBoundVariable(elem, found, arrayLookup({ expr: prevExpr, index: i }));
+            const val = findBoundVariable(elem, found, arrayLookup({ expr: prevExpr, index: i }));
+            if (val) return val;
           }
         }
+        return null;
       } else if (expr.type === STATEMENT_TYPE.OBJECT_LITERAL) {
         throw 'unimplemented -- findBoundVariables';
       } else {
