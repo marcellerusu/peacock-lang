@@ -1,27 +1,11 @@
 import interpret from './interpreter.mjs';
 import tokenize from "./tokenizer.mjs";
 import parse from "./parser.mjs";
+import fs from 'fs/promises';
 
-const program = `
+const path = process.argv[2];
+const data = await fs.readFile(path, 'utf-8');
+// console.log(data);
 
-let mult = (x) => match(x) {
-  [x] => x,
-  [a, b] => a * b,
-  [a, b, c] => a * b * c
-};
-
-let arr = [1, 2, 3];
-let expr = match (arr) {
-  [] => 'Congrats... sorta',
-  [1] => 'Oh no',
-  [1, a] => 'YES! ' + a
-};
-
-let one = 1;
-let r = if (one > 0) 3;
-
-print(mult(arr), r);
-`;
-
-const global = interpret(parse(tokenize(program)));
+const global = interpret(parse(tokenize(data)));
 // console.log(JSON.stringify(global, null, 2));
