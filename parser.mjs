@@ -445,8 +445,10 @@ const parse = tokens => {
         return match(tokens[i], [
           [TOKEN_NAMES.ASSIGNMENT, () => {
             assert(isSymbol);
+            assert(!isExpression(contexts));
             consumeOne(TOKEN_NAMES.ASSIGNMENT);
             const expr = parseNode(tokens[i], [...contexts, STATEMENT_TYPE.ASSIGNMENT]);
+            consumeOne(TOKEN_NAMES.END_STATEMENT);
             return assignment({ symbol, expr });
           }],
           [TOKEN_NAMES.OPEN_PARAN, () => {
@@ -479,7 +481,7 @@ const parse = tokens => {
             return parseSymbol(tokens[i], expr);
           }],
           [any, () => {
-            assert(isExpression(contexts));
+            // assert(isExpression(contexts));
             if (inMatchCond(contexts)) {
               return boundVariable({ symbol });
             } else {  

@@ -97,6 +97,12 @@ const tokenize = program => {
   const tokens = [];
   for (let i = 0; i < program.length; i++) {
     const char = program[i];
+    // comments
+    if (char === '#') {
+      const index = program.slice(i).indexOf('\n') + 1;
+      if (index === -1) break;
+      i = i + index;
+    }
     if (isWhiteSpace(char)) continue;
     // todo should we be checking OPERATORS[str] in the cb here?
     let isParsingStr = char === '\'';

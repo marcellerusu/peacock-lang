@@ -30,7 +30,7 @@ will probably just use immutable.js for this
 
 - [x] `let var = 3;`
 - [x] `let mut var = 5;`
-- [ ] comments - # -- take out here
+- [x] comments - # -- take out here
 - [x] `let var = 'string';`
 - [x] `let function = () => 3;`
 - [x] functions with a body (& explicit return)
@@ -91,3 +91,8 @@ will probably just use immutable.js for this
 - [ ] object deconstruction
 - [ ] array deconstruction
 - [x] object property accessor (.)
+
+
+# interesting ideas
+
+generate md files from source files from comments
