@@ -1,16 +1,30 @@
 # WIP m-lang
 
-```
-# pattern matching
+# BIG goals
 
+## auto-currying [ not started ]
+
+let f = (a, b) => a + b;
+let add1 = f(1);
+print(add1(2)); # 3
+
+## pattern matching [ not started ]
+
+```
 let expr = match ([1, 2]) {
   [] => 'Congrats... sorta',
   [1] => 'Oh no',
   [1, 2] => 'YES!'
 };
-
 ```
 
+## almost everything is an expression [ done ]
+
+only thing that is not an expression is `let` statements
+
+## immutable data structures [ not started ]
+
+will probably just use immutable.js for this
 
 ## Tokenizer
 
