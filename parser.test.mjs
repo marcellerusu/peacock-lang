@@ -13,6 +13,10 @@ import parse, {
   propertyLookup,
   arrayLookup,
   conditional,
+  matchExpression,
+  matchCase,
+  boundVariable,
+  booleanLiteral,
 } from './parser.mjs';
 import tokenize, { TOKEN_NAMES } from './tokenizer.mjs';
 import { eq } from './utils.mjs';
@@ -899,6 +903,198 @@ it('should parse array lookup on symbol', () => {
 });
 
 
+it('should parse match expression', () => {
+  const program = tokenize(`
+  let a = match (true) {
+    true => 'str'
+  };
+  `);
+  // TODO: make true a token
+  const ast = parse(program);
+  assert(eq(ast, {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      declaration({
+        mutable: false,
+        symbol: 'a',
+        expr: matchExpression({
+          expr: booleanLiteral({ value: true }),
+          cases: [
+            matchCase({
+              expr: booleanLiteral({ value: true }),
+              invoke: fnCall({
+                expr: fn({
+                  body: [_return({ expr: stringLiteral({ value: 'str' }) })]
+                }),
+              })
+            })
+          ]
+        }),
+      })
+    ]
+  }))
+});
 
+it('should parse match expression with multiple cases', () => {
+  const program = tokenize(`
+  let a = match (true) {
+    true => 'str',
+    [1, 2] => {
+      let b = 3;
+      return b + 5;
+    }
+  };
+  `);
+  const ast = parse(program);
+  assert(eq(ast, {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      declaration({
+        mutable: false,
+        symbol: 'a',
+        expr: matchExpression({
+          expr: booleanLiteral({ value: true }),
+          cases: [
+            matchCase({
+              expr: booleanLiteral({ value: true }),
+              invoke: fnCall({
+                expr: fn({
+                  body: [_return({ expr: stringLiteral({ value: 'str' }) })]
+                }),
+              })
+            }),
+            matchCase({
+              expr: arrayLiteral({ elements: [numberLiteral({ value: 1 }), numberLiteral({ value: 2 })] }),
+              invoke: fnCall({
+                expr: fn({
+                  body: [
+                    declaration({
+                      mutable: false,
+                      symbol: 'b',
+                      expr: numberLiteral({ value: 3 })
+                    }),
+                    _return({ expr: fnCall({
+                      expr: symbolLookup({ symbol: '+' }),
+                      paramExprs: [
+                        symbolLookup({ symbol: 'b' }),
+                        numberLiteral({ value: 5 })
+                      ]
+                    }) })
+                  ]
+                }),
+              })
+            })
+          ]
+        }),
+      })
+    ]
+  }))
+});
+
+it('should parse match expression with bound variable', () => {
+  const program = tokenize(`
+  let a = match ('hello') {
+    a => a + ' world!'
+  };
+  `);
+  const ast = parse(program);
+  // console.log(JSON.stringify(ast, null, 2));
+  assert(eq(ast, {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      declaration({
+        mutable: false,
+        symbol: 'a',
+        expr: matchExpression({
+          expr: stringLiteral({ value: 'hello' }),
+          cases: [
+            matchCase({
+              expr: boundVariable({ symbol: 'a' }),
+              invoke: fnCall({
+                expr: fn({
+                  paramNames: ['a'],
+                  body: [
+                    _return({
+                      expr: fnCall({
+                        expr: symbolLookup({ symbol: '+' }),
+                        paramExprs: [
+                          symbolLookup({ symbol: 'a' }),
+                          stringLiteral({ value: ' world!' })
+                        ]
+                      })
+                    })
+                  ]
+                }),
+                paramExprs: [
+                  fnCall({
+                    expr: fn({
+                      paramNames: ['arg'],
+                      body: [_return({ expr: symbolLookup({ symbol: 'arg' }) })]
+                    }),
+                    paramExprs: [ stringLiteral({ value: 'hello' }) ]
+                  })
+                ]
+              })
+            }),
+          ]
+        }),
+      })
+    ]
+  }))
+});
+
+
+it('should parse match expression with bound variable in array', () => {
+  const program = tokenize(`
+  let a = match (['hello']) {
+    [a] => a + ' world!'
+  };
+  `);
+  const ast = parse(program);
+  assert(eq(ast, {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      declaration({
+        mutable: false,
+        symbol: 'a',
+        expr: matchExpression({
+          expr: arrayLiteral({ elements: [stringLiteral({ value: 'hello' })] }),
+          cases: [
+            matchCase({
+              expr: arrayLiteral({ elements: [boundVariable({ symbol: 'a' })] }),
+              invoke: fnCall({
+                expr: fn({
+                  paramNames: ['a'],
+                  body: [
+                    _return({
+                      expr: fnCall({
+                        expr: symbolLookup({ symbol: '+' }),
+                        paramExprs: [
+                          symbolLookup({ symbol: 'a' }),
+                          stringLiteral({ value: ' world!' })
+                        ]
+                      })
+                    })
+                  ]
+                }),
+                paramExprs: [
+                  fnCall({
+                    expr: fn({
+                      paramNames: ['arg'],
+                      body: [_return({expr: arrayLookup({ expr: symbolLookup({ symbol: 'arg'}), index: 0 }) })],
+                    }),
+                    paramExprs: [
+                      arrayLiteral({ elements: [stringLiteral({ value: 'hello' })] })
+                    ]
+                  })
+                ]
+              })
+            }),
+          ]
+        }),
+      })
+    ]
+  }))
+});
 
 console.log('Passed', passed, 'tests!');

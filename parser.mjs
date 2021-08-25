@@ -16,7 +16,11 @@ export const STATEMENT_TYPE = {
   SYMBOL_LOOKUP: 'SYMBOL_LOOKUP',
   PROPERTY_LOOKUP: 'PROPERTY_LOOKUP',
   CONDITIONAL: 'CONDITIONAL',
-  ARRAY_LOOKUP: 'ARRAY_LOOKUP'
+  ARRAY_LOOKUP: 'ARRAY_LOOKUP',
+  MATCH_EXPRESSION: 'MATCH_EXPRESSION',
+  MATCH_CASE: 'MATCH_CASE',
+  BOUND_VARIABLE: 'BOUND_VARIABLE',
+  BOOLEAN_LITERAL: 'BOOLEAN_LITERAL'
 };
 
 export const declaration = ({ symbol, expr, mutable }) => ({
@@ -58,6 +62,11 @@ export const stringLiteral = ({ value }) => ({
   value,
 });
 
+export const booleanLiteral = ({ value }) => ({
+  type: STATEMENT_TYPE.BOOLEAN_LITERAL,
+  value
+});
+
 export const fn = ({ paramNames = [], body }) => ({
   type: STATEMENT_TYPE.FUNCTION,
   paramNames,
@@ -93,6 +102,23 @@ export const conditional = ({ expr, pass, fail = null }) => ({
   fail
 });
 
+export const matchExpression = ({ expr, cases }) => ({
+  type: STATEMENT_TYPE.MATCH_EXPRESSION,
+  expr,
+  cases
+});
+
+export const matchCase = ({ expr, invoke }) => ({
+  type: STATEMENT_TYPE.MATCH_CASE,
+  expr,
+  invoke
+});
+
+export const boundVariable = ({ symbol }) => ({
+  type: STATEMENT_TYPE.BOUND_VARIABLE,
+  symbol
+});
+
 export const makeConsumer = tokens => (i, tokensToConsume) => {
   const tokenValues = [];
   for (let consumable of tokensToConsume) {
@@ -104,6 +130,7 @@ export const makeConsumer = tokens => (i, tokensToConsume) => {
         tokenValue = null;
         i--;
       } else {
+        // assert(false);
         throw `Token mismatch -- expected ${consumable.token}, got ${token}`;
       }
     } else {
@@ -120,15 +147,44 @@ export const makeConsumer = tokens => (i, tokensToConsume) => {
   return [tokenValues, i];
 };
 
-const isExpression = context => [
+const isExpression = contexts => [
   STATEMENT_TYPE.RETURN,
   STATEMENT_TYPE.FUNCTION_APPLICATION,
   STATEMENT_TYPE.ASSIGNMENT,
   STATEMENT_TYPE.DECLARATION,
   STATEMENT_TYPE.ARRAY_LITERAL,
   STATEMENT_TYPE.OBJECT_LITERAL,
-  STATEMENT_TYPE.CONDITIONAL
-].includes(context);
+  STATEMENT_TYPE.CONDITIONAL,
+  STATEMENT_TYPE.MATCH_EXPRESSION,
+  STATEMENT_TYPE.MATCH_CASE,
+].includes(contexts[contexts.length - 1]);
+
+const inMatchCond = contexts => {
+  let i = contexts.length - 1;
+  let mostRecentMatchIndex = -1;
+  // last index of :/
+  while (i > 0) {
+    if (contexts[i] === STATEMENT_TYPE.MATCH_CASE) {
+      mostRecentMatchIndex = i;
+      break;
+    }
+    i--;
+  }
+  if (mostRecentMatchIndex === -1) return false;
+  return !contexts.slice(mostRecentMatchIndex + 1)
+    .some(context => 
+      // these can not belong in a match condition
+      [
+        STATEMENT_TYPE.RETURN,
+        STATEMENT_TYPE.FUNCTION_APPLICATION,
+        STATEMENT_TYPE.ASSIGNMENT,
+        STATEMENT_TYPE.DECLARATION,
+        STATEMENT_TYPE.CONDITIONAL,
+        STATEMENT_TYPE.MATCH_EXPRESSION,
+        STATEMENT_TYPE.MATCH_CASE,
+      ].includes(context)
+    )
+}
 
 const parse = tokens => {
   const AST = { type: STATEMENT_TYPE.PROGRAM, body: [], };
@@ -139,11 +195,11 @@ const parse = tokens => {
       return arr;
     };
     const consumeOne = token => consume([{token}])[0];
-    const parseFunctionCall = expr => {
+    const parseFunctionCall = (contexts, expr) => {
       consumeOne(TOKEN_NAMES.OPEN_PARAN);
       const paramExprs = [];
       while (tokens[i] !== TOKEN_NAMES.CLOSE_PARAN) {
-        const expr = parseNode(tokens[i], STATEMENT_TYPE.FUNCTION_APPLICATION);
+        const expr = parseNode(tokens[i], [...contexts, STATEMENT_TYPE.FUNCTION_APPLICATION]);
         paramExprs.push(expr);
         if (tokens[i] !== TOKEN_NAMES.COMMA) break;
         consumeOne(TOKEN_NAMES.COMMA);
@@ -164,13 +220,13 @@ const parse = tokens => {
       return expr;
     };
 
-    const parseObjectLiteral = () => {
+    const parseObjectLiteral = contexts => {
       consumeOne(TOKEN_NAMES.OPEN_BRACE);
       const value = {};
       while (tokens[i] !== TOKEN_NAMES.CLOSE_BRACE) {
         const varName = consumeOne([TOKEN_NAMES.SYMBOL, any]);
         consumeOne(TOKEN_NAMES.COLON);
-        value[varName] = parseNode(tokens[i], STATEMENT_TYPE.OBJECT_LITERAL);
+        value[varName] = parseNode(tokens[i], [...contexts, STATEMENT_TYPE.OBJECT_LITERAL]);
         if (tokens[i] !== TOKEN_NAMES.COMMA) break;
         consumeOne(TOKEN_NAMES.COMMA);
       }
@@ -178,17 +234,17 @@ const parse = tokens => {
       return value;
     };
 
-    const parseArrayLiteral = () => {
+    const parseArrayLiteral = contexts => {
       consumeOne(TOKEN_NAMES.OPEN_SQ_BRACE);
       const elements = [];
       while (tokens[i] !== TOKEN_NAMES.CLOSE_SQ_BRACE) {
-        elements.push(parseNode(tokens[i], STATEMENT_TYPE.ARRAY_LITERAL));
+        elements.push(parseNode(tokens[i],  [...contexts, STATEMENT_TYPE.ARRAY_LITERAL]));
         if (tokens[i] !== TOKEN_NAMES.COMMA) break;
         consumeOne(TOKEN_NAMES.COMMA);
       }
       consumeOne(TOKEN_NAMES.CLOSE_SQ_BRACE);
       if (tokens[i] === TOKEN_NAMES.OPEN_SQ_BRACE) {
-        return parseArrayLookup(arrayLiteral({ elements }));
+        return parseArrayLookup(contexts, arrayLiteral({ elements }));
       } else {
         return arrayLiteral({ elements });
       }
@@ -204,56 +260,56 @@ const parse = tokens => {
       return paramNames;
     };
 
-    const parseStatements = () => {
+    const parseStatements = contexts => {
       const body = [];
       while (tokens[i] !== TOKEN_NAMES.CLOSE_BRACE && i < tokens.length) {
-        const expr = parseNode(tokens[i], STATEMENT_TYPE.FUNCTION)
+        const expr = parseNode(tokens[i],  [...contexts, STATEMENT_TYPE.FUNCTION]);
         body.push(expr);
       }
       return body;
     };
 
-    const parseFunctionBody = () => {
+    const parseFunctionBody = contexts => {
       if (tokens[i] !== TOKEN_NAMES.OPEN_BRACE) {
         // function expression
-        const expr = parseNode(tokens[i], STATEMENT_TYPE.RETURN);
+        const expr = parseNode(tokens[i],  [...contexts, STATEMENT_TYPE.RETURN]);
         return [_return({ expr })];
       } else {
         // function statement
         consumeOne(TOKEN_NAMES.OPEN_BRACE);
-        const body = parseStatements();
+        const body = parseStatements(contexts);
         consumeOne(TOKEN_NAMES.CLOSE_BRACE);
         return body;
       }
     };
 
-    const parseOperatorExpr = firstArg => {
+    const parseOperatorExpr = (contexts, firstArg) => {
       const op = consumeOne([TOKEN_NAMES.OPERATOR, any]);
       return fnCall({
         expr: symbolLookup({ symbol: op }),
         paramExprs: [
           firstArg,
-          parseNode(tokens[i], STATEMENT_TYPE.FUNCTION_APPLICATION)
+          parseNode(tokens[i], [...contexts, STATEMENT_TYPE.FUNCTION_APPLICATION])
         ]
       });
     };
 
-    const parseConditional = () => {
+    const parseConditional = contexts => {
       consumeOne(TOKEN_NAMES.OPEN_PARAN);
-      const expr = parseNode(tokens[i], STATEMENT_TYPE.CONDITIONAL);
+      const expr = parseNode(tokens[i], [...contexts, STATEMENT_TYPE.CONDITIONAL]);
       consumeOne(TOKEN_NAMES.CLOSE_PARAN);
       consumeOne(TOKEN_NAMES.OPEN_BRACE);
-      const passBody = parseStatements();
+      const passBody = parseStatements(contexts);
       consumeOne(TOKEN_NAMES.CLOSE_BRACE);
       let failBody = [];
       if (tokens[i] === TOKEN_NAMES.ELSE) {
         consumeOne(TOKEN_NAMES.ELSE);
         consumeOne(TOKEN_NAMES.OPEN_BRACE);
-        failBody = parseStatements();
+        failBody = parseStatements(contexts);
         consumeOne(TOKEN_NAMES.CLOSE_BRACE);
       } else if (tokens[i] === TOKEN_NAMES.ELIF) {
         consumeOne(TOKEN_NAMES.ELIF);
-        failBody = [parseConditional()];
+        failBody = [parseConditional(contexts)];
       }
       return conditional({
         expr,
@@ -262,7 +318,7 @@ const parse = tokens => {
       });
     };
 
-    const parseLiteral = () => {
+    const parseLiteral = contexts => {
       const value = consumeOne([TOKEN_NAMES.LITERAL, any]);
       let literal;
       if (typeof value === 'number') {
@@ -273,41 +329,111 @@ const parse = tokens => {
         throw 'should not reach';
       }
       if (eq(tokens[i], [TOKEN_NAMES.OPERATOR, any])) {
-        return parseOperatorExpr(literal);
+        return parseOperatorExpr(contexts, literal);
       } else {
         return literal;
       }
     };
 
-    const parseArrayLookup = expr => {
+    const findBoundVariable = (expr, found, prevExpr = symbolLookup({ symbol: 'arg' })) => {
+      if (expr.type === STATEMENT_TYPE.BOUND_VARIABLE) {
+        if (found.includes(expr.symbol)) {
+          return null;
+        } else {
+          return [expr.symbol, prevExpr];
+        }
+      } else if (expr.type === STATEMENT_TYPE.ARRAY_LITERAL) {
+        for (let i = 0; i < expr.elements.length; i++) {
+          const elem = expr.elements[i];
+          if (elem.type === STATEMENT_TYPE.BOUND_VARIABLE) {
+            return findBoundVariable(elem, found, arrayLookup({ expr: prevExpr, index: i }));
+          } else if (expr.type === STATEMENT_TYPE.ARRAY_LITERAL
+            || expr.type === STATEMENT_TYPE.OBJECT_LITERAL) {
+            return findBoundVariable(elem, found, arrayLookup({ expr: prevExpr, index: i }));
+          }
+        }
+      } else if (expr.type === STATEMENT_TYPE.OBJECT_LITERAL) {
+        throw 'unimplemented -- findBoundVariables';
+      } else {
+        return null;
+      }
+    };
+
+    const parseMatchCase = (matchExpr, contexts) => {
+      const expr = parseNode(tokens[i], [...contexts, STATEMENT_TYPE.MATCH_CASE]);
+      let paramNames = [], paramExprs = [], symbol = 1, boundExpr;
+      while (symbol != null) {
+        [symbol, boundExpr] = findBoundVariable(expr, paramNames) || [];
+        if (symbol != null) {
+          paramNames.push(symbol);
+          paramExprs.push(
+            fnCall({
+              expr: fn({
+                paramNames: ['arg'],
+                body: [_return({ expr: boundExpr })]
+              }),
+              paramExprs: [ matchExpr ]
+            })
+          );
+        }
+      }
+      consumeOne(TOKEN_NAMES.ARROW);
+      const body = parseFunctionBody(contexts);
+      return matchCase({
+        expr,
+        invoke: fnCall({
+          expr: fn({ body, paramNames }),
+          paramExprs
+        })
+      });
+    };
+
+    const parseMatchExpression = contexts => {
+      consumeOne(TOKEN_NAMES.MATCH);
+      consumeOne(TOKEN_NAMES.OPEN_PARAN);
+      const expr = parseNode(tokens[i], [...contexts, STATEMENT_TYPE.MATCH_EXPRESSION]);
+      consumeOne(TOKEN_NAMES.CLOSE_PARAN);
+      consumeOne(TOKEN_NAMES.OPEN_BRACE);
+      const cases = [];
+      while (tokens[i] !== STATEMENT_TYPE.CLOSE_BRACE) {
+        cases.push(parseMatchCase(expr, contexts));
+        if (tokens[i] !== TOKEN_NAMES.COMMA) break;
+        consumeOne(TOKEN_NAMES.COMMA);
+      }
+      consumeOne(TOKEN_NAMES.CLOSE_BRACE);
+      return matchExpression({ expr, cases });
+    };
+
+    const parseArrayLookup = (contexts, expr) => {
       consumeOne(TOKEN_NAMES.OPEN_SQ_BRACE);
-      const { value: index } = parseLiteral();
+      const { value: index } = parseLiteral(contexts);
       assert(typeof index === 'number' && Number.isInteger(index));
       consumeOne(TOKEN_NAMES.CLOSE_SQ_BRACE);
       return arrayLookup({ expr, index });
     };
 
-    const parseNode = (token, context = undefined) => match(token, [
-      [[TOKEN_NAMES.LITERAL, any], parseLiteral],
+    const parseNode = (token, contexts = []) => match(token, [
+      [[TOKEN_NAMES.LITERAL, any], () => parseLiteral(contexts)],
       [TOKEN_NAMES.RETURN, () => {
         consumeOne(TOKEN_NAMES.RETURN);
-        const expr = parseNode(tokens[i], STATEMENT_TYPE.RETURN);
+        const expr = parseNode(tokens[i], [...contexts, STATEMENT_TYPE.RETURN]);
         consumeOne(TOKEN_NAMES.END_STATEMENT);
         return _return({ expr });
       }],
       [TOKEN_NAMES.IF, () => {
         consumeOne(TOKEN_NAMES.IF);
-        return parseConditional();
+        return parseConditional(contexts);
       }],
+      [TOKEN_NAMES.MATCH, () => parseMatchExpression(contexts)],
       [TOKEN_NAMES.LET, () => {
-        assert(!isExpression(context));
+        assert(!isExpression(contexts));
         consumeOne(TOKEN_NAMES.LET);
         const [mutable, symbol] = consume([
           { token: TOKEN_NAMES.MUT, optional: true },
           { token: [TOKEN_NAMES.SYMBOL, any] },
           { token: TOKEN_NAMES.ASSIGNMENT },
         ]);
-        const expr = parseNode(tokens[i], STATEMENT_TYPE.DECLARATION);
+        const expr = parseNode(tokens[i], [...contexts, STATEMENT_TYPE.DECLARATION]);
 
         consumeOne(TOKEN_NAMES.END_STATEMENT);
         return declaration({ mutable: !!mutable, symbol, expr });
@@ -320,13 +446,13 @@ const parse = tokens => {
           [TOKEN_NAMES.ASSIGNMENT, () => {
             assert(isSymbol);
             consumeOne(TOKEN_NAMES.ASSIGNMENT);
-            const expr = parseNode(tokens[i], STATEMENT_TYPE.ASSIGNMENT);
+            const expr = parseNode(tokens[i], [...contexts, STATEMENT_TYPE.ASSIGNMENT]);
             return assignment({ symbol, expr });
           }],
           [TOKEN_NAMES.OPEN_PARAN, () => {
-            const call = parseFunctionCall(prevExpr || symbolLookup({ symbol }));
+            const call = parseFunctionCall(contexts, prevExpr || symbolLookup({ symbol }));
             if (tokens[i] === TOKEN_NAMES.END_STATEMENT) {
-              if (isExpression(context)) return call;
+              if (isExpression(contexts)) return call;
               consumeOne(TOKEN_NAMES.END_STATEMENT); // for top level function application
               return call;
             }
@@ -334,7 +460,7 @@ const parse = tokens => {
           }],
           [[TOKEN_NAMES.OPERATOR, any], () => {
             if (!prevExpr) assert(isSymbol);
-            return parseOperatorExpr(prevExpr || symbolLookup({ symbol }));
+            return parseOperatorExpr(contexts, prevExpr || symbolLookup({ symbol }));
           }],
           [TOKEN_NAMES.PROPERTY_ACCESSOR, () => {
             const expr = parseDotNotation(prevExpr || symbolLookup({ symbol }));
@@ -345,7 +471,7 @@ const parse = tokens => {
             return parseSymbol(tokens[i], expr);
           }],
           [TOKEN_NAMES.OPEN_SQ_BRACE, () => {  
-            const expr = parseArrayLookup(prevExpr || symbolLookup({ symbol }));
+            const expr = parseArrayLookup(contexts, prevExpr || symbolLookup({ symbol }));
             // check if reached end of expression
             if (
               tokens[i] === TOKEN_NAMES.END_STATEMENT || tokens[i] === TOKEN_NAMES.CLOSE_PARAN
@@ -353,8 +479,12 @@ const parse = tokens => {
             return parseSymbol(tokens[i], expr);
           }],
           [any, () => {
-            assert(isExpression(context));
-            return prevExpr || symbolLookup({ symbol });
+            assert(isExpression(contexts));
+            if (inMatchCond(contexts)) {
+              return boundVariable({ symbol });
+            } else {  
+              return prevExpr || symbolLookup({ symbol });
+            }
           }]
         ]);
       }],
@@ -364,19 +494,29 @@ const parse = tokens => {
         const paramNames = parseFunctionDefinitionArgs();
         consumeOne(TOKEN_NAMES.CLOSE_PARAN);
         consumeOne(TOKEN_NAMES.ARROW);
-        return fn({ body: parseFunctionBody(), paramNames });
+        return fn({ body: parseFunctionBody(contexts), paramNames });
       }],
       [TOKEN_NAMES.OPEN_BRACE, () => {
-        assert(isExpression(context));
-        const value = parseObjectLiteral();
+        assert(isExpression(contexts));
+        const value = parseObjectLiteral(contexts);
         if (tokens[i] === TOKEN_NAMES.PROPERTY_ACCESSOR) {
           return parseDotNotation(objectLiteral({ value }))
         }
         return objectLiteral({ value });
       }],
       [TOKEN_NAMES.OPEN_SQ_BRACE, () => {
-        assert(isExpression(context));
-        return parseArrayLiteral();
+        assert(isExpression(contexts));
+        return parseArrayLiteral(contexts);
+      }],
+      [TOKEN_NAMES.TRUE, () => {
+        assert(isExpression(contexts));
+        consumeOne(TOKEN_NAMES.TRUE);
+        return booleanLiteral({ value: true });
+      }],
+      [TOKEN_NAMES.FALSE, () => {
+        assert(isExpression(contexts));
+        consumeOne(TOKEN_NAMES.FALSE);
+        return booleanLiteral({ value: false });
       }],
       [any, () => { throw 'did not match any ' + token }],
     ]);
