@@ -63,7 +63,7 @@ will probably just use immutable.js for this
 - [x] arrays
  - [x] index lookup
 - [x] if, else & elif expressions
- - [ ] single line if elif else
+ - [x] single line if elif else
 - [x] match expressions
 - [ ] object deconstruction
 - [ ] array deconstruction

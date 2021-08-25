@@ -298,15 +298,11 @@ const parse = tokens => {
       consumeOne(TOKEN_NAMES.OPEN_PARAN);
       const expr = parseNode(tokens[i], [...contexts, STATEMENT_TYPE.CONDITIONAL]);
       consumeOne(TOKEN_NAMES.CLOSE_PARAN);
-      consumeOne(TOKEN_NAMES.OPEN_BRACE);
-      const passBody = parseStatements(contexts);
-      consumeOne(TOKEN_NAMES.CLOSE_BRACE);
+      const passBody = parseFunctionBody(contexts);
       let failBody = [];
       if (tokens[i] === TOKEN_NAMES.ELSE) {
         consumeOne(TOKEN_NAMES.ELSE);
-        consumeOne(TOKEN_NAMES.OPEN_BRACE);
-        failBody = parseStatements(contexts);
-        consumeOne(TOKEN_NAMES.CLOSE_BRACE);
+        failBody = parseFunctionBody(contexts);
       } else if (tokens[i] === TOKEN_NAMES.ELIF) {
         consumeOne(TOKEN_NAMES.ELIF);
         failBody = [parseConditional(contexts)];
@@ -354,11 +350,11 @@ const parse = tokens => {
             if (val) return val;
           }
         }
-        return [null];
+        return null;
       } else if (expr.type === STATEMENT_TYPE.OBJECT_LITERAL) {
         throw 'unimplemented -- findBoundVariables';
       } else {
-        return [null];
+        return null;
       }
     };
 
@@ -366,7 +362,8 @@ const parse = tokens => {
       const expr = parseNode(tokens[i], [...contexts, STATEMENT_TYPE.MATCH_CASE]);
       let paramNames = [], paramExprs = [], symbol, boundExpr;
       while (symbol !== null) {
-        [symbol, boundExpr] = findBoundVariable(expr, paramNames);
+        const res = findBoundVariable(expr, paramNames);
+        [symbol, boundExpr] = res === null ? [null] : res;
         if (symbol != null) {
           paramNames.push(symbol);
           paramExprs.push(

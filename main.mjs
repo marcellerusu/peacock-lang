@@ -16,7 +16,11 @@ let expr = match (arr) {
   [1] => 'Oh no',
   [1, a] => 'YES! ' + a
 };
-print(mult(arr));
+
+let one = 1;
+let r = if (one > 0) 3;
+
+print(mult(arr), r);
 `;
 
 const global = interpret(parse(tokenize(program)));

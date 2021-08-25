@@ -786,6 +786,72 @@ it('should parse if cond', () => {
   }))
 });
 
+it('should parse inline if', () => {
+  const ast = parse(tokenize(`
+  if (true) 3
+  `));
+
+  assert(eq(ast, {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      conditional({
+        expr: booleanLiteral({ value: true }),
+        pass: fnCall({ expr: fn({ body: [_return({ expr: numberLiteral({ value: 3 }) })] }) }),
+        fail: fnCall({ expr: fn({ body: [] }) })
+      })
+    ],
+  }))
+});
+
+
+it('should parse inline if else', () => {
+  const ast = parse(tokenize(`
+  let a = if (true) 3 else 4;
+  `));
+
+  assert(eq(ast, {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      declaration({
+        symbol: 'a',
+        expr: conditional({
+          expr: booleanLiteral({ value: true }),
+          pass: fnCall({ expr: fn({ body: [_return({ expr: numberLiteral({ value: 3 }) })] }) }),
+          fail: fnCall({ expr: fn({ body: [_return({ expr: numberLiteral({ value: 4 }) })] }) })
+        })
+      })
+    ],
+  }))
+});
+
+
+
+it('should parse inline if elif else', () => {
+  const ast = parse(tokenize(`
+  let a = if (true) 3 elif (false) 5 else 4;
+  `));
+
+  // console.log(JSON.stringify(ast, null, 2));
+
+  assert(eq(ast, {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      declaration({
+        symbol: 'a',
+        expr: conditional({
+          expr: booleanLiteral({ value: true }),
+          pass: fnCall({ expr: fn({ body: [_return({ expr: numberLiteral({ value: 3 }) })] }) }),
+          fail: fnCall({ expr: fn({ body: [conditional({
+            expr: booleanLiteral({ value: false }),
+            pass: fnCall({ expr: fn({ body: [_return({ expr: numberLiteral({ value: 5 }) })] }) }),
+            fail: fnCall({ expr: fn({ body: [_return({ expr: numberLiteral({ value: 4 }) })] }) }),
+          })] }) })
+        })
+      })
+    ],
+  }))
+});
+
 it('should parse if else cond', () => {
   const program = tokenize(`
   if (a == 3) {
