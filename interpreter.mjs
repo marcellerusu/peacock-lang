@@ -114,10 +114,10 @@ const evalExpr = (expr, context, closureContext = {}) => match(expr.type, [
   }],
   [STATEMENT_TYPE.MATCH_EXPRESSION, () => {
     const { expr: matchExpr, cases } = expr;
-    const { value } = evalExpr(matchExpr);
+    const { value } = evalExpr(matchExpr, context, closureContext);
     for (const { expr: caseExpr, invoke } of cases) {
-      if (eq(evalExpr(caseExpr).value, value)) {
-        return evalExpr(invoke);
+      if (eq(evalExpr(caseExpr, context, closureContext).value, value)) {
+        return evalExpr(invoke, context, closureContext);
       }
     }
     return { value: null };

@@ -354,19 +354,19 @@ const parse = tokens => {
             if (val) return val;
           }
         }
-        return null;
+        return [null];
       } else if (expr.type === STATEMENT_TYPE.OBJECT_LITERAL) {
         throw 'unimplemented -- findBoundVariables';
       } else {
-        return null;
+        return [null];
       }
     };
 
     const parseMatchCase = (matchExpr, contexts) => {
       const expr = parseNode(tokens[i], [...contexts, STATEMENT_TYPE.MATCH_CASE]);
-      let paramNames = [], paramExprs = [], symbol = 1, boundExpr;
-      while (symbol != null) {
-        [symbol, boundExpr] = findBoundVariable(expr, paramNames) || [];
+      let paramNames = [], paramExprs = [], symbol, boundExpr;
+      while (symbol !== null) {
+        [symbol, boundExpr] = findBoundVariable(expr, paramNames);
         if (symbol != null) {
           paramNames.push(symbol);
           paramExprs.push(
