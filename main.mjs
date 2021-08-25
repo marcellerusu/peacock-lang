@@ -3,12 +3,9 @@ import tokenize from "./tokenizer.mjs";
 import parse from "./parser.mjs";
 
 const program = `
-let str = if (3 != 3) {
-  return 5;
-} else {
-  return 'strrr';
-};
-print(str);
+let arr = [1, 2, 3];
+let three = arr[2];
+print(three);
 `;
 
 interpret(parse(tokenize(program)));

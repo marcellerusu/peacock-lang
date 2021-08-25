@@ -47,6 +47,7 @@ let expr = match ([1, 2]) {
 - [x] arbitrarily nested function calls
 - [x] objects
 - [x] arrays
+ - [x] index lookup
 - [x] if, else & elif expressions
  - [ ] single line if elif else
 - [ ] match expressions
@@ -70,6 +71,7 @@ let expr = match ([1, 2]) {
 - [x] function with variable lookup
 - [x] `let obj = { a: 3 };`
 - [x] arrays
+ - [ ] index lookup
 - [x] if, else & elif
 - [ ] match expressions
 - [ ] object deconstruction

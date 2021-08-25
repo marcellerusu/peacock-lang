@@ -442,4 +442,13 @@ it('should eval if elif else cond', () => {
   assert(globals.f.value === 'str');
 });
 
+it('should eval array lookup on symbol', () => {
+  const program = parse(tokenize(`
+  let arr = [1, 2, 3];
+  let three = arr[2];
+  `));
+  interpret(program);
+  assert(globals.three.value === 3);
+});
+
 console.log('Passed', passed, 'tests!');

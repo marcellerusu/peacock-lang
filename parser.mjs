@@ -15,7 +15,8 @@ export const STATEMENT_TYPE = {
   FUNCTION_APPLICATION: 'FUNCTION_APPLICATION',
   SYMBOL_LOOKUP: 'SYMBOL_LOOKUP',
   PROPERTY_LOOKUP: 'PROPERTY_LOOKUP',
-  CONDITIONAL: 'CONDITIONAL'
+  CONDITIONAL: 'CONDITIONAL',
+  ARRAY_LOOKUP: 'ARRAY_LOOKUP'
 };
 
 export const declaration = ({ symbol, expr, mutable }) => ({
@@ -40,6 +41,12 @@ export const arrayLiteral = ({ elements }) => ({
   type: STATEMENT_TYPE.ARRAY_LITERAL,
   elements
 });
+
+export const arrayLookup = ({ expr, index }) => ({
+  type: STATEMENT_TYPE.ARRAY_LOOKUP,
+  expr,
+  index
+})
 
 export const numberLiteral = ({ value }) => ({
   type: STATEMENT_TYPE.NUMBER_LITERAL,
@@ -180,7 +187,11 @@ const parse = tokens => {
         consumeOne(TOKEN_NAMES.COMMA);
       }
       consumeOne(TOKEN_NAMES.CLOSE_SQ_BRACE);
-      return elements;
+      if (tokens[i] === TOKEN_NAMES.OPEN_SQ_BRACE) {
+        return parseArrayLookup(arrayLiteral({ elements }));
+      } else {
+        return arrayLiteral({ elements });
+      }
     };
 
     const parseFunctionDefinitionArgs = () => {
@@ -251,22 +262,33 @@ const parse = tokens => {
       });
     };
 
-    const parseNode = (token, context = undefined) => match(token, [
-      [[TOKEN_NAMES.LITERAL, any], () => {
-        const value = consumeOne(token);
-        let literal;
-        if (typeof value === 'number') {
-          literal = numberLiteral({ value });
-        } else if (typeof value === 'string') {
-          literal = stringLiteral({ value });
-        } else {
-          throw 'should not reach';
-        }
-        if (eq(tokens[i], [TOKEN_NAMES.OPERATOR, any])) {
-          return parseOperatorExpr(literal);
-        }
+    const parseLiteral = () => {
+      const value = consumeOne([TOKEN_NAMES.LITERAL, any]);
+      let literal;
+      if (typeof value === 'number') {
+        literal = numberLiteral({ value });
+      } else if (typeof value === 'string') {
+        literal = stringLiteral({ value });
+      } else {
+        throw 'should not reach';
+      }
+      if (eq(tokens[i], [TOKEN_NAMES.OPERATOR, any])) {
+        return parseOperatorExpr(literal);
+      } else {
         return literal;
-      }],
+      }
+    };
+
+    const parseArrayLookup = expr => {
+      consumeOne(TOKEN_NAMES.OPEN_SQ_BRACE);
+      const { value: index } = parseLiteral();
+      assert(typeof index === 'number' && Number.isInteger(index));
+      consumeOne(TOKEN_NAMES.CLOSE_SQ_BRACE);
+      return arrayLookup({ expr, index });
+    };
+
+    const parseNode = (token, context = undefined) => match(token, [
+      [[TOKEN_NAMES.LITERAL, any], parseLiteral],
       [TOKEN_NAMES.RETURN, () => {
         consumeOne(TOKEN_NAMES.RETURN);
         const expr = parseNode(tokens[i], STATEMENT_TYPE.RETURN);
@@ -322,6 +344,14 @@ const parse = tokens => {
             ) return expr;
             return parseSymbol(tokens[i], expr);
           }],
+          [TOKEN_NAMES.OPEN_SQ_BRACE, () => {  
+            const expr = parseArrayLookup(prevExpr || symbolLookup({ symbol }));
+            // check if reached end of expression
+            if (
+              tokens[i] === TOKEN_NAMES.END_STATEMENT || tokens[i] === TOKEN_NAMES.CLOSE_PARAN
+            ) return expr;
+            return parseSymbol(tokens[i], expr);
+          }],
           [any, () => {
             assert(isExpression(context));
             return prevExpr || symbolLookup({ symbol });
@@ -346,7 +376,7 @@ const parse = tokens => {
       }],
       [TOKEN_NAMES.OPEN_SQ_BRACE, () => {
         assert(isExpression(context));
-        return arrayLiteral({ elements: parseArrayLiteral() });
+        return parseArrayLiteral();
       }],
       [any, () => { throw 'did not match any ' + token }],
     ]);

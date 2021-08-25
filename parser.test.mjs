@@ -11,6 +11,7 @@ import parse, {
   _return,
   symbolLookup,
   propertyLookup,
+  arrayLookup,
   conditional,
 } from './parser.mjs';
 import tokenize, { TOKEN_NAMES } from './tokenizer.mjs';
@@ -851,38 +852,52 @@ it('should parse if elif else cond', () => {
   }))
 });
 
-/*
+it('should parse array lookup', () => {
+  const program = tokenize(`
+  let a = [1, 2, 3][2];
+  `);
+  const ast = parse(program);
+  assert(eq(ast, {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      declaration({
+        expr: arrayLookup({
+          expr: arrayLiteral({
+            elements: [
+              numberLiteral({value: 1}),
+              numberLiteral({value: 2}),
+              numberLiteral({value: 3})
+            ]
+          }),
+          index: 2
+        }),
+        symbol: 'a'
+      })
+    ]
+  }))
+});
 
-if obj == { a: 3 } {
 
-} else {
+it('should parse array lookup on symbol', () => {
+  const program = tokenize(`
+  let a = arr[2];
+  `);
+  const ast = parse(program);
+  // console.log(ast.body[0].expr.expr);
+  assert(eq(ast, {
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      declaration({
+        expr: arrayLookup({
+          expr: symbolLookup({ symbol: 'arr' }),
+          index: 2
+        }),
+        symbol: 'a'
+      })
+    ]
+  }))
+});
 
-}
-->
-{
-  type: 'CONDITION_STATEMENT'
-  cond: {
-    type: 'EXPRESSION'
-    expr: {
-      type: 'FUNCTION_APPLICATION',
-      function: '==',
-      params: [
-        {
-          type: 'VARIABLE_LOOKUP',
-          symbol: 'obj
-        },
-        {
-          type: 'OBJECT_LITERAL',
-          value: {
-            a: 3
-          }
-        }
-      ]
-    }
-  },
-  succeedBranch: null,
-  failBranch: null
-*/
 
 
 

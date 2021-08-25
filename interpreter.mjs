@@ -58,6 +58,11 @@ const evalExpr = (expr, context, closureContext = {}) => match(expr.type, [
   [STATEMENT_TYPE.STRING_LITERAL, () => expr],
   [STATEMENT_TYPE.RETURN, () => evalExpr(expr.expr, context, closureContext)],
   [STATEMENT_TYPE.SYMBOL_LOOKUP, () => closureContext[expr.symbol] || context[expr.symbol]],
+  [STATEMENT_TYPE.ARRAY_LOOKUP, () => {
+    const {expr: arrExpr, index} = expr;
+    const { value: arr } = evalExpr(arrExpr, context, closureContext);
+    return { value: arr[index] };
+  }],
   [STATEMENT_TYPE.FUNCTION, () => ({ value: { ...expr, closureContext } })],
   [STATEMENT_TYPE.CONDITIONAL, () => {
     const { expr: condExpr, pass, fail } = expr;
@@ -82,7 +87,10 @@ const evalExpr = (expr, context, closureContext = {}) => match(expr.type, [
     const fnContext = { ...oldClosureContext };
     for (let i = 0; i < paramExprs.length; i++) {
       // TODO: this should be in parsing phase + use evalParamExprs
-      if (closureContext[paramNames[i]]) throw `no duplicate param names`;
+      // if (closureContext[paramNames[i]]) {
+      //   console.log(fn.value.body[0]);
+      //   throw `no duplicate param names`;
+      // }
       fnContext[paramNames[i]] = {
         mutable: false,
         ...evalExpr(paramExprs[i], context, closureContext)
