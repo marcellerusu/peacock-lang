@@ -135,9 +135,9 @@ const interpret = (ast, context = globals, closureContext = {}) => {
     value = match(statement.type, [
       [STATEMENT_TYPE.DECLARATION, () => {
         const { symbol, mutable, expr } = statement;
-        if (lookup(symbol)) {
-          console.log(lookup(symbol));
-          throw `'${symbol}' has already been declared`;
+        if (closureContext[symbol]) {
+          console.log(closureContext[symbol]);
+          throw `'${symbol}' has already been declared in this closure context`;
         }
         const val = { mutable, ...evalExpr(expr, context, closureContext), };
         if (isFunction) {

@@ -1,8 +1,8 @@
 # Variables
 
 # declaration
-let a = 3;
-print(a);
+let some_thing_long = 3;
+print(some_thing_long);
 
 # mutable & assignment
 let mut b = 'str';
@@ -41,11 +41,11 @@ let obj = {
 };
 
 let Person = (name) => {
-  let obj1 = {
+  let obj = {
     name: name,
-    print: () => print(obj1.name)
+    print: () => print(obj.name)
   };
-  return obj1;
+  return obj;
 };
 
 Person('Marcelle').print();

@@ -449,7 +449,7 @@ it('should tokenize if elif else', () => {
     TOKEN_NAMES.OPEN_PARAN,
     [TOKEN_NAMES.SYMBOL, 'b'],
     [TOKEN_NAMES.OPERATOR, '=='],
-    [TOKEN_NAMES.SYMBOL, 'true'],
+    TOKEN_NAMES.TRUE,
     TOKEN_NAMES.CLOSE_PARAN,
     TOKEN_NAMES.OPEN_BRACE,
     TOKEN_NAMES.LET,
