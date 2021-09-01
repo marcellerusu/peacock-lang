@@ -25,7 +25,7 @@ print(three);
 
 # arrays
 let arr = [1, 2, 3];
-print(arr[1]);
+print({ second: arr[1] });
 
 # functions
 let function = (a) =>
@@ -40,12 +40,15 @@ let obj = {
   b: { c: 'three' }
 };
 
+print(obj);
+
 let Person = (name) => {
   let obj = {
     name: name,
+  };
+  return {
     print: () => print(obj.name)
   };
-  return obj;
 };
 
 Person('Marcelle').print();

@@ -19,8 +19,9 @@ import parse, {
   booleanLiteral,
 } from './parser.mjs';
 import tokenize, { TOKEN_NAMES } from './tokenizer.mjs';
-import { eq } from './utils.mjs';
 import assert from 'assert';
+import pkg from 'immutable';
+const { fromJS, is } = pkg;
 
 let passed = 0;
 const it = (str, fn) => {
@@ -39,7 +40,7 @@ it('should parse `let var = 3;`', () => {
   ];
   const ast = parse(tokens);
   // console.log(ast.body[0]);
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       declaration({
@@ -48,7 +49,7 @@ it('should parse `let var = 3;`', () => {
         expr: numberLiteral({value: 3})
       })
     ]
-  }))
+  })))
 });
 
 
@@ -62,7 +63,7 @@ it('should parse `let var = \'abc\';`', () => {
   ];
   const ast = parse(tokens);
 
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       declaration({
@@ -71,7 +72,7 @@ it('should parse `let var = \'abc\';`', () => {
         expr: stringLiteral({value: 'abc'})
       })
     ]
-  }))
+  })))
 });
 
 it(`should parse mutable variable`, () => {
@@ -86,7 +87,7 @@ it(`should parse mutable variable`, () => {
   const ast = parse(tokens);
   // console.log(ast);
 
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       declaration({
@@ -95,7 +96,7 @@ it(`should parse mutable variable`, () => {
         expr: numberLiteral({value: 3})
       }),
     ]
-  }))
+  })))
 });
 
 it(`should parse variable assignment`, () => {
@@ -108,12 +109,12 @@ it(`should parse variable assignment`, () => {
   const ast = parse(tokens);
   // console.log(ast);
 
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       assignment({symbol: 'var', expr: numberLiteral({value: 3})}),
     ]
-  }))
+  })))
 });
 
 it(`should parse function`, () => {
@@ -129,7 +130,7 @@ it(`should parse function`, () => {
   ];
   const ast = parse(tokens);
 
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       declaration({
@@ -138,7 +139,7 @@ it(`should parse function`, () => {
         expr: fn({paramNames: [], body: [_return({expr: numberLiteral({value: 3})})]})
       })
     ]
-  }))
+  })))
 });
 
 
@@ -156,7 +157,7 @@ it(`should parse function with variable lookup`, () => {
   const ast = parse(tokens);
   // console.log(ast.body[0].expr.body);
 
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       declaration({
@@ -165,7 +166,7 @@ it(`should parse function with variable lookup`, () => {
         expr: fn({paramNames: [], body: [_return({expr: symbolLookup({symbol: 'a'})})]})
       })
     ]
-  }))
+  })))
 });
 
 it(`should parse identity function`, () => {
@@ -183,7 +184,7 @@ it(`should parse identity function`, () => {
   const ast = parse(tokens);
   // console.log(JSON.stringify(ast.body[0].expr));
 
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       declaration({
@@ -192,7 +193,7 @@ it(`should parse identity function`, () => {
         expr: fn({paramNames: ['x'], body: [_return({expr: symbolLookup({symbol: 'x'})})]})
       }),
     ]
-  }))
+  })))
 });
 
 
@@ -208,7 +209,7 @@ it(`should parse function application with arguments`, () => {
   ];
   const ast = parse(tokens);
 
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       fnCall({
@@ -219,7 +220,7 @@ it(`should parse function application with arguments`, () => {
         ]
       }),
     ]
-  }))
+  })))
 });
 
 
@@ -241,7 +242,7 @@ it(`should parse function with multiple args`, () => {
   ];
   const ast = parse(tokens);
 
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       declaration({
@@ -258,7 +259,7 @@ it(`should parse function with multiple args`, () => {
         })
       }),
     ]
-  }))
+  })))
 });
 
 
@@ -281,7 +282,7 @@ it(`should parse function with body`, () => {
   const ast = parse(tokens);
   // console.log(ast.body[0].expr.body);
 
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       declaration({
@@ -293,7 +294,7 @@ it(`should parse function with body`, () => {
         })
       }),
     ]
-  }))
+  })))
 });
 
 
@@ -316,7 +317,7 @@ it(`should parse object literal`, () => {
   ];
   const ast = parse(tokens);
 
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       declaration({
@@ -325,7 +326,7 @@ it(`should parse object literal`, () => {
         expr: objectLiteral({value: { a: numberLiteral({value: 3}), yesa: numberLiteral({value: 5})}})
       })
     ]
-  }))
+  })))
 });
 
 it(`should parse object dot notation on variable`, () => {
@@ -337,7 +338,7 @@ it(`should parse object dot notation on variable`, () => {
   ];
   const ast = parse(tokens);
 
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       {
@@ -349,7 +350,7 @@ it(`should parse object dot notation on variable`, () => {
         property: 'a',
       }
     ]
-  }))
+  })))
 });
 
 it(`should parse object dot notation on object`, () => {
@@ -373,7 +374,7 @@ it(`should parse object dot notation on object`, () => {
   ];
   const ast = parse(tokens);
 
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       {
@@ -399,7 +400,7 @@ it(`should parse object dot notation on object`, () => {
         }
       }
     ]
-  }))
+  })))
 });
 
 it(`should parse nested object dot notation on variable`, () => {
@@ -413,7 +414,7 @@ it(`should parse nested object dot notation on variable`, () => {
   ];
   const ast = parse(tokens);
 
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       {
@@ -429,7 +430,7 @@ it(`should parse nested object dot notation on variable`, () => {
         property: 'b',
       }
     ]
-  }))
+  })))
 });
 
 it(`should parse array literal`, () => {
@@ -453,7 +454,7 @@ it(`should parse array literal`, () => {
   const ast = parse(tokens);
 
   // let arr = [3, a, { b: 'str' }];
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       {
@@ -484,7 +485,7 @@ it(`should parse array literal`, () => {
         }
       }
     ]
-  }))
+  })))
 });
 
 it('should parse assignment with variable & literal', () => {
@@ -493,7 +494,7 @@ it('should parse assignment with variable & literal', () => {
   let b = a + 1;
   `);
   const ast = parse(program);
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       {
@@ -525,7 +526,7 @@ it('should parse assignment with variable & literal', () => {
         }
       }
     ]
-  }));
+  })));
 });
 
 it('should parse function statements', () => {
@@ -535,7 +536,7 @@ it('should parse function statements', () => {
   `);
   // console.log(program);
   const ast = parse(program);
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       {
@@ -549,7 +550,7 @@ it('should parse function statements', () => {
         }
       }
     ]
-  }))
+  })))
 });
 
 it('should parse double function application', () => {
@@ -558,7 +559,7 @@ it('should parse double function application', () => {
   let h = f(1)(2);
   `);
   const ast = parse(program);
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       declaration({
@@ -593,7 +594,7 @@ it('should parse double function application', () => {
         })
       })
     ]
-  }))
+  })))
 })
 
 it('should parse call function from object property', () => {
@@ -604,7 +605,7 @@ it('should parse call function from object property', () => {
   let b = h.a();
   `);
   const ast = parse(program);
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [  
       declaration({
@@ -631,7 +632,7 @@ it('should parse call function from object property', () => {
         })
       })
     ]
-  }))
+  })))
 });
 
 it('should parse object dot operator within function call', () => {
@@ -640,7 +641,7 @@ it('should parse object dot operator within function call', () => {
   `);
   const ast = parse(program);
   // console.log(ast.body[0])
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       fnCall({
@@ -653,7 +654,7 @@ it('should parse object dot operator within function call', () => {
         ]
       })
     ]
-  }))
+  })))
 });
 
 it('should parse dot operator after function call', () => {
@@ -664,7 +665,7 @@ it('should parse dot operator after function call', () => {
   let c = f().x;
   `);
   const ast = parse(program);
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       declaration({
@@ -687,7 +688,7 @@ it('should parse dot operator after function call', () => {
         })
       })
     ]
-  }))
+  })))
 })
 
 it('should parse object with operator expressions inside', () => {
@@ -695,7 +696,7 @@ it('should parse object with operator expressions inside', () => {
   let f = { x: 1 + 3 };
   `);
   const ast = parse(program);
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       declaration({
@@ -712,7 +713,7 @@ it('should parse object with operator expressions inside', () => {
         }})
       })
     ]
-  }));
+  })));
 });
 
 it('should parse fn call inside fn call', () => {
@@ -720,7 +721,7 @@ it('should parse fn call inside fn call', () => {
   print(f());
   `);
   const ast = parse(program);
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       fnCall({
@@ -733,7 +734,7 @@ it('should parse fn call inside fn call', () => {
         ]
       })
     ]
-  }));
+  })));
 });
 
 it('should parse double nested fn call inside fn call', () => {
@@ -741,7 +742,7 @@ it('should parse double nested fn call inside fn call', () => {
   print(f()());
   `);
   const ast = parse(program);
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       fnCall({
@@ -757,7 +758,7 @@ it('should parse double nested fn call inside fn call', () => {
         ]
       })
     ]
-  }));
+  })));
 });
 
 it('should parse if cond', () => {
@@ -768,7 +769,7 @@ it('should parse if cond', () => {
   const ast = parse(program);
   // console.log(JSON.stringify(ast, null, 2));
 
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       conditional({
@@ -783,7 +784,7 @@ it('should parse if cond', () => {
         fail: fnCall({ expr: fn({ body: [] }) })
       })
     ]
-  }))
+  })))
 });
 
 it('should parse inline if', () => {
@@ -791,7 +792,7 @@ it('should parse inline if', () => {
   if (true) 3
   `));
 
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       conditional({
@@ -800,7 +801,7 @@ it('should parse inline if', () => {
         fail: fnCall({ expr: fn({ body: [] }) })
       })
     ],
-  }))
+  })))
 });
 
 
@@ -809,7 +810,7 @@ it('should parse inline if else', () => {
   let a = if (true) 3 else 4;
   `));
 
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       declaration({
@@ -821,7 +822,7 @@ it('should parse inline if else', () => {
         })
       })
     ],
-  }))
+  })));
 });
 
 
@@ -833,7 +834,7 @@ it('should parse inline if elif else', () => {
 
   // console.log(JSON.stringify(ast, null, 2));
 
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       declaration({
@@ -849,7 +850,7 @@ it('should parse inline if elif else', () => {
         })
       })
     ],
-  }))
+  })))
 });
 
 it('should parse if else cond', () => {
@@ -862,7 +863,7 @@ it('should parse if else cond', () => {
   `);
   const ast = parse(program);
 
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       conditional({
@@ -877,7 +878,7 @@ it('should parse if else cond', () => {
         fail: fnCall({ expr: fn({ body: [_return({ expr: numberLiteral({value: 5}) })] }) })
       })
     ]
-  }))
+  })))
 });
 
 it('should parse if elif else cond', () => {
@@ -890,7 +891,7 @@ it('should parse if elif else cond', () => {
   }
   `);
   const ast = parse(program);
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       conditional({
@@ -919,7 +920,7 @@ it('should parse if elif else cond', () => {
         }) })
       })
     ]
-  }))
+  })))
 });
 
 it('should parse array lookup', () => {
@@ -927,7 +928,7 @@ it('should parse array lookup', () => {
   let a = [1, 2, 3][2];
   `);
   const ast = parse(program);
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       declaration({
@@ -944,7 +945,7 @@ it('should parse array lookup', () => {
         symbol: 'a'
       })
     ]
-  }))
+  })))
 });
 
 
@@ -954,7 +955,7 @@ it('should parse array lookup on symbol', () => {
   `);
   const ast = parse(program);
   // console.log(ast.body[0].expr.expr);
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       declaration({
@@ -965,7 +966,7 @@ it('should parse array lookup on symbol', () => {
         symbol: 'a'
       })
     ]
-  }))
+  })))
 });
 
 
@@ -977,7 +978,7 @@ it('should parse match expression', () => {
   `);
   // TODO: make true a token
   const ast = parse(program);
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       declaration({
@@ -998,7 +999,7 @@ it('should parse match expression', () => {
         }),
       })
     ]
-  }))
+  })))
 });
 
 it('should parse match expression with multiple cases', () => {
@@ -1012,7 +1013,7 @@ it('should parse match expression with multiple cases', () => {
   };
   `);
   const ast = parse(program);
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       declaration({
@@ -1054,7 +1055,7 @@ it('should parse match expression with multiple cases', () => {
         }),
       })
     ]
-  }))
+  })))
 });
 
 it('should parse match expression with bound variable', () => {
@@ -1064,8 +1065,8 @@ it('should parse match expression with bound variable', () => {
   };
   `);
   const ast = parse(program);
-  // console.log(JSON.stringify(ast, null, 2));
-  assert(eq(ast, {
+  // console.log(JSON.stringify(ast.toJS(), null, 2));
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       declaration({
@@ -1106,7 +1107,7 @@ it('should parse match expression with bound variable', () => {
         }),
       })
     ]
-  }))
+  })))
 });
 
 
@@ -1117,7 +1118,7 @@ it('should parse match expression with bound variable in array', () => {
   };
   `);
   const ast = parse(program);
-  assert(eq(ast, {
+  assert(is(ast, fromJS({
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       declaration({
@@ -1160,7 +1161,7 @@ it('should parse match expression with bound variable in array', () => {
         }),
       })
     ]
-  }))
+  })))
 });
 
 console.log('Passed', passed, 'tests!');

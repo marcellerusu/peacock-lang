@@ -1,6 +1,8 @@
 import { TOKEN_NAMES } from "./tokenizer.mjs";
 import { match, any, eq } from './utils.mjs';
 import assert from 'assert';
+import pkg from 'immutable';
+const { fromJS } = pkg;
 
 export const STATEMENT_TYPE = {
   DECLARATION: 'DECLARATION',
@@ -23,98 +25,98 @@ export const STATEMENT_TYPE = {
   BOOLEAN_LITERAL: 'BOOLEAN_LITERAL'
 };
 
-export const declaration = ({ symbol, expr, mutable }) => ({
+export const declaration = ({ symbol, expr, mutable }) => fromJS({
   type: STATEMENT_TYPE.DECLARATION,
   mutable: !!mutable,
   symbol,
   expr
 });
 
-export const assignment = ({ symbol, expr }) => ({
+export const assignment = ({ symbol, expr }) => fromJS({
   type: STATEMENT_TYPE.ASSIGNMENT,
   symbol,
   expr
 });
 
-export const objectLiteral = ({ value }) => ({
+export const objectLiteral = ({ value }) => fromJS({
   type: STATEMENT_TYPE.OBJECT_LITERAL,
   value,
 });
 
-export const arrayLiteral = ({ elements }) => ({
+export const arrayLiteral = ({ elements }) => fromJS({
   type: STATEMENT_TYPE.ARRAY_LITERAL,
   elements
 });
 
-export const arrayLookup = ({ expr, index }) => ({
+export const arrayLookup = ({ expr, index }) => fromJS({
   type: STATEMENT_TYPE.ARRAY_LOOKUP,
   expr,
   index
 })
 
-export const numberLiteral = ({ value }) => ({
+export const numberLiteral = ({ value }) => fromJS({
   type: STATEMENT_TYPE.NUMBER_LITERAL,
   value,
 });
 
-export const stringLiteral = ({ value }) => ({
+export const stringLiteral = ({ value }) => fromJS({
   type: STATEMENT_TYPE.STRING_LITERAL,
   value,
 });
 
-export const booleanLiteral = ({ value }) => ({
+export const booleanLiteral = ({ value }) => fromJS({
   type: STATEMENT_TYPE.BOOLEAN_LITERAL,
   value
 });
 
-export const fn = ({ paramNames = [], body }) => ({
+export const fn = ({ paramNames = [], body }) => fromJS({
   type: STATEMENT_TYPE.FUNCTION,
   paramNames,
   body,
 });
 
-export const fnCall = ({ expr, paramExprs = [] }) => ({
+export const fnCall = ({ expr, paramExprs = [] }) => fromJS({
   type: STATEMENT_TYPE.FUNCTION_APPLICATION,
   expr,
   paramExprs
 });
 
-export const _return = ({ expr }) => ({
+export const _return = ({ expr }) => fromJS({
   type: STATEMENT_TYPE.RETURN,
   expr
 });
 
-export const symbolLookup = ({ symbol }) => ({
+export const symbolLookup = ({ symbol }) => fromJS({
   type: STATEMENT_TYPE.SYMBOL_LOOKUP,
   symbol,
 });
 
-export const propertyLookup = ({ property, expr }) => ({
+export const propertyLookup = ({ property, expr }) => fromJS({
   type: STATEMENT_TYPE.PROPERTY_LOOKUP,
   property,
   expr,
 });
 
-export const conditional = ({ expr, pass, fail = null }) => ({
+export const conditional = ({ expr, pass, fail = null }) => fromJS({
   type: STATEMENT_TYPE.CONDITIONAL,
   expr,
   pass,
   fail
 });
 
-export const matchExpression = ({ expr, cases }) => ({
+export const matchExpression = ({ expr, cases }) => fromJS({
   type: STATEMENT_TYPE.MATCH_EXPRESSION,
   expr,
   cases
 });
 
-export const matchCase = ({ expr, invoke }) => ({
+export const matchCase = ({ expr, invoke }) => fromJS({
   type: STATEMENT_TYPE.MATCH_CASE,
   expr,
   invoke
 });
 
-export const boundVariable = ({ symbol }) => ({
+export const boundVariable = ({ symbol }) => fromJS({
   type: STATEMENT_TYPE.BOUND_VARIABLE,
   symbol
 });
@@ -187,7 +189,7 @@ const inMatchCond = contexts => {
 }
 
 const parse = tokens => {
-  const AST = { type: STATEMENT_TYPE.PROGRAM, body: [], };
+  let AST = fromJS({ type: STATEMENT_TYPE.PROGRAM, body: [], });
   for (let i = 0; i < tokens.length; i++) {
     const consume = consumables => {
       const [arr, i2] = makeConsumer(tokens)(i, consumables);
@@ -331,12 +333,13 @@ const parse = tokens => {
       }
     };
 
+    // TODO: re-write using immutable
     const findBoundVariable = (expr, found, prevExpr = symbolLookup({ symbol: 'arg' })) => {
       if (expr.type === STATEMENT_TYPE.BOUND_VARIABLE) {
         if (found.includes(expr.symbol)) {
           return null;
         } else {
-          return [expr.symbol, prevExpr];
+          return fromJS([expr.symbol, prevExpr]);
         }
       } else if (expr.type === STATEMENT_TYPE.ARRAY_LITERAL) {
         for (let i = 0; i < expr.elements.length; i++) {
@@ -362,7 +365,7 @@ const parse = tokens => {
       const expr = parseNode(tokens[i], [...contexts, STATEMENT_TYPE.MATCH_CASE]);
       let paramNames = [], paramExprs = [], symbol, boundExpr;
       while (symbol !== null) {
-        const res = findBoundVariable(expr, paramNames);
+        const res = findBoundVariable(expr.toJS(), paramNames);
         [symbol, boundExpr] = res === null ? [null] : res;
         if (symbol != null) {
           paramNames.push(symbol);
@@ -406,7 +409,7 @@ const parse = tokens => {
 
     const parseArrayLookup = (contexts, expr) => {
       consumeOne(TOKEN_NAMES.OPEN_SQ_BRACE);
-      const { value: index } = parseLiteral(contexts);
+      const index = parseLiteral(contexts).get('value');
       assert(typeof index === 'number' && Number.isInteger(index));
       consumeOne(TOKEN_NAMES.CLOSE_SQ_BRACE);
       return arrayLookup({ expr, index });
@@ -524,8 +527,7 @@ const parse = tokens => {
     ]);
     // TODO: W T F
     if (i !== 0) --i;
-    const astNode = parseNode(tokens[i]);
-    AST.body.push(astNode);
+    AST = AST.set('body', AST.get('body').push(parseNode(tokens[i])));
   }
   return AST;
 };
