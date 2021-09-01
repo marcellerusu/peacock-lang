@@ -2,19 +2,12 @@
 
 # BIG goals
 
-## auto-currying [ not started ]
-
-let f = (a, b) => a + b;
-let add1 = f(1);
-print(add1(2)); # 3
-
 ## pattern matching [ done ]
 
 ```
-let expr = match ([1, 2]) {
-  [] => 'Congrats... sorta',
-  [1] => 'Oh no',
-  [1, 2] => 'YES!'
+let product = (vec) => match (vec) {
+  [x, y] => x * y,
+  [x, y, z] => x * y * z
 };
 ```
 
@@ -22,9 +15,15 @@ let expr = match ([1, 2]) {
 
 only thing that is not an expression is `let` statements
 
-## immutable data structures [ not started ]
+## immutable data structures [ done ]
 
-will probably just use immutable.js for this
+uses immutable.js underneath
+
+## auto-currying [ not started ]
+
+let f = (a, b) => a + b;
+let add1 = f(1);
+print(add1(2)); # 3
 
 ## Tokenizer
 
@@ -65,6 +64,9 @@ will probably just use immutable.js for this
 - [x] if, else & elif expressions
  - [x] single line if elif else
 - [x] match expressions
+- [ ] import statements
+- [ ] objects with strings as keys
+- [ ] object string lookup
 - [ ] object deconstruction
 - [ ] array deconstruction
 - [x] math operators
@@ -87,6 +89,8 @@ will probably just use immutable.js for this
 - [x] arrays
  - [x] index lookup
 - [x] if, else & elif
+- [ ] objects with strings as keys
+- [ ] object string lookup
 - [x] match expressions
 - [ ] object deconstruction
 - [ ] array deconstruction
