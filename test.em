@@ -1,4 +1,7 @@
 
-let f = (arr) => match (arr) {
-  [a, b, c] => a * b * c
+let obj = {
+  a: 1,
+  b: { c: 'three' }
 };
+
+print(obj);

@@ -1,4 +1,5 @@
 # Variables
+
 # declaration
 let some_thing_long = 3;
 print(some_thing_long);
@@ -19,18 +20,19 @@ if (1 > 3) {
 
 # ifs are expressions!
 
-let three = if (3 > 1) 3;
-print(three);
+print({ b: b});
+let three = if (b > 3) 3;
+print({ three: three });
 
 # arrays
 let arr = [1, 2, 3];
 print({ second: arr[1] });
 
 # functions
-let function = (a) =>
+let fn = (a) =>
   if (a == [1, 2]) print('we do deep value equality!');
 
-function([1, 2]);
+fn([1, 2]);
 
 # objects
 
@@ -44,10 +46,9 @@ print(obj);
 let Person = (name) => {
   let obj = {
     name: name,
-  };
-  return {
     print: () => print(obj.name)
   };
+  return obj;
 };
 
 Person('Marcelle').print();
@@ -58,4 +59,4 @@ let f = (arr) => match (arr) {
   [a, b, c] => a * b * c
 };
 
-print(f([1, 2, 3]));
+print(f([5, 2, 3]));

@@ -2,6 +2,7 @@ import {
   STATEMENT_TYPE
 } from './parser.mjs';
 import { match, any } from './utils.mjs';
+import fs from 'fs/promises';
 
 const operatorToFunction = {
   '>': 'M.gt',
@@ -12,21 +13,23 @@ const operatorToFunction = {
   '-': 'M.minus',
   '*': 'M.times',
   '/': 'M.divides',
-}
+};
+
+const notAlpha = char => !char.match(/[a-zA-Z]/)
 
 const convertObjectProperty = str =>
-  str.includes(' ') ? `'${str}'` : str;
+  str.includes(' ') || notAlpha(str[0]) ? `'${str}'` : str;
 const quoteIfString = str => typeof str === 'string' ? `'${str}'` : str;
 
 const compileNumberLiteral = expr => `${expr.get('value')}`;
 const compileStringLiteral = expr => `'${expr.get('value')}'`;
-const compileBoundVariable = expr => 'any';
+const compileBoundVariable = expr => 'M.any';
 const compileArrayLiteral = expr => 
-  `List([${expr.get('elements').reduce((expr, elem, i) => 
+  `M.List([${expr.get('elements').reduce((expr, elem, i) => 
     `${expr}${i !== 0 ? ', ' : ''}${compileExpr(elem)}`
   , '')}])`;
 const compileObjectLiteral = expr =>
-  `Map({ ${
+  `M.Map({ ${
     expr.get('value')
       .reduce((props, v, k) =>
         `${props}${convertObjectProperty(k)}: ${compileExpr(v)}, `
@@ -53,7 +56,7 @@ const compileFunctionApplication = expr => {
   })`;
 };
 const compileConditional = expr =>
-  `(() => {if (${compileExpr(expr.get('expr'))}) {${compileExpr(expr.get('pass'))}} else {${compileExpr(expr.get('fail'))}}})()`;
+  `(() => {if (${compileExpr(expr.get('expr'))}) {return ${compileExpr(expr.get('pass'))}} else {return ${compileExpr(expr.get('fail'))}}})()`;
 
 // TODO: use matchExpr in the case invoke paramExprs
 const compileMatchExpression = expr =>
@@ -82,9 +85,48 @@ const compileExpr = expr => match(expr.get('type'), [
   [STATEMENT_TYPE.MATCH_EXPRESSION, () => compileMatchExpression(expr)],
 ]);
 
-const compile = ast => {
+const addRuntime = async () => {
+  // const data = await fs.readFile('node_modules/immutable/dist/immutable.js', 'utf-8');
+  const M = `
+  const Immutable = require('immutable');
+  const M = {
+    gt: (a, b) => a > b,
+    ls: (a, b) => a < b,
+    is: Immutable.is,
+    plus: (a, b) => a + b,
+    minus: (a, b) => a - b,
+    times: (a, b) => a * b,
+    divides: (a, b) => a / b,
+    isNot: (a, b) => !Immutable.is(a, b),
+    List: Immutable.List,
+    Map: Immutable.Map,
+    any: Symbol('any'),
+    matchEq: (a, b) => {
+      if (M.is(a, b)) return true;
+      if (a === M.any || M.b === M.any) {
+        return true;
+      }
+      if (typeof a !== typeof b) return false;
+      if (Immutable.isList(a) && Immutable.isList(b)) {
+        return a.every((x, i) => M.matchEq(x, b.get(i)));
+      } else if (Immutable.isMap(a) && Immutable.isMap(b)) {  
+        return a.every((v, k) => M.matchEq(b.get(k), v));
+      } else {
+        return false;
+      }
+    },
+  }
+  const print = (...args) => {
+    args = args.map(arg => arg?.toJS ? arg.toJS() : arg);
+    console.log(...args);
+  };
+  `
+  return M;
+}
+
+const compile = (ast, runtime = '') => {
   const body = ast.get('body');
-  return body.reduce((program, statement, i) => match(statement.get('type'), [
+  return runtime + body.reduce((program, statement, i) => match(statement.get('type'), [
     [STATEMENT_TYPE.RETURN, () => `${program}${i === 0 ? '' : '\n'}return ${compileExpr(statement.get('expr'))};`],
     [STATEMENT_TYPE.DECLARATION, () => {
       const symbol = statement.get('symbol'), mutable = statement.get('mutable'), expr = statement.get('expr');
@@ -97,8 +139,10 @@ const compile = ast => {
       const symbol = statement.get('symbol'), expr = statement.get('expr');
       return `${program}${i === 0 ? '' : '\n'}${symbol} = ${compileExpr(statement.get('expr'))};`
     }],
-    [any, () => `${program}${i === 0 ? '' : '\n'}${compileExpr(statement)}`]
+    [any, () => `${program}${i === 0 ? '' : '\n'}${compileExpr(statement)};`]
   ]), '');
 };
 
-export default compile;
+export default async (ast) => {
+  return compile(ast, await addRuntime());
+};

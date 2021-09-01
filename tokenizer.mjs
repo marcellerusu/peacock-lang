@@ -83,6 +83,7 @@ const takeUntilOf = program => (index, condFn) => {
 };
 
 const getLiteralParser = str => {
+  if (isWhiteSpace(str)) return;
   if (Number(str) == str) {
     return Number;
   } else if (str[0] === '\'' && str[str.length - 1] === '\'') {
@@ -100,7 +101,7 @@ const tokenize = program => {
     // comments
     if (char === '#') {
       const index = program.slice(i).indexOf('\n') + 1;
-      if (index === -1) break;
+      if (index === 0) break;
       i = i + index;
     }
     if (isWhiteSpace(char)) continue;
