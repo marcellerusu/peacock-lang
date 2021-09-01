@@ -65,8 +65,8 @@ print(add1(2)); # 3
  - [x] single line if elif else
 - [x] match expressions
 - [ ] import statements
-- [ ] objects with strings as keys
-- [ ] object string lookup
+- [x] objects with strings as keys
+- [x] object string lookup
 - [ ] object deconstruction
 - [ ] array deconstruction
 - [x] math operators
@@ -89,8 +89,8 @@ print(add1(2)); # 3
 - [x] arrays
  - [x] index lookup
 - [x] if, else & elif
-- [ ] objects with strings as keys
-- [ ] object string lookup
+- [x] objects with strings as keys
+- [x] object string lookup
 - [x] match expressions
 - [ ] object deconstruction
 - [ ] array deconstruction
