@@ -11,7 +11,7 @@ import parse, {
   _return,
   symbolLookup,
   propertyLookup,
-  arrayLookup,
+  dynamicLookup,
   conditional,
   matchExpression,
   matchCase,
@@ -932,7 +932,7 @@ it('should parse array lookup', () => {
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       declaration({
-        expr: arrayLookup({
+        expr: dynamicLookup({
           expr: arrayLiteral({
             elements: [
               numberLiteral({value: 1}),
@@ -940,7 +940,7 @@ it('should parse array lookup', () => {
               numberLiteral({value: 3})
             ]
           }),
-          index: 2
+          lookupKey: 2
         }),
         symbol: 'a'
       })
@@ -959,9 +959,9 @@ it('should parse array lookup on symbol', () => {
     type: STATEMENT_TYPE.PROGRAM,
     body: [
       declaration({
-        expr: arrayLookup({
+        expr: dynamicLookup({
           expr: symbolLookup({ symbol: 'arr' }),
-          index: 2
+          lookupKey: 2
         }),
         symbol: 'a'
       })
@@ -1148,7 +1148,7 @@ it('should parse match expression with bound variable in array', () => {
                   fnCall({
                     expr: fn({
                       paramNames: ['arg'],
-                      body: [_return({expr: arrayLookup({ expr: symbolLookup({ symbol: 'arg'}), index: 0 }) })],
+                      body: [_return({expr: dynamicLookup({ expr: symbolLookup({ symbol: 'arg'}), lookupKey: 0 }) })],
                     }),
                     paramExprs: [
                       arrayLiteral({ elements: [stringLiteral({ value: 'hello' })] })
@@ -1211,14 +1211,14 @@ it('should eval pattern matching w diff levels of nested arrays', () => {
                   fnCall({
                     expr: fn({
                       paramNames: ['arg'],
-                      body: [_return({expr: arrayLookup({ expr: symbolLookup({ symbol: 'arg'}), index: 0 }) })],
+                      body: [_return({expr: dynamicLookup({ expr: symbolLookup({ symbol: 'arg'}), lookupKey: 0 }) })],
                     }),
                     paramExprs: [arrArg]
                   }),
                   fnCall({
                     expr: fn({
                       paramNames: ['arg'],
-                      body: [_return({expr: arrayLookup({ expr: arrayLookup({ expr: symbolLookup({ symbol: 'arg'}), index: 1 }), index: 0 }) })],
+                      body: [_return({expr: dynamicLookup({ expr: dynamicLookup({ expr: symbolLookup({ symbol: 'arg'}), lookupKey: 1 }), lookupKey: 0 }) })],
                     }),
                     paramExprs: [arrArg]
                   })
@@ -1230,6 +1230,56 @@ it('should eval pattern matching w diff levels of nested arrays', () => {
       })
     ]
   })))  
+})
+
+it('should parse objects with string as key', () => {
+  const program = tokenize(`
+  let obj = { 'a key': 3 };
+  `)
+  const ast = parse(program);
+
+  assert(is(ast, fromJS({
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      declaration({
+        symbol: 'obj',
+        expr: objectLiteral({
+          value: {
+            'a key': numberLiteral({ value: 3 })
+          }
+        })
+      })
+    ]
+  })))
+})
+
+it('should parse lookup', () => {
+  const program = tokenize(`
+  let obj = { 'a key': 3 };
+  let b = obj['a key'];
+  `)
+  const ast = parse(program);
+
+  assert(is(ast, fromJS({
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      declaration({
+        symbol: 'obj',
+        expr: objectLiteral({
+          value: {
+            'a key': numberLiteral({ value: 3 })
+          }
+        })
+      }),
+      declaration({
+        symbol: 'b',
+        expr: dynamicLookup({
+          expr: symbolLookup({ symbol: 'obj' }),
+          lookupKey: 'a key'
+        })
+      })
+    ]
+  })))
 })
 
 console.log('Passed', passed, 'tests!');

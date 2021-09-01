@@ -18,7 +18,7 @@ export const STATEMENT_TYPE = {
   SYMBOL_LOOKUP: 'SYMBOL_LOOKUP',
   PROPERTY_LOOKUP: 'PROPERTY_LOOKUP',
   CONDITIONAL: 'CONDITIONAL',
-  ARRAY_LOOKUP: 'ARRAY_LOOKUP',
+  DYNAMIC_LOOKUP: 'DYNAMIC_LOOKUP',
   MATCH_EXPRESSION: 'MATCH_EXPRESSION',
   MATCH_CASE: 'MATCH_CASE',
   BOUND_VARIABLE: 'BOUND_VARIABLE',
@@ -48,10 +48,10 @@ export const arrayLiteral = ({ elements }) => fromJS({
   elements
 });
 
-export const arrayLookup = ({ expr, index }) => fromJS({
-  type: STATEMENT_TYPE.ARRAY_LOOKUP,
+export const dynamicLookup = ({ expr, lookupKey }) => fromJS({
+  type: STATEMENT_TYPE.DYNAMIC_LOOKUP,
   expr,
-  index
+  lookupKey
 })
 
 export const numberLiteral = ({ value }) => fromJS({
@@ -226,7 +226,15 @@ const parse = tokens => {
       consumeOne(TOKEN_NAMES.OPEN_BRACE);
       const value = {};
       while (tokens[i] !== TOKEN_NAMES.CLOSE_BRACE) {
-        const varName = consumeOne([TOKEN_NAMES.SYMBOL, any]);
+        let varName;
+        if (eq(tokens[i], [TOKEN_NAMES.SYMBOL, any])) {
+          varName = consumeOne([TOKEN_NAMES.SYMBOL, any]);
+        } else if (eq(tokens[i], [TOKEN_NAMES.LITERAL, any])) {
+          varName = consumeOne([TOKEN_NAMES.LITERAL, any]);
+          assert(typeof varName === 'string');
+        } else {
+          assert(false);
+        }
         consumeOne(TOKEN_NAMES.COLON);
         value[varName] = parseNode(tokens[i], [...contexts, STATEMENT_TYPE.OBJECT_LITERAL]);
         if (tokens[i] !== TOKEN_NAMES.COMMA) break;
@@ -246,7 +254,7 @@ const parse = tokens => {
       }
       consumeOne(TOKEN_NAMES.CLOSE_SQ_BRACE);
       if (tokens[i] === TOKEN_NAMES.OPEN_SQ_BRACE) {
-        return parseArrayLookup(contexts, arrayLiteral({ elements }));
+        return parseDynamicLookup(contexts, arrayLiteral({ elements }));
       } else {
         return arrayLiteral({ elements });
       }
@@ -345,11 +353,11 @@ const parse = tokens => {
         for (let i = 0; i < expr.elements.length; i++) {
           const elem = expr.elements[i];
           if (elem.type === STATEMENT_TYPE.BOUND_VARIABLE) {
-            const val = findBoundVariable(elem, found, arrayLookup({ expr: prevExpr, index: i }));
+            const val = findBoundVariable(elem, found, dynamicLookup({ expr: prevExpr, lookupKey: i }));
             if (val) return val;
           } else if (expr.type === STATEMENT_TYPE.ARRAY_LITERAL
             || expr.type === STATEMENT_TYPE.OBJECT_LITERAL) {
-            const val = findBoundVariable(elem, found, arrayLookup({ expr: prevExpr, index: i }));
+            const val = findBoundVariable(elem, found, dynamicLookup({ expr: prevExpr, lookupKey: i }));
             if (val) return val;
           }
         }
@@ -407,12 +415,13 @@ const parse = tokens => {
       return matchExpression({ expr, cases });
     };
 
-    const parseArrayLookup = (contexts, expr) => {
+    const parseDynamicLookup = (contexts, expr) => {
       consumeOne(TOKEN_NAMES.OPEN_SQ_BRACE);
-      const index = parseLiteral(contexts).get('value');
-      assert(typeof index === 'number' && Number.isInteger(index));
+      const lookupKey = parseLiteral(contexts).get('value');
+      assert((typeof lookupKey === 'number' && Number.isInteger(lookupKey))
+        || typeof lookupKey === 'string');
       consumeOne(TOKEN_NAMES.CLOSE_SQ_BRACE);
-      return arrayLookup({ expr, index });
+      return dynamicLookup({ expr, lookupKey });
     };
 
     const parseNode = (token, contexts = []) => match(token, [
@@ -476,7 +485,7 @@ const parse = tokens => {
             return parseSymbol(tokens[i], expr);
           }],
           [TOKEN_NAMES.OPEN_SQ_BRACE, () => {  
-            const expr = parseArrayLookup(contexts, prevExpr || symbolLookup({ symbol }));
+            const expr = parseDynamicLookup(contexts, prevExpr || symbolLookup({ symbol }));
             // check if reached end of expression
             if (
               tokens[i] === TOKEN_NAMES.END_STATEMENT || tokens[i] === TOKEN_NAMES.CLOSE_PARAN

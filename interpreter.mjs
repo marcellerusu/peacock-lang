@@ -55,11 +55,12 @@ const evalExpr = (expr, context, closureContext = Map({})) => match(expr.get('ty
   [STATEMENT_TYPE.BOOLEAN_LITERAL, () => expr],
   [STATEMENT_TYPE.RETURN, () => evalExpr(expr.get('expr'), context, closureContext)],
   [STATEMENT_TYPE.SYMBOL_LOOKUP, () => closureContext.get(expr.get('symbol')) || context.get(expr.get('symbol'))],
-  [STATEMENT_TYPE.ARRAY_LOOKUP, () => {
+  [STATEMENT_TYPE.DYNAMIC_LOOKUP, () => {
     const arrExpr = expr.get('expr');
-    const index = expr.get('index');
-    const arr = evalExpr(arrExpr, context, closureContext).get('value');
-    return Map({ value: arr.get(index) });
+    const lookupKey = expr.get('lookupKey');
+    const arrOrMap = evalExpr(arrExpr, context, closureContext).get('value');
+    assert(isList(arrOrMap) || isMap(arrOrMap));
+    return Map({ value: arrOrMap.get(lookupKey) });
   }],
   [STATEMENT_TYPE.FUNCTION, () => Map({ value: expr.merge(Map({ closureContext })) })],
   [STATEMENT_TYPE.CONDITIONAL, () => {
