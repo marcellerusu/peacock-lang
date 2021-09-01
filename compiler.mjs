@@ -30,7 +30,7 @@ const compileArrayLiteral = expr =>
   , '')}])`;
 const compileObjectLiteral = expr =>
   `M.Map({ ${
-    expr.get('value')
+    (expr.get('value') || expr.get('expr'))
       .reduce((props, v, k) =>
         `${props}${convertObjectProperty(k)}: ${compileExpr(v)}, `
       , '')
@@ -77,6 +77,7 @@ const compileExpr = expr => match(expr.get('type'), [
   [STATEMENT_TYPE.BOUND_VARIABLE, () => compileBoundVariable(expr)],
   [STATEMENT_TYPE.ARRAY_LITERAL, () => compileArrayLiteral(expr)],
   [STATEMENT_TYPE.OBJECT_LITERAL, () => compileObjectLiteral(expr)],
+  [STATEMENT_TYPE.OBJECT_DECONSTRUCTION, () => compileObjectLiteral(expr)],
   [STATEMENT_TYPE.PROPERTY_LOOKUP, () => compilePropertyLookup(expr)],
   [STATEMENT_TYPE.DYNAMIC_LOOKUP, () => compileDynamicLookup(expr)],
   [STATEMENT_TYPE.FUNCTION, () => compileFunction(expr)],
@@ -103,7 +104,7 @@ const addRuntime = async () => {
     any: Symbol('any'),
     matchEq: (a, b) => {
       if (M.is(a, b)) return true;
-      if (a === M.any || M.b === M.any) {
+      if (a === M.any || b === M.any) {
         return true;
       }
       if (typeof a !== typeof b) return false;

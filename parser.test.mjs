@@ -17,6 +17,7 @@ import parse, {
   matchCase,
   boundVariable,
   booleanLiteral,
+  objectDeconstruction,
 } from './parser.mjs';
 import tokenize, { TOKEN_NAMES } from './tokenizer.mjs';
 import assert from 'assert';
@@ -1280,6 +1281,74 @@ it('should parse lookup', () => {
       })
     ]
   })))
+});
+
+it('should parse object deconstruction in match', () => {
+  const program = tokenize(`
+  let eight = match ({ a: 2, b: 4 }) {
+    { a, b } => a * b
+  };
+  `);
+  const ast = parse(program);
+
+  const matchArg = objectLiteral({ value: {
+    a: numberLiteral({ value: 2}),
+    b: numberLiteral({ value: 4})
+  }});
+  // console.log(JSON.stringify(ast.toJS(), null, 2))
+
+  assert(is(ast, fromJS({
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      declaration({
+        mutable: false,
+        symbol: 'eight',
+        expr: matchExpression({
+          expr: matchArg,
+          cases: [
+            matchCase({
+              expr: objectDeconstruction({ expr: {
+                a: boundVariable({ symbol: 'a' }),
+                b: boundVariable({ symbol: 'b' })
+              } }),
+              invoke: fnCall({
+                expr: fn({
+                  paramNames: ['a', 'b'],
+                  body: [
+                    _return({
+                      expr: fnCall({
+                        expr: symbolLookup({ symbol: '*' }),
+                        paramExprs: [
+                          symbolLookup({ symbol: 'a' }),
+                          symbolLookup({ symbol: 'b' })
+                        ]
+                      })
+                    })
+                  ]
+                }),
+                paramExprs: [
+                  fnCall({
+                    expr: fn({
+                      paramNames: ['arg'],
+                      body: [_return({expr: dynamicLookup({ expr: symbolLookup({ symbol: 'arg'}), lookupKey: 'a' }) })],
+                    }),
+                    paramExprs: [matchArg]
+                  }),
+                  fnCall({
+                    expr: fn({
+                      paramNames: ['arg'],
+                      body: [_return({expr: dynamicLookup({ expr: symbolLookup({ symbol: 'arg'}), lookupKey: 'b' }) })],
+                    }),
+                    paramExprs: [matchArg]
+                  })
+                ]
+              })
+            }),
+          ]
+        }),
+      })
+    ]
+  })))  
 })
 
 console.log('Passed', passed, 'tests!');

@@ -1,7 +1,3 @@
-
-let obj = {
-  a: 1,
-  b: { c: 'three' }
+match (obj) {
+  { a, b } => b
 };
-
-print(obj);

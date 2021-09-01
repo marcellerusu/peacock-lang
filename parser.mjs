@@ -2,7 +2,7 @@ import { TOKEN_NAMES } from "./tokenizer.mjs";
 import { match, any, eq } from './utils.mjs';
 import assert from 'assert';
 import pkg from 'immutable';
-const { fromJS } = pkg;
+const { fromJS, Map } = pkg;
 
 export const STATEMENT_TYPE = {
   DECLARATION: 'DECLARATION',
@@ -13,6 +13,7 @@ export const STATEMENT_TYPE = {
   NUMBER_LITERAL: 'NUMBER_LITERAL',
   STRING_LITERAL: 'STRING_LITERAL',
   OBJECT_LITERAL: 'OBJECT_LITERAL',
+  OBJECT_DECONSTRUCTION: 'OBJECT_DECONSTRUCTION',
   ARRAY_LITERAL: 'ARRAY_LITERAL',
   FUNCTION_APPLICATION: 'FUNCTION_APPLICATION',
   SYMBOL_LOOKUP: 'SYMBOL_LOOKUP',
@@ -42,6 +43,11 @@ export const objectLiteral = ({ value }) => fromJS({
   type: STATEMENT_TYPE.OBJECT_LITERAL,
   value,
 });
+
+export const objectDeconstruction = ({ expr }) => fromJS({
+  type: STATEMENT_TYPE.OBJECT_DECONSTRUCTION,
+  expr
+})
 
 export const arrayLiteral = ({ elements }) => fromJS({
   type: STATEMENT_TYPE.ARRAY_LITERAL,
@@ -222,9 +228,9 @@ const parse = tokens => {
       return expr;
     };
 
-    const parseObjectLiteral = contexts => {
+    const parseObjectLiteralOrDeconstruction = contexts => {
       consumeOne(TOKEN_NAMES.OPEN_BRACE);
-      const value = {};
+      let value = {}, isDeconstruction = false;
       while (tokens[i] !== TOKEN_NAMES.CLOSE_BRACE) {
         let varName;
         if (eq(tokens[i], [TOKEN_NAMES.SYMBOL, any])) {
@@ -235,13 +241,18 @@ const parse = tokens => {
         } else {
           assert(false);
         }
-        consumeOne(TOKEN_NAMES.COLON);
-        value[varName] = parseNode(tokens[i], [...contexts, STATEMENT_TYPE.OBJECT_LITERAL]);
+        if (tokens[i] !== TOKEN_NAMES.COLON) isDeconstruction = true;
+        if (tokens[i] === TOKEN_NAMES.COLON) {
+          consumeOne(TOKEN_NAMES.COLON);
+          value[varName] = parseNode(tokens[i], [...contexts, STATEMENT_TYPE.OBJECT_LITERAL]);
+        } else {
+          value[varName] = boundVariable({ symbol: varName });
+        }
         if (tokens[i] !== TOKEN_NAMES.COMMA) break;
         consumeOne(TOKEN_NAMES.COMMA);
       }
       consumeOne(TOKEN_NAMES.CLOSE_BRACE);
-      return value;
+      return [value, isDeconstruction];
     };
 
     const parseArrayLiteral = contexts => {
@@ -355,15 +366,26 @@ const parse = tokens => {
           if (elem.type === STATEMENT_TYPE.BOUND_VARIABLE) {
             const val = findBoundVariable(elem, found, dynamicLookup({ expr: prevExpr, lookupKey: i }));
             if (val) return val;
-          } else if (expr.type === STATEMENT_TYPE.ARRAY_LITERAL
-            || expr.type === STATEMENT_TYPE.OBJECT_LITERAL) {
+          } else if (elem.type === STATEMENT_TYPE.ARRAY_LITERAL
+            || elem.type === STATEMENT_TYPE.OBJECT_DECONSTRUCTION) {
             const val = findBoundVariable(elem, found, dynamicLookup({ expr: prevExpr, lookupKey: i }));
             if (val) return val;
           }
         }
         return null;
-      } else if (expr.type === STATEMENT_TYPE.OBJECT_LITERAL) {
-        throw 'unimplemented -- findBoundVariables';
+      } else if (expr.type === STATEMENT_TYPE.OBJECT_DECONSTRUCTION) {
+        for (const [k, elem] of Object.entries(expr.expr)) {
+          // console.log(elem);
+          if (elem.type === STATEMENT_TYPE.BOUND_VARIABLE) {
+            const val = findBoundVariable(elem, found, dynamicLookup({ expr: prevExpr, lookupKey: k }));
+            if (val) return val;
+          } else if (elem.type === STATEMENT_TYPE.ARRAY_LITERAL
+            || elem.type === STATEMENT_TYPE.OBJECT_DECONSTRUCTION) {
+            const val = findBoundVariable(elem, found, dynamicLookup({ expr: prevExpr, lookupKey: k }));
+            if (val) return val;
+          }
+        }
+        return null;
       } else {
         return null;
       }
@@ -512,11 +534,15 @@ const parse = tokens => {
       }],
       [TOKEN_NAMES.OPEN_BRACE, () => {
         assert(isExpression(contexts));
-        const value = parseObjectLiteral(contexts);
-        if (tokens[i] === TOKEN_NAMES.PROPERTY_ACCESSOR) {
-          return parseDotNotation(objectLiteral({ value }))
+        const [value, isDeconstruction] = parseObjectLiteralOrDeconstruction(contexts);
+        if (isDeconstruction) {
+          return objectDeconstruction({ expr: value });
+        } else {
+          if (tokens[i] === TOKEN_NAMES.PROPERTY_ACCESSOR) {
+            return parseDotNotation(objectLiteral({ value }))
+          }
+          return objectLiteral({ value });
         }
-        return objectLiteral({ value });
       }],
       [TOKEN_NAMES.OPEN_SQ_BRACE, () => {
         assert(isExpression(contexts));
