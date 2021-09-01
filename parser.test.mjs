@@ -1164,4 +1164,72 @@ it('should parse match expression with bound variable in array', () => {
   })))
 });
 
+it('should eval pattern matching w diff levels of nested arrays', () => {
+  const program = tokenize(`
+  let three = match ([1, [2]]) {
+    [a, [b]] => a * b
+  };
+  `);
+  const ast = parse(program);
+
+  const arrArg = arrayLiteral({ elements: [
+    numberLiteral({ value: 1 }),
+    arrayLiteral({ elements: [ numberLiteral({ value: 2 }) ]})
+  ] });
+  // console.log(JSON.stringify(ast.toJS(), null, 2))
+
+  assert(is(ast, fromJS({
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      declaration({
+        mutable: false,
+        symbol: 'three',
+        expr: matchExpression({
+          expr: arrArg,
+          cases: [
+            matchCase({
+              expr: arrayLiteral({ elements: [
+                boundVariable({ symbol: 'a' }),
+                arrayLiteral({ elements: [boundVariable({ symbol: 'b' })]})
+              ] }),
+              invoke: fnCall({
+                expr: fn({
+                  paramNames: ['a', 'b'],
+                  body: [
+                    _return({
+                      expr: fnCall({
+                        expr: symbolLookup({ symbol: '*' }),
+                        paramExprs: [
+                          symbolLookup({ symbol: 'a' }),
+                          symbolLookup({ symbol: 'b' })
+                        ]
+                      })
+                    })
+                  ]
+                }),
+                paramExprs: [
+                  fnCall({
+                    expr: fn({
+                      paramNames: ['arg'],
+                      body: [_return({expr: arrayLookup({ expr: symbolLookup({ symbol: 'arg'}), index: 0 }) })],
+                    }),
+                    paramExprs: [arrArg]
+                  }),
+                  fnCall({
+                    expr: fn({
+                      paramNames: ['arg'],
+                      body: [_return({expr: arrayLookup({ expr: arrayLookup({ expr: symbolLookup({ symbol: 'arg'}), index: 1 }), index: 0 }) })],
+                    }),
+                    paramExprs: [arrArg]
+                  })
+                ]
+              })
+            }),
+          ]
+        }),
+      })
+    ]
+  })))  
+})
+
 console.log('Passed', passed, 'tests!');
