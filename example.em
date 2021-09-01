@@ -1,5 +1,4 @@
 # Variables
-
 # declaration
 let some_thing_long = 3;
 print(some_thing_long);

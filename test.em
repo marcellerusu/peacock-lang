@@ -1,7 +1,4 @@
-let OPERATORS = {
-  '==': {
-    value: (a, b) => a == b
-  }
-};
 
-print(OPERATORS['=='].value(1, 34));
+let f = (arr) => match (arr) {
+  [a, b, c] => a * b * c
+};
