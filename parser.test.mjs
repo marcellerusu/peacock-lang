@@ -1348,7 +1348,32 @@ it('should parse object deconstruction in match', () => {
         }),
       })
     ]
-  })))  
-})
+  })));
+});
+
+it('should parse arrow function w 1 param not needing ()', () => {
+  const program = tokenize(`
+  let id = x => x;
+  `);
+  const ast = parse(program);
+  assert(is(ast, fromJS({
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      declaration({
+        symbol: 'id',
+        expr: fn({
+          paramNames: ['x'],
+          body: [_return({ expr: symbolLookup({ symbol: 'x' })})]
+        })
+      })
+    ]
+  })))
+});
+
+// it('should parse piping array literal', () => {
+//   const program = tokenize(`
+//   let powers = [1, 2, 3] |> List.map(())
+//   `)
+// });
 
 console.log('Passed', passed, 'tests!');

@@ -514,8 +514,16 @@ const parse = tokens => {
             ) return expr;
             return parseSymbol(tokens[i], expr);
           }],
+          [TOKEN_NAMES.ARROW, () => {
+            if (inMatchCond(contexts)) {
+              return boundVariable({ symbol });
+            } else {
+              // TODO: not sure why I can't have this at top of fn
+              consumeOne(TOKEN_NAMES.ARROW);
+              return fn({ body: parseFunctionBody(contexts), paramNames: [symbol] })
+            }
+          }],
           [any, () => {
-            // assert(isExpression(contexts));
             if (inMatchCond(contexts)) {
               return boundVariable({ symbol });
             } else {  
