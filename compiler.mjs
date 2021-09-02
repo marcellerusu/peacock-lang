@@ -41,23 +41,28 @@ const compilePropertyLookup = expr =>
 const compileDynamicLookup = expr =>
   `${compileExpr(expr.get('expr'))}.get(${quoteIfString(expr.get('lookupKey'))})`;
 const compileSymbolLookup = expr => expr.get('symbol');
-const compileFunction = expr =>
-  `((${
-    expr.get('paramNames').reduce((args, arg, i) =>
-     `${args}${i === 0 ? '' : ', '}${arg}`
-    , '')
-  }) => {\n${compile(expr)}\n})`;
+const compileFunction = expr => {
+  let paramDef, names = expr.get('paramNames');
+  if (names.size == 0) {
+    paramDef = '()';
+  } else {
+    paramDef = names.reduce((args, arg, i) =>
+      `${args}${i === 0 ? '' : ' => '}${arg}`
+    , '');
+  }
+  return `(${paramDef} => {\n${compile(expr)}\n})`;
+}
 const compileFunctionApplication = expr => {
   let f = compileExpr(expr.get('expr'));
   if (operatorToFunction[f]) f = operatorToFunction[f];
   return `${f}(${
     expr.get('paramExprs').reduce((paramExprs, pExpr, i) =>
-    `${paramExprs}${i === 0 ? '' : ', '}${compileExpr(pExpr)}`
+    `${paramExprs}${i === 0 ? '' : ')('}${compileExpr(pExpr)}`
     , '')
   })`;
 };
 const compileConditional = expr =>
-  `(() => {if (${compileExpr(expr.get('expr'))}) {return ${compileExpr(expr.get('pass'))}} else {return ${compileExpr(expr.get('fail'))}}})()`;
+  `(() => {if (${compileExpr(expr.get('expr'))}) {return ${compileExpr(expr.get('pass'))};} else {return ${compileExpr(expr.get('fail'))};}})()`;
 
 // TODO: use matchExpr in the case invoke paramExprs
 const compileMatchExpression = expr =>
@@ -92,19 +97,19 @@ const addRuntime = async () => {
   const M = `
 const Immutable = require('immutable');
 const M = {
-  gt: (a, b) => a > b,
-  ls: (a, b) => a < b,
-  is: Immutable.is,
-  plus: (a, b) => a + b,
-  minus: (a, b) => a - b,
-  times: (a, b) => a * b,
-  divides: (a, b) => a / b,
-  isNot: (a, b) => !Immutable.is(a, b),
+  gt: a => b => a > b,
+  ls: a => b => a < b,
+  is: a => b => Immutable.is(a, b),
+  plus: a => b => a + b,
+  minus: a => b => a - b,
+  times: a => b => a * b,
+  divides: a => b => a / b,
+  isNot: a => b => !Immutable.is(a, b),
   List: Immutable.List,
   Map: Immutable.Map,
   any: Symbol('any'),
-  call: (v, f) => f(v),
-  matchEq: (a, b) => {
+  call: v => f => f(v),
+  matchEq: a => b => {
     if (a === M.any || b === M.any) {
       return true;
     }
@@ -151,6 +156,8 @@ const compile = (ast, runtime = '') => {
     [any, () => `${program}${i === 0 ? '' : '\n'}${compileExpr(statement)};`]
   ]), '');
 };
+
+export const syncCompile = compile;
 
 export default async (ast) => {
   return compile(ast, await addRuntime());
