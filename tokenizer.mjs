@@ -62,7 +62,7 @@ const UNARY_OPERATORS = {
   '!=': [TOKEN_NAMES.OPERATOR, '!='],
   '>': [TOKEN_NAMES.OPERATOR, '>'],
   '<': [TOKEN_NAMES.OPERATOR, '<'],
-  // '|>': [TOKEN_NAMES.OPERATOR, '|>'],
+  '|>': [TOKEN_NAMES.OPERATOR, '|>'],
 };
 
 const isWhiteSpace = c => [' ', '\n'].includes(c);

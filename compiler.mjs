@@ -13,6 +13,7 @@ const operatorToFunction = {
   '-': 'M.minus',
   '*': 'M.times',
   '/': 'M.divides',
+  '|>': 'M.call',
 };
 
 const notAlpha = char => !char.match(/[a-zA-Z]/)
@@ -89,39 +90,45 @@ const compileExpr = expr => match(expr.get('type'), [
 const addRuntime = async () => {
   // const data = await fs.readFile('node_modules/immutable/dist/immutable.js', 'utf-8');
   const M = `
-  const Immutable = require('immutable');
-  const M = {
-    gt: (a, b) => a > b,
-    ls: (a, b) => a < b,
-    is: Immutable.is,
-    plus: (a, b) => a + b,
-    minus: (a, b) => a - b,
-    times: (a, b) => a * b,
-    divides: (a, b) => a / b,
-    isNot: (a, b) => !Immutable.is(a, b),
-    List: Immutable.List,
-    Map: Immutable.Map,
-    any: Symbol('any'),
-    matchEq: (a, b) => {
-      if (M.is(a, b)) return true;
-      if (a === M.any || b === M.any) {
-        return true;
-      }
-      if (typeof a !== typeof b) return false;
-      if (Immutable.isList(a) && Immutable.isList(b)) {
-        return a.every((x, i) => M.matchEq(x, b.get(i)));
-      } else if (Immutable.isMap(a) && Immutable.isMap(b)) {  
-        return a.every((v, k) => M.matchEq(b.get(k), v));
-      } else {
-        return false;
-      }
-    },
-  }
-  const print = (...args) => {
-    args = args.map(arg => arg?.toJS ? arg.toJS() : arg);
-    console.log(...args);
-  };
-  `
+const Immutable = require('immutable');
+const M = {
+  gt: (a, b) => a > b,
+  ls: (a, b) => a < b,
+  is: Immutable.is,
+  plus: (a, b) => a + b,
+  minus: (a, b) => a - b,
+  times: (a, b) => a * b,
+  divides: (a, b) => a / b,
+  isNot: (a, b) => !Immutable.is(a, b),
+  List: Immutable.List,
+  Map: Immutable.Map,
+  any: Symbol('any'),
+  call: (v, f) => f(v),
+  matchEq: (a, b) => {
+    if (a === M.any || b === M.any) {
+      return true;
+    }
+    if (M.is(a, b)) return true;
+    if (Immutable.isList(a) && Immutable.isList(b)) {
+      return a.every((x, i) => M.matchEq(x, b.get(i)));
+    } else if (Immutable.isMap(a) && Immutable.isMap(b)) {  
+      return a.every((v, k) => M.matchEq(b.get(k), v));
+    } else {
+      return false;
+    }
+  },
+};
+const List = M.Map({
+  map: f => l => l.map(f),
+  forEach: f => l => l.forEach(f),
+  filter: f => l => l.filter(f),
+});
+
+const print = (...args) => {
+  args = args.map(arg => arg?.toJS ? arg.toJS() : arg);
+  console.log(...args);
+};
+  `;
   return M;
 }
 

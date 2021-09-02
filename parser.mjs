@@ -554,7 +554,13 @@ const parse = tokens => {
       }],
       [TOKEN_NAMES.OPEN_SQ_BRACE, () => {
         assert(isExpression(contexts));
-        return parseArrayLiteral(contexts);
+        const array = parseArrayLiteral(contexts);
+        return match(tokens[i], [
+          [[TOKEN_NAMES.OPERATOR, any], () =>
+            parseOperatorExpr(contexts, array)
+          ],
+          [any, () => array]
+        ]);
       }],
       [TOKEN_NAMES.TRUE, () => {
         assert(isExpression(contexts));

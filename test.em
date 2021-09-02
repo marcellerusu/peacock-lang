@@ -1,3 +1,1 @@
-match (obj) {
-  { a, b } => b
-};
+print([1, 2, 3] |> List.map(x => x * x));

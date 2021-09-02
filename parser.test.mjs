@@ -1370,10 +1370,37 @@ it('should parse arrow function w 1 param not needing ()', () => {
   })))
 });
 
-// it('should parse piping array literal', () => {
-//   const program = tokenize(`
-//   let powers = [1, 2, 3] |> List.map(())
-//   `)
-// });
+it('should parse piping array literal', () => {
+  const program = tokenize(`
+  let powers = [1, 2, 3] |> List.map(x => x * x);
+  `)
+  const ast = parse(program);
+  // console.log(JSON.stringify(ast.toJS(), null, 2))
+  assert(is(ast, fromJS({
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      declaration({
+        symbol: 'powers',
+        expr: fnCall({
+          expr: symbolLookup({ symbol: '|>' }),
+          paramExprs: [
+            arrayLiteral({ elements: [numberLiteral({ value: 1}), numberLiteral({ value: 2}), numberLiteral({ value: 3})]}),
+            fnCall({
+              expr: propertyLookup({ property: 'map', expr: symbolLookup({ symbol: 'List' }) }),
+              paramExprs: [ fn({
+                paramNames: ['x'],
+                body: [_return({ expr:
+                  fnCall({
+                    expr: symbolLookup({ symbol: '*' }),
+                    paramExprs: [symbolLookup({ symbol: 'x'}), symbolLookup({ symbol: 'x'})]
+                  })})]
+              }) ]
+            })
+          ]
+        })
+      })
+    ]
+  })))
+});
 
 console.log('Passed', passed, 'tests!');
