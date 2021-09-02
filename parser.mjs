@@ -576,6 +576,15 @@ const parse = tokens => {
           [any, () => array]
         ]);
       }],
+      [TOKEN_NAMES.NEGATION, () => {
+        assert(isExpression(contexts));
+        consumeOne(TOKEN_NAMES.NEGATION);
+        const expr = parseNode(tokens[i], contexts);
+        return fnCall({
+          expr: symbolLookup({ symbol: '!' }),
+          paramExprs: [expr]
+        });
+      }],
       [TOKEN_NAMES.TRUE, () => {
         assert(isExpression(contexts));
         consumeOne(TOKEN_NAMES.TRUE);

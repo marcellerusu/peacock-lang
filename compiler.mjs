@@ -9,6 +9,7 @@ const operatorToFunction = {
   '<': 'M.ls',
   '==': 'M.is',
   '!=': 'M.isNot',
+  '!': 'M.not',
   '+': 'M.plus',
   '-': 'M.minus',
   '*': 'M.times',
@@ -24,6 +25,7 @@ const quoteIfString = str => typeof str === 'string' ? `'${str}'` : str;
 
 const compileNumberLiteral = expr => `${expr.get('value')}`;
 const compileStringLiteral = expr => `'${expr.get('value')}'`;
+const compileBooleanLiteral = expr => `M.${expr.get('value')}`;
 const compileBoundVariable = expr => 'M.any';
 const compileArrayLiteral = expr => 
   `M.List([${expr.get('elements').reduce((expr, elem, i) => 
@@ -78,6 +80,7 @@ const compileMatchExpression = expr =>
   
 const compileExpr = expr => match(expr.get('type'), [
   [STATEMENT_TYPE.NUMBER_LITERAL, () => compileNumberLiteral(expr)],
+  [STATEMENT_TYPE.BOOLEAN_LITERAL, () => compileBooleanLiteral(expr)],
   [STATEMENT_TYPE.STRING_LITERAL, () => compileStringLiteral(expr)],
   [STATEMENT_TYPE.SYMBOL_LOOKUP, () => compileSymbolLookup(expr)],
   [STATEMENT_TYPE.BOUND_VARIABLE, () => compileBoundVariable(expr)],
@@ -96,7 +99,14 @@ const addRuntime = async () => {
   // const data = await fs.readFile('node_modules/immutable/dist/immutable.js', 'utf-8');
   const M = `
 const Immutable = require('immutable');
+const assert = (bool, msg) => {
+  if (!bool) {
+    throw new Error(msg);
+  }
+};
 const M = {
+  true: true,
+  false: false,
   gt: a => b => a > b,
   ls: a => b => a < b,
   is: a => b => Immutable.is(a, b),
@@ -105,6 +115,11 @@ const M = {
   times: a => b => a * b,
   divides: a => b => a / b,
   isNot: a => b => !Immutable.is(a, b),
+  not: a => {
+    // TODO: put in type checker
+    assert(typeof a === 'boolean');
+    return !a;
+  },
   List: Immutable.List,
   Map: Immutable.Map,
   any: Symbol('any'),
