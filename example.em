@@ -29,7 +29,7 @@ let arr = [1, 2, 3];
 print({ second: arr[1] });
 
 # functions
-let fn = (a) =>
+let fn = a =>
   if (a == [1, 2]) print('we do deep value equality!');
 
 fn([1, 2]);
@@ -43,7 +43,7 @@ let obj = {
 
 print(obj);
 
-let Person = (name) => {
+let Person = name => {
   let obj = {
     name: name,
     print: () => print(obj.name)
@@ -55,7 +55,7 @@ Person('Marcelle').print();
 
 # pattern matching
 
-let f = (arr) => match (arr) {
+let f = arr => match (arr) {
   [a, b, c] => a * b * c
 };
 
