@@ -1,6 +1,5 @@
-let nine = [1, 2, 3]
-  |> List.map(x => x * x)
-  |> List.filter(x => x > 2)
-  |> List.find(x => x == 9);
- 
-print(nine);
+let users = [{ id: 3, country: 'canada', name: 'Marcelle' }];
+let has_canadians = users
+  |> List.map(Map.pick(['country']))
+  |> List.includes({ country: 'canada' });
+print(has_canadians);

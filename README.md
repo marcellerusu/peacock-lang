@@ -1,29 +1,45 @@
-# WIP m-lang
+# m-lang
 
-# BIG goals
+A small fun FP language for JS developers that want a more solid foundation.
 
-## pattern matching [ done ]
+## Value Equality
 
 ```
-let product = (vec) => match (vec) {
-  [x, y] => x * y,
-  [x, y, z] => x * y * z
+let t = [1, { a: 2 }] == [1, { a: 2 }];
+print(t); # true
+```
+
+## Pattern matching
+
+```
+let product = vec => match (vec) {
+  [x, y, z] => x * y * z,
+  {x, y, z} => x * y * z
 };
 ```
 
-## almost everything is an expression [ done ]
+## Pipe operator
 
-only thing that is not an expression is `let` statements
+```
+let users = [{ id: 3, country: 'canada', name: 'Marcelle' }];
+let has_canadians = users
+  |> List.map(Map.pick(['country']))
+  |> List.includes({ country: 'canada' });
 
-## immutable data structures [ done ]
+print(has_canadians); # true
+```
 
-uses immutable.js underneath
+## Immutable data structures
 
-## auto-currying [ not started ]
+We use immutable.js underneath for all the core data structures, so you never have to worry about odd mutation bugs. & immutable.js implements persistent immutable data-structures, so performance is much better than you might think!
 
+## Auto-currying
+
+```
 let f = (a, b) => a + b;
 let add1 = f(1);
 print(add1(2)); # 3
+```
 
 ## Tokenizer
 
@@ -72,7 +88,7 @@ print(add1(2)); # 3
 - [x] math operators
 - [x] object property accessor (.)
 
-## Interpreter
+## compile-to-js
 
 - [x] `let var = 3;`
 - [x] `let mut var = 5;`

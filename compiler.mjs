@@ -128,6 +128,14 @@ const List = M.Map({
   forEach: f => l => l.forEach(f),
   filter: f => l => l.filter(f),
   find: f => l => l.find(f),
+  some: f => l => l.some(f),
+  includes: item => l => l.includes(item),
+});
+
+const Map = M.Map({
+  pick: keys => m => keys.reduce((newMap, key) =>
+    newMap.set(key, m.get(key))
+  , M.Map({})),
 });
 
 const print = (...args) => {
