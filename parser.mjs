@@ -489,7 +489,7 @@ const parse = tokens => {
         if (!prevExpr) symbol = consumeOne(symToken);
         const isSymbol = typeof symbol !== 'undefined';
         return match(tokens[i], [
-          [until, () => symbol || prevExpr],
+          [until, () => symbolLookup({ symbol }) || prevExpr],
           [TOKEN_NAMES.ASSIGNMENT, () => {
             assert(isSymbol);
             assert(!isExpression(contexts));

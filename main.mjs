@@ -1,4 +1,3 @@
-import interpret from './interpreter.mjs';
 import compile from './compiler.mjs';
 import tokenize from "./tokenizer.mjs";
 import parse from "./parser.mjs";
@@ -10,4 +9,4 @@ const data = await fs.readFile(path, 'utf-8');
 
 const global = await compile(parse(tokenize(data)));
 console.log(global);
-// console.log(JSON.stringify(global, null, 2));
+// console.log(JSON.stringify(global.toJS(), null, 2));
