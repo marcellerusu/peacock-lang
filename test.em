@@ -3,4 +3,4 @@ let nine = [1, 2, 3]
   |> List.filter(x => x > 2)
   |> List.find(x => x == 9);
 
-print(powers);
+print(nine);
