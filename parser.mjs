@@ -306,13 +306,25 @@ const parse = tokens => {
 
     const parseOperatorExpr = (contexts, firstArg) => {
       const op = consumeOne([TOKEN_NAMES.OPERATOR, any]);
-      return fnCall({
+      const expr = parseNode(
+        tokens[i],
+        [...contexts, STATEMENT_TYPE.FUNCTION_APPLICATION],
+        // parse UNTIL we hit another operator
+        [TOKEN_NAMES.OPERATOR, any]
+      );
+      // console.log(expr.toJS())
+      const val = fnCall({
         expr: symbolLookup({ symbol: op }),
         paramExprs: [
           firstArg,
-          parseNode(tokens[i], [...contexts, STATEMENT_TYPE.FUNCTION_APPLICATION])
+          expr
         ]
       });
+      if (eq(tokens[i], [TOKEN_NAMES.OPERATOR, any])) {
+        return parseOperatorExpr(contexts, val);
+      } else {
+        return val;
+      }
     };
 
     const parseConditional = contexts => {
@@ -446,7 +458,7 @@ const parse = tokens => {
       return dynamicLookup({ expr, lookupKey });
     };
 
-    const parseNode = (token, contexts = []) => match(token, [
+    const parseNode = (token, contexts = [], until = undefined) => match(token, [
       [[TOKEN_NAMES.LITERAL, any], () => parseLiteral(contexts)],
       [TOKEN_NAMES.RETURN, () => {
         consumeOne(TOKEN_NAMES.RETURN);
@@ -477,6 +489,7 @@ const parse = tokens => {
         if (!prevExpr) symbol = consumeOne(symToken);
         const isSymbol = typeof symbol !== 'undefined';
         return match(tokens[i], [
+          [until, () => symbol || prevExpr],
           [TOKEN_NAMES.ASSIGNMENT, () => {
             assert(isSymbol);
             assert(!isExpression(contexts));
@@ -556,6 +569,7 @@ const parse = tokens => {
         assert(isExpression(contexts));
         const array = parseArrayLiteral(contexts);
         return match(tokens[i], [
+          [until, () => array],
           [[TOKEN_NAMES.OPERATOR, any], () =>
             parseOperatorExpr(contexts, array)
           ],

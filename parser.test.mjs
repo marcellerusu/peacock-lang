@@ -1403,4 +1403,55 @@ it('should parse piping array literal', () => {
   })))
 });
 
+it('should parse multiple pipes', () => {
+  const program = tokenize(`
+  let powers = [1, 2, 3]
+    |> List.map(x => x * x)
+    |> List.filter(x => x > 2);
+  `)
+  const ast = parse(program);
+  // console.log(JSON.stringify(ast.toJS().body[0].expr.paramExprs, null, 2))
+  assert(is(ast, fromJS({
+    type: STATEMENT_TYPE.PROGRAM,
+    body: [
+      declaration({
+        symbol: 'powers',
+        expr: fnCall({
+          expr: symbolLookup({ symbol: '|>' }),
+          paramExprs: [
+            fnCall({
+              expr: symbolLookup({ symbol: '|>' }),
+              paramExprs: [
+                arrayLiteral({ elements: [numberLiteral({ value: 1}), numberLiteral({ value: 2}), numberLiteral({ value: 3})]}),
+                fnCall({
+                  expr: propertyLookup({ property: 'map', expr: symbolLookup({ symbol: 'List' }) }),
+                  paramExprs: [ fn({
+                    paramNames: ['x'],
+                    body: [_return({ expr:
+                      fnCall({
+                        expr: symbolLookup({ symbol: '*' }),
+                        paramExprs: [symbolLookup({ symbol: 'x'}), symbolLookup({ symbol: 'x'})]
+                      })})]
+                  }) ]
+                })
+              ]
+            }),
+            fnCall({
+              expr: propertyLookup({ property: 'filter', expr: symbolLookup({ symbol: 'List' }) }),
+              paramExprs: [ fn({
+                paramNames: ['x'],
+                body: [_return({ expr:
+                  fnCall({
+                    expr: symbolLookup({ symbol: '>' }),
+                    paramExprs: [symbolLookup({ symbol: 'x'}), numberLiteral({ value: 2})]
+                  })})]
+              }) ]
+            })
+          ]
+        })
+      })
+    ]
+  })))
+});
+
 console.log('Passed', passed, 'tests!');

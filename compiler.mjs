@@ -122,6 +122,7 @@ const List = M.Map({
   map: f => l => l.map(f),
   forEach: f => l => l.forEach(f),
   filter: f => l => l.filter(f),
+  find: f => l => l.find(f),
 });
 
 const print = (...args) => {
