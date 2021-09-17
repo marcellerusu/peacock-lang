@@ -1,4 +1,5 @@
 require "token"
+require "pry"
 
 class Lexer
   def initialize(program)
@@ -15,42 +16,29 @@ class Lexer
 
   private
 
-  def reset_current_token!
-    @current_token = Token.new("", @col + 2)
-  end
-
-  def end_of_line?
-    @col == @line.size - 1
-  end
-
-  def peek
-    @line[@col + 1]
-  end
-
-  def peek_empty_or_end_of_line?
-    peek == " " || @col == @line.size - 1
-  end
-
   def tokenize_line
     tokens = []
-    @col = 0
-    @current_token = Token.new("", @col)
-    while @col < @line.size
-      break if @line[@col] == "#"
-      @current_token.consume @line[@col] if @line[@col] != " "
-      if keyword = @current_token.as_keyword(peek)
-        tokens.push keyword
-        reset_current_token!
-      elsif peek_empty_or_end_of_line?
-        if @current_token.is_literal?
-          tokens.push @current_token.as_literal
-        else
-          tokens.push @current_token.as_symbol if @current_token[:str].size > 0
-        end
-        reset_current_token!
+    current_token = Token.new("", @line, 0)
+    for i in 0..(@line.size - 1)
+      char = @line[i]
+      break if char == "#" # ignore comments
+      if char == " "
+        current_token = Token.new("", @line, i + 1)
+        next
       end
 
-      @col += 1
+      current_token.consume char
+      # binding.pry
+      next unless current_token.full_token?
+      if current_token.keyword?
+        tokens.push current_token.as_keyword
+      elsif current_token.literal?
+        tokens.push current_token.as_literal
+      elsif current_token.symbol?
+        tokens.push current_token.as_symbol
+      end
+      # TODO: why + 2?
+      current_token = Token.new("", @line, i + 2)
     end
 
     return tokens
