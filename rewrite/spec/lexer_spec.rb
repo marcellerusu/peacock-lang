@@ -63,6 +63,14 @@ describe Lexer, "#tokenize" do
         [[0, :let], [4, :sym, "a"], [6, :assign], [8, :int_lit, 3], [10, :eq], [13, :float_lit, 4.0]],
       ])
     end
+    describe "array" do
+      it "[1]" do
+        res = Lexer.new("[1]").tokenize
+        expect(res).to eq([
+          [[0, :open_sb], [1, :int_lit, 1], [2, :close_sb]],
+        ])
+      end
+    end
   end
 
   describe "multi-line" do

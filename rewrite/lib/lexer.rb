@@ -1,9 +1,4 @@
-TOKENS = {
-  "=" => :assign,
-  "let" => :let,
-  "==" => :eq,
-  "!=" => :not_eq,
-}
+require "token"
 
 class Lexer
   def initialize(program)
@@ -21,11 +16,7 @@ class Lexer
   private
 
   def reset_current_token!
-    @current_token = { str: "", index: @col + 2 }
-  end
-
-  def symbol
-    [@current_token[:index], :sym, @current_token[:str]]
+    @current_token = Token.new("", @col + 2)
   end
 
   def end_of_line?
@@ -40,25 +31,21 @@ class Lexer
     peek == " " || @col == @line.size - 1
   end
 
-  def token_sym
-    TOKENS[@current_token[:str]] if !TOKENS.include?(@current_token[:str] + peek)
-  end
-
   def tokenize_line
     tokens = []
     @col = 0
-    @current_token = { str: "", index: @col }
+    @current_token = Token.new("", @col)
     while @col < @line.size
       break if @line[@col] == "#"
-      @current_token[:str] += @line[@col] if @line[@col] != " "
-      if token = token_sym
-        tokens.push [@current_token[:index], token]
+      @current_token.consume @line[@col] if @line[@col] != " "
+      if keyword = @current_token.as_keyword(peek)
+        tokens.push keyword
         reset_current_token!
       elsif peek_empty_or_end_of_line?
-        if is_literal?
-          tokens.push literal
+        if @current_token.is_literal?
+          tokens.push @current_token.as_literal
         else
-          tokens.push symbol if @current_token[:str].size > 0
+          tokens.push @current_token.as_symbol if @current_token[:str].size > 0
         end
         reset_current_token!
       end
@@ -67,37 +54,5 @@ class Lexer
     end
 
     return tokens
-  end
-
-  # Literal parsing
-
-  def int_lit
-    [@current_token[:index], :sym, @current_token[:str].to_i]
-  end
-
-  def is_int?
-    as_int.to_s == @current_token[:str]
-  end
-
-  def as_int
-    @current_token[:str].to_i
-  end
-
-  def is_float?
-    as_float.to_s == @current_token[:str]
-  end
-
-  def as_float
-    @current_token[:str].to_f
-  end
-
-  def is_literal?
-    is_int? || is_float?
-  end
-
-  def literal
-    i = @current_token[:index]
-    return [i, :int_lit, as_int] if is_int?
-    return [i, :float_lit, as_float] if is_float?
   end
 end
