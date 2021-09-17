@@ -16,31 +16,31 @@ class Lexer
 
   private
 
+  def consume_token!
+    return if @current_token.nil?
+    @tokens.push @current_token.as_token if @current_token.valid?
+    @current_token = nil
+  end
+
   def tokenize_line
-    tokens = []
-    current_token = Token.new("", @line, 0)
+    @tokens = []
+    @current_token = nil
     for i in 0..(@line.size - 1)
       char = @line[i]
-      break if char == "#" # ignore comments
+      if char == "#"
+        consume_token!
+        break
+      end
       if char == " "
-        current_token = Token.new("", @line, i + 1)
+        consume_token!
         next
       end
-
-      current_token.consume char
-      # binding.pry
-      next unless current_token.full_token?
-      if current_token.keyword?
-        tokens.push current_token.as_keyword
-      elsif current_token.literal?
-        tokens.push current_token.as_literal
-      elsif current_token.symbol?
-        tokens.push current_token.as_symbol
-      end
-      # TODO: why + 2?
-      current_token = Token.new("", @line, i + 2)
+      @current_token.consume! char unless @current_token.nil?
+      @current_token = Token.new(char, @line, i) if @current_token.nil?
+      next unless @current_token.full_token?
+      consume_token!
     end
 
-    return tokens
+    return @tokens
   end
 end

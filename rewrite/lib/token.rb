@@ -29,13 +29,29 @@ class Token
     @token == other.token
   end
 
-  def consume(char)
+  def clone
+    Token.new(@token, @line, @start_index)
+  end
+
+  def undo!
+    @current_index -= 1
+    @token = @token.slice(0, @token.size - 1)
+    self
+  end
+
+  def consume!(char)
     @current_index += 1
     @token += char
   end
 
+  def as_token
+    return as_literal if literal?
+    return as_keyword if keyword?
+    return as_symbol if symbol?
+  end
+
   def as_keyword
-    return [@start_index, TOKENS[@token]]
+    [@start_index, TOKENS[@token]]
   end
 
   def as_symbol
@@ -60,7 +76,10 @@ class Token
   end
 
   def symbol?
-    @token != " " && !TOKENS.include?(@token)
+    return false if TOKENS.include?(@token)
+    return false if @token =~ /\s/
+    return false unless @token.chr =~ /[a-zA-Z]/
+    return true
   end
 
   def keyword?
@@ -84,6 +103,7 @@ class Token
   end
 
   def is_float?
+    return clone.undo!.is_int? if @token[-1] == "."
     as_float.to_s == @token
   end
 
@@ -94,9 +114,13 @@ class Token
   def peek_rest_of_token
     return self if @current_index >= @line.size
     peek_token = Token.new(@token, @line, @start_index)
+    # binding.pry
     for char in @line.slice(@current_index + 1, @line.size - 1).split("")
-      break if peek_token.invalid?
-      peek_token.consume char
+      if peek_token.invalid?
+        peek_token.undo!
+        break
+      end
+      peek_token.consume! char
     end
     peek_token
   end
