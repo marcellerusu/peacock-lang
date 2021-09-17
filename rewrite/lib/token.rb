@@ -1,3 +1,5 @@
+require "pry"
+
 TOKENS = {
   "=" => :assign,
   "let" => :let,
@@ -35,7 +37,7 @@ class Token
 
   def undo!
     @current_index -= 1
-    @token = @token.slice(0, @token.size - 1)
+    @token = @token.chop
     self
   end
 
@@ -114,7 +116,6 @@ class Token
   def peek_rest_of_token
     return self if @current_index >= @line.size
     peek_token = Token.new(@token, @line, @start_index)
-    # binding.pry
     for char in @line.slice(@current_index + 1, @line.size - 1).split("")
       if peek_token.invalid?
         peek_token.undo!
@@ -122,6 +123,10 @@ class Token
       end
       peek_token.consume! char
     end
-    peek_token
+    if peek_token.valid?
+      return peek_token
+    else
+      return peek_token.undo!
+    end
   end
 end
