@@ -48,6 +48,13 @@ describe Lexer, "#tokenize" do
         [[0, :float_lit, 30.5]],
       ])
     end
+
+    it "\"string 3.0\"" do
+      res = Lexer.new("\"string 3.0\"").tokenize
+      expect(res).to eq([
+        [[0, :str_lit, "string 3.0"]],
+      ])
+    end
   end
 
   describe "single-line" do
@@ -57,10 +64,16 @@ describe Lexer, "#tokenize" do
         [[0, :let], [4, :sym, "a"], [6, :assign], [8, :int_lit, 3]],
       ])
     end
-    it "let a = 3 == 4" do
+    it "let a = 3 == 4.0" do
       res = Lexer.new("let a = 3 == 4.0").tokenize
       expect(res).to eq([
         [[0, :let], [4, :sym, "a"], [6, :assign], [8, :int_lit, 3], [10, :eq], [13, :float_lit, 4.0]],
+      ])
+    end
+    it "let a = 3 == \"4\"" do
+      res = Lexer.new("let a = 3 == \"4\"").tokenize
+      expect(res).to eq([
+        [[0, :let], [4, :sym, "a"], [6, :assign], [8, :int_lit, 3], [10, :eq], [13, :str_lit, "4"]],
       ])
     end
     describe "array" do
@@ -68,6 +81,34 @@ describe Lexer, "#tokenize" do
         res = Lexer.new("[1]").tokenize
         expect(res).to eq([
           [[0, :open_sb], [1, :int_lit, 1], [2, :close_sb]],
+        ])
+      end
+      it "[ 1 ]" do
+        res = Lexer.new("[ 1 ]").tokenize
+        expect(res).to eq([
+          [[0, :open_sb], [2, :int_lit, 1], [4, :close_sb]],
+        ])
+      end
+    end
+    describe "record" do
+      it "{a: 3}" do
+        res = Lexer.new("{a: 3}").tokenize
+        expect(res).to eq([
+          [[0, :open_b], [1, :sym, "a"], [2, :colon], [4, :int_lit, 3], [5, :close_b]],
+        ])
+      end
+      it "{   a   :  3, }" do
+        res = Lexer.new("{   a   :  3, }").tokenize
+        expect(res).to eq([
+          [[0, :open_b], [4, :sym, "a"], [8, :colon], [11, :int_lit, 3], [12, :comma], [14, :close_b]],
+        ])
+      end
+    end
+    describe "function" do
+      it "let a = x => x * x" do
+        res = Lexer.new("let a = x => x * x").tokenize
+        expect(res).to eq([
+          [[0, :let], [4, :sym, "a"], [6, :assign], [8, :sym, "x"], [10, :arrow], [13, :sym, "x"], [15, :mult], [17, :sym, "x"]],
         ])
       end
     end

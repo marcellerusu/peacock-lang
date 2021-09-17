@@ -31,7 +31,7 @@ class Lexer
         consume_token!
         break
       end
-      if char == " "
+      if char == " " && !@current_token&.token&.start_with?('"')
         consume_token!
         next
       end

@@ -1,11 +1,9 @@
-require "pry"
+# require "pry"
 
 TOKENS = {
   "=" => :assign,
   "let" => :let,
-  "==" => :eq,
-  "!=" => :not_eq,
-  "|>" => :pipe,
+  "mut" => :mut,
   "(" => :open_p,
   ")" => :close_p,
   "{" => :open_b,
@@ -15,10 +13,18 @@ TOKENS = {
   "=>" => :arrow,
   ":" => :colon,
   "," => :comma,
+  # Operators
+  "==" => :eq,
+  "!=" => :not_eq,
+  "|>" => :pipe,
+  "*" => :mult,
+  "/" => :div,
+  "+" => :plus,
+  "-" => :minus,
 }
 
 class Token
-  attr_reader :token, :line, :index
+  attr_reader :token, :line, :current_index, :start_index
 
   def initialize(token, line, index)
     @token = token
@@ -46,6 +52,20 @@ class Token
     @token += char
   end
 
+  def full_token?
+    peek_rest_of_token == self
+  end
+
+  def invalid?
+    !valid?
+  end
+
+  def valid?
+    symbol? || keyword? || literal?
+  end
+
+  # Parsing
+
   def as_token
     return as_literal if literal?
     return as_keyword if keyword?
@@ -61,26 +81,15 @@ class Token
   end
 
   def as_literal
-    return [@start_index, :int_lit, as_int] if is_int?
-    return [@start_index, :float_lit, as_float] if is_float?
-  end
-
-  def full_token?
-    peek_rest_of_token == self
-  end
-
-  def invalid?
-    !valid?
-  end
-
-  def valid?
-    symbol? || keyword? || literal?
+    return [@start_index, :int_lit, as_int] if int?
+    return [@start_index, :float_lit, as_float] if float?
+    return [@start_index, :str_lit, as_str] if str?
   end
 
   def symbol?
     return false if TOKENS.include?(@token)
-    return false if @token =~ /\s/
-    return false unless @token.chr =~ /[a-zA-Z]/
+    return false if @token =~ /[\s]/
+    return false unless @token =~ /^[a-zA-Z][a-zA-Z1-9]*$/
     return true
   end
 
@@ -89,14 +98,22 @@ class Token
   end
 
   def literal?
-    is_int? || is_float?
+    int? || float? || str?
   end
 
   def empty?
     @token.empty?
   end
 
-  def is_int?
+  def str?
+    !!(@token =~ /^".*"$/)
+  end
+
+  def as_str
+    @token[1..-2]
+  end
+
+  def int?
     as_int.to_s == @token
   end
 
@@ -104,8 +121,8 @@ class Token
     @token.to_i
   end
 
-  def is_float?
-    return clone.undo!.is_int? if @token[-1] == "."
+  def float?
+    return clone.undo!.int? if @token[-1] == "."
     as_float.to_s == @token
   end
 
@@ -113,8 +130,17 @@ class Token
     @token.to_f
   end
 
+  # Peeking
+
+  def peek_string
+    i = @line[@current_index + 1..].index '"'
+    Token.new(@line[@start_index..i + 1], @line, @start_index) unless i.nil?
+  end
+
   def peek_rest_of_token
     return self if @current_index >= @line.size
+    return peek_string || self if @token[0] == '"'
+
     peek_token = Token.new(@token, @line, @start_index)
     for char in @line.slice(@current_index + 1, @line.size - 1).split("")
       if peek_token.invalid?
