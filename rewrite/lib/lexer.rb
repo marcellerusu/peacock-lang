@@ -1,5 +1,5 @@
 require "token"
-require "pry"
+# require "pry"
 
 class Lexer
   def initialize(program)
