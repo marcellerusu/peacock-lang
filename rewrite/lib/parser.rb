@@ -63,10 +63,10 @@ class Parser
     @statements[line][column + by][1]
   end
 
-  def parse_return(consume = true)
-    c, _ = consume! :return if consume
+  def parse_return(implicit_return = false)
+    c, _ = consume! :return unless implicit_return
     expr = parse_expr
-    c = expr[:column] unless consume
+    c = expr[:column] if implicit_return
     { type: :return,
       line: @line,
       column: c,
@@ -158,7 +158,7 @@ class Parser
     consume! :arrow
     fn_line = @line
     if peek_type != :open_b
-      body = [parse_return(false)]
+      body = [parse_return(true)]
     else
       consume! :open_b
       @line, @column, body = Parser.new(@statements, @line, @column).parse_with_position!
@@ -188,7 +188,7 @@ class Parser
   end
 
   def parse_expr
-    _, type = token
+    type = peek_type
     case
     when [:int_lit, :str_lit, :float_lit].include?(type)
       parse_lit! type
