@@ -15,12 +15,12 @@ class Parser
     statement[@column]
   end
 
-  def parse
-    _, _, ast = parse_with_position
+  def parse!
+    _, _, ast = parse_with_position!
     return ast
   end
 
-  def parse_with_position
+  def parse_with_position!
     ast = []
     while @line < @statements.size
       if peek_type == :let
@@ -52,17 +52,25 @@ class Parser
     return column_number, value
   end
 
-  def peek_type
-    next_line! if @column >= statement.size
-    token[1]
+  def peek_next_line
+    return @line + 1, 0
   end
 
-  def parse_return
-    c, _ = consume! :return
+  def peek_type(by = 0)
+    line, column = @line, @column
+    line, column = peek_next_line if (column + by) >= statement.size
+    return nil if line >= @statements.size
+    @statements[line][column + by][1]
+  end
+
+  def parse_return(consume = true)
+    c, _ = consume! :return if consume
+    expr = parse_expr
+    c = expr[:column] unless consume
     { type: :return,
       line: @line,
       column: c,
-      expr: parse_expr }
+      expr: expr }
   end
 
   def parse_assignment
@@ -80,7 +88,7 @@ class Parser
       expr: expr }
   end
 
-  def parse_lit(type)
+  def parse_lit!(type)
     c, lit = consume! type
     { type: type,
       line: @line,
@@ -88,7 +96,8 @@ class Parser
       value: lit }
   end
 
-  def parse_bool(type)
+  def parse_bool!(type)
+    assert { [:false, :true].include? type }
     c, _ = consume! type
     { type: :bool_lit,
       line: @line,
@@ -96,7 +105,7 @@ class Parser
       value: type.to_s == "true" }
   end
 
-  def parse_record
+  def parse_record!
     c, _ = consume! :open_b
     record = {}
     line = @line
@@ -113,7 +122,7 @@ class Parser
       value: record }
   end
 
-  def parse_array
+  def parse_array!
     c, _ = consume! :open_sb
     elements = []
     line = @line
@@ -128,44 +137,78 @@ class Parser
       value: elements }
   end
 
-  def parse_function
-    c, _ = consume! :open_p
-    consume! :close_p
-    c1, _ = consume! :arrow
+  def parse_function_def_args!
+    no_parens = true if peek_type != :open_p
+    c, _ = consume! :open_p unless no_parens
+    args = []
+    while peek_type != :close_p
+      c1, sym = consume! :sym
+      c = c1 if no_parens
+      args.push [c1, sym]
+      break if no_parens # only 1 args for no parenthesis
+      consume! :comma unless peek_type == :close_p
+    end
+    assert { args.size == 1 } if no_parens
+    consume! :close_p unless no_parens
+    return c, args
+  end
+
+  def parse_function_def!
+    c, args = parse_function_def_args!
+    consume! :arrow
     fn_line = @line
     if peek_type != :open_b
-      body = [{ type: :return,
-                line: @line,
-                column: c1,
-                expr: parse_expr }]
+      body = [parse_return(false)]
     else
-      c2, _ = consume! :open_b
-      @line, @column, body = Parser.new(@statements, @line, @column).parse_with_position
+      consume! :open_b
+      @line, @column, body = Parser.new(@statements, @line, @column).parse_with_position!
       consume! :close_b
     end
+    return { type: :function,
+             line: fn_line,
+             column: c,
+             arg: nil,
+             body: body } if args.size == 0
 
-    { type: :function,
-      line: fn_line,
+    args.reverse.reduce(body) do |prev_return_value, (c, arg)|
+      { type: :function,
+        line: fn_line,
+        column: c,
+        arg: arg,
+        body: prev_return_value }
+    end
+  end
+
+  def parse_sym!
+    c, sym = consume! :sym
+    { type: :sym_lookup,
+      line: @line,
       column: c,
-      arg: nil,
-      body: body }
+      sym: sym }
   end
 
   def parse_expr
     _, type = token
     case
     when [:int_lit, :str_lit, :float_lit].include?(type)
-      parse_lit type
+      parse_lit! type
     when [:true, :false].include?(type)
-      parse_bool type
+      parse_bool! type
     when type == :open_sb
-      parse_array
+      parse_array!
     when type == :open_b
-      parse_record
+      parse_record!
     when type == :open_p
-      parse_function
+      parse_function_def!
+    when type == :sym
+      case peek_type(1)
+      when :arrow
+        parse_function_def!
+      else
+        parse_sym!
+      end
     else
-      puts "no match [parse_expr] #{type}"
+      puts "no match [parse_expr] :#{type}"
       assert { false }
     end
   end

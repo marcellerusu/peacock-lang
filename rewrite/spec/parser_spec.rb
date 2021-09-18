@@ -5,7 +5,7 @@ describe Parser do
   context "assignment" do
     it "let a = 3" do
       tokens = Lexer.new("let a = 3").tokenize
-      ast = Parser.new(tokens).parse
+      ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { type: :declare,
          mutable: false,
@@ -20,7 +20,7 @@ describe Parser do
     end
     it "let a = \"3\"" do
       tokens = Lexer.new("let a = \"3\"").tokenize
-      ast = Parser.new(tokens).parse
+      ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { type: :declare,
          mutable: false,
@@ -35,7 +35,7 @@ describe Parser do
     end
     it "let a = 25.32" do
       tokens = Lexer.new("let a = 25.32").tokenize
-      ast = Parser.new(tokens).parse
+      ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { type: :declare,
          mutable: false,
@@ -50,7 +50,7 @@ describe Parser do
     end
     it "let mut a = 3" do
       tokens = Lexer.new("let mut a = 3").tokenize
-      ast = Parser.new(tokens).parse
+      ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { type: :declare,
          mutable: true,
@@ -67,7 +67,7 @@ describe Parser do
   context "literals" do
     it "true" do
       tokens = Lexer.new("true").tokenize
-      ast = Parser.new(tokens).parse
+      ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { type: :bool_lit,
           line: 0,
@@ -77,7 +77,7 @@ describe Parser do
     end
     it "false" do
       tokens = Lexer.new("false").tokenize
-      ast = Parser.new(tokens).parse
+      ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { type: :bool_lit,
           line: 0,
@@ -87,7 +87,7 @@ describe Parser do
     end
     it "[]" do
       tokens = Lexer.new("[]").tokenize
-      ast = Parser.new(tokens).parse
+      ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { type: :array_lit,
           line: 0,
@@ -97,7 +97,7 @@ describe Parser do
     end
     it "[false]" do
       tokens = Lexer.new("[false]").tokenize
-      ast = Parser.new(tokens).parse
+      ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { type: :array_lit,
          line: 0,
@@ -110,7 +110,7 @@ describe Parser do
     end
     it "[false, 1, \"3\"]" do
       tokens = Lexer.new("[false, 1, \"3\"]").tokenize
-      ast = Parser.new(tokens).parse
+      ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { type: :array_lit,
          line: 0,
@@ -131,7 +131,7 @@ describe Parser do
     end
     it "{ a: 3.5 }" do
       tokens = Lexer.new("{ a: 3.5 }").tokenize
-      ast = Parser.new(tokens).parse
+      ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { type: :record_lit,
          line: 0,
@@ -146,7 +146,7 @@ describe Parser do
     end
     it "{a: [false, 1, \"3\"]}" do
       tokens = Lexer.new("{a: [false, 1, \"3\"]}").tokenize
-      ast = Parser.new(tokens).parse
+      ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { type: :record_lit,
          line: 0,
@@ -172,7 +172,7 @@ describe Parser do
     end
     it "[{ a: 3.5 }]" do
       tokens = Lexer.new("[{ a: 3.5 }]").tokenize
-      ast = Parser.new(tokens).parse
+      ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { type: :array_lit,
          line: 0,
@@ -190,7 +190,7 @@ describe Parser do
   context "functions" do
     it "let a = () => 1" do
       tokens = Lexer.new("let a = () => 1").tokenize
-      ast = Parser.new(tokens).parse
+      ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { type: :declare,
          mutable: false,
@@ -205,7 +205,7 @@ describe Parser do
           body: [{
             type: :return,
             line: 0,
-            column: 11,
+            column: 14,
             expr: {
               type: :int_lit,
               line: 0,
@@ -222,7 +222,7 @@ let a = () => {
   return 1
 }
       ".strip).tokenize
-      ast = Parser.new(tokens).parse
+      ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { type: :declare,
          mutable: false,
@@ -243,6 +243,34 @@ let a = () => {
               line: 1,
               column: 9,
               value: 1,
+            },
+          }],
+        } },
+      ])
+    end
+    it "let id = x => x" do
+      tokens = Lexer.new("let id = x => x".strip).tokenize
+      ast = Parser.new(tokens).parse!
+      expect(ast).to eq([
+        { type: :declare,
+         mutable: false,
+         line: 0,
+         column: 4,
+         sym: "id",
+         expr: {
+          type: :function,
+          line: 0,
+          column: 9,
+          arg: "x",
+          body: [{
+            type: :return,
+            line: 0,
+            column: 14,
+            expr: {
+              type: :sym_lookup,
+              line: 0,
+              column: 14,
+              sym: "x",
             },
           }],
         } },
