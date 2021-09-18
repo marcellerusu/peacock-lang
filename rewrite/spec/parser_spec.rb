@@ -267,7 +267,7 @@ let a = () => {
             line: 0,
             column: 14,
             expr: {
-              type: :sym_lookup,
+              type: :identifier_lookup,
               line: 0,
               column: 14,
               sym: "x",

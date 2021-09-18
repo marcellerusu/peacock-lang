@@ -30,7 +30,7 @@ class Compiler
 
   def eval_declaration(node)
     declartion_type = if node[:mutable] then "let" else "const" end
-    "#{declartion_type} #{node[:sym]} = #{eval_expr node[:expr]}"
+    "#{declartion_type} #{node[:identifier]} = #{eval_expr node[:expr]}"
   end
 
   def eval_expr(node, indent = 0)

@@ -76,7 +76,7 @@ class Parser
   def parse_assignment
     consume! :let
     mut = consume! :mut if peek_type == :mut
-    c, sym = consume! :sym
+    c, sym = consume! :identifier
     consume! :assign
     line = @line
     expr = parse_expr
@@ -110,7 +110,7 @@ class Parser
     record = {}
     line = @line
     while peek_type != :close_b
-      _, sym = consume! :sym
+      _, sym = consume! :identifier
       consume! :colon
       record[sym] = parse_expr
       consume! :comma unless peek_type == :close_b
@@ -142,7 +142,7 @@ class Parser
     c, _ = consume! :open_p unless no_parens
     args = []
     while peek_type != :close_p
-      c1, sym = consume! :sym
+      c1, sym = consume! :identifier
       c = c1 if no_parens
       args.push [c1, sym]
       break if no_parens # only 1 args for no parenthesis
@@ -180,8 +180,8 @@ class Parser
   end
 
   def parse_sym!
-    c, sym = consume! :sym
-    { type: :sym_lookup,
+    c, sym = consume! :identifier
+    { type: :identifier_lookup,
       line: @line,
       column: c,
       sym: sym }
@@ -200,7 +200,7 @@ class Parser
       parse_record!
     when type == :open_p
       parse_function_def!
-    when type == :sym
+    when type == :identifier
       case peek_type(1)
       when :arrow
         parse_function_def!

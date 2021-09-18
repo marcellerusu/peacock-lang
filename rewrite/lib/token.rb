@@ -64,7 +64,7 @@ class Token
   end
 
   def valid?
-    symbol? || keyword? || literal?
+    keyword? || literal? || symbol? || identifier?
   end
 
   # Parsing
@@ -72,6 +72,7 @@ class Token
   def as_token
     return as_literal if literal?
     return as_keyword if keyword?
+    return as_identifier if identifier?
     return as_symbol if symbol?
   end
 
@@ -79,8 +80,12 @@ class Token
     [@start_index, TOKENS[@token]]
   end
 
+  def as_identifier
+    [@start_index, :identifier, @token]
+  end
+
   def as_symbol
-    [@start_index, :sym, @token]
+    [@start_index, :symbol, @token]
   end
 
   def as_literal
@@ -90,6 +95,11 @@ class Token
   end
 
   def symbol?
+    return false if @token.chr != ":"
+    return Token.new(@token.delete_prefix(":"), nil, nil).identifier?
+  end
+
+  def identifier?
     return false if TOKENS.include?(@token)
     return false if @token =~ /[\s]/
     return false unless @token =~ /^[a-zA-Z][a-zA-Z1-9]*$/
