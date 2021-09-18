@@ -99,6 +99,7 @@ class Parser
   def parse_record
     c, _ = consume! :open_b
     record = {}
+    line = @line
     while peek_type != :close_b
       _, sym = consume! :sym
       consume! :colon
@@ -107,7 +108,7 @@ class Parser
     end
     consume! :close_b
     { type: :record_lit,
-      line: @line,
+      line: line,
       column: c,
       value: record }
   end
@@ -115,13 +116,14 @@ class Parser
   def parse_array
     c, _ = consume! :open_sb
     elements = []
+    line = @line
     while peek_type != :close_sb
       elements.push parse_expr
       consume! :comma unless peek_type == :close_sb
     end
     consume! :close_sb
     { type: :array_lit,
-      line: @line,
+      line: line,
       column: c,
       value: elements }
   end
