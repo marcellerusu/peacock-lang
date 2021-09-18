@@ -187,4 +187,66 @@ describe Parser do
       ])
     end
   end
+  context "functions" do
+    it "let a = () => 1" do
+      tokens = Lexer.new("let a = () => 1").tokenize
+      ast = Parser.new(tokens).parse
+      expect(ast).to eq([
+        { type: :declare,
+         mutable: false,
+         line: 0,
+         column: 4,
+         sym: "a",
+         expr: {
+          type: :function,
+          line: 0,
+          column: 8,
+          arg: nil,
+          body: [{
+            type: :return,
+            line: 0,
+            column: 11,
+            expr: {
+              type: :int_lit,
+              line: 0,
+              column: 14,
+              value: 1,
+            },
+          }],
+        } },
+      ])
+    end
+    it "let a = () => { return 1 }" do
+      tokens = Lexer.new("
+let a = () => {
+  return 1
+}
+      ".strip).tokenize
+      ast = Parser.new(tokens).parse
+      expect(ast).to eq([
+        { type: :declare,
+         mutable: false,
+         line: 0,
+         column: 4,
+         sym: "a",
+         expr: {
+          type: :function,
+          line: 0,
+          column: 8,
+          arg: nil,
+          body: [{
+            type: :return,
+            line: 1,
+            column: 2,
+            expr: {
+              type: :int_lit,
+              line: 1,
+              column: 9,
+              value: 1,
+            },
+          }],
+        } },
+      ])
+    end
+  end
 end

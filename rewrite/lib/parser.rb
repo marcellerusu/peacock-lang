@@ -1,35 +1,68 @@
 require "utils"
 
 class Parser
-  def initialize(statements)
+  def initialize(statements, line = 0, column = 0)
     @statements = statements
-    @index = 0
-    @line = 0
+    @line = line
+    @column = column
+  end
+
+  def statement
+    @statements[@line]
+  end
+
+  def token
+    statement[@column]
   end
 
   def parse
-    statements = []
-    for @statement in @statements
+    _, _, ast = parse_with_position
+    return ast
+  end
+
+  def parse_with_position
+    ast = []
+    while @line < @statements.size
       if peek_type == :let
-        statements.push parse_assignment
+        ast.push parse_assignment
+      elsif peek_type == :return
+        ast.push parse_return
+        break
+      elsif peek_type == :close_b # end of function
+        break
       else
-        statements.push parse_expr
+        ast.push parse_expr
       end
-      @line += 1
+      next_line!
     end
-    statements
+    return @line, @column, ast
+  end
+
+  def next_line!
+    @line += 1
+    @column = 0
   end
 
   def consume!(token_type)
-    # puts "#{token_type} #{@statement[@index]}"
-    assert { token_type == @statement[@index][1] }
-    column_number, type, value = @statement[@index]
-    @index += 1
+    next_line! if @column == statement.size
+    # puts "#{token_type} #{token}"
+    assert { token_type == token[1] }
+    column_number, type, value = token
+    @column += 1
     return column_number, value
   end
 
   def peek_type
-    @statement[@index][1]
+    next_line! if @column >= statement.size
+    token[1]
+  end
+
+  def parse_return
+    c, _ = consume! :return
+    { type: :return,
+      line: @line,
+      column: c,
+      expr: parse_expr }
   end
 
   def parse_assignment
@@ -37,35 +70,30 @@ class Parser
     mut = consume! :mut if peek_type == :mut
     c, sym = consume! :sym
     consume! :assign
+    line = @line
     expr = parse_expr
-    {
-      type: :declare,
+    { type: :declare,
       sym: sym,
       mutable: !!mut,
-      line: @line,
+      line: line,
       column: c,
-      expr: expr,
-    }
+      expr: expr }
   end
 
   def parse_lit(type)
     c, lit = consume! type
-    {
-      type: type,
+    { type: type,
       line: @line,
       column: c,
-      value: lit,
-    }
+      value: lit }
   end
 
   def parse_bool(type)
     c, _ = consume! type
-    {
-      type: :bool_lit,
+    { type: :bool_lit,
       line: @line,
       column: c,
-      value: type.to_s == "true",
-    }
+      value: type.to_s == "true" }
   end
 
   def parse_record
@@ -78,12 +106,10 @@ class Parser
       consume! :comma unless peek_type == :close_b
     end
     consume! :close_b
-    {
-      type: :record_lit,
+    { type: :record_lit,
       line: @line,
       column: c,
-      value: record,
-    }
+      value: record }
   end
 
   def parse_array
@@ -94,16 +120,37 @@ class Parser
       consume! :comma unless peek_type == :close_sb
     end
     consume! :close_sb
-    {
-      type: :array_lit,
+    { type: :array_lit,
       line: @line,
       column: c,
-      value: elements,
-    }
+      value: elements }
+  end
+
+  def parse_function
+    c, _ = consume! :open_p
+    consume! :close_p
+    c1, _ = consume! :arrow
+    fn_line = @line
+    if peek_type != :open_b
+      body = [{ type: :return,
+                line: @line,
+                column: c1,
+                expr: parse_expr }]
+    else
+      c2, _ = consume! :open_b
+      @line, @column, body = Parser.new(@statements, @line, @column).parse_with_position
+      consume! :close_b
+    end
+
+    { type: :function,
+      line: fn_line,
+      column: c,
+      arg: nil,
+      body: body }
   end
 
   def parse_expr
-    _, type = @statement[@index]
+    _, type = token
     case
     when [:int_lit, :str_lit, :float_lit].include?(type)
       parse_lit type
@@ -113,6 +160,8 @@ class Parser
       parse_array
     when type == :open_b
       parse_record
+    when type == :open_p
+      parse_function
     else
       puts "no match [parse_expr] #{type}"
       assert { false }

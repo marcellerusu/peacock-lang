@@ -23,6 +23,7 @@ TOKENS = {
   "-" => :minus,
   "true" => :true,
   "false" => :false,
+  "return" => :return,
 }
 
 class Token
