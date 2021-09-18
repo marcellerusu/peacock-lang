@@ -55,6 +55,29 @@ describe Lexer, "#tokenize" do
         [[0, :str_lit, "string 3.0"]],
       ])
     end
+
+    it "string with space" do
+      res = Lexer.new(" \"some string\"").tokenize
+      expect(res).to eq([
+        [[1, :str_lit, "some string"]],
+      ])
+    end
+
+    # TODO: fix
+    # it "string with no space", :f do
+    #   res = Lexer.new("\"some string\"").tokenize
+    #   expect(res).to eq([
+    #     [[1, :str_lit, "some string"]],
+    #   ])
+    # end
+
+    it ":symbol" do
+      res = Lexer.new(":symbol").tokenize
+      expect(res).to eq([
+        # Line 1, col 0
+        [[0, :symbol, ":symbol"]],
+      ])
+    end
   end
 
   describe "single-line" do

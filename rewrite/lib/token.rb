@@ -36,10 +36,6 @@ class Token
     @line = line
   end
 
-  def ==(other)
-    @token == other.token
-  end
-
   def clone
     Token.new(@token, @line, @start_index)
   end
@@ -56,7 +52,7 @@ class Token
   end
 
   def full_token?
-    peek_rest_of_token == self
+    @token == peek_rest_of_token.token
   end
 
   def invalid?

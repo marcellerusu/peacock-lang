@@ -67,7 +67,7 @@ class Parser
     c, _ = consume! :return unless implicit_return
     expr = parse_expr
     c = expr[:column] if implicit_return
-    { type: :return,
+    { node_type: :return,
       line: @line,
       column: c,
       expr: expr }
@@ -80,7 +80,7 @@ class Parser
     consume! :assign
     line = @line
     expr = parse_expr
-    { type: :declare,
+    { node_type: :declare,
       sym: sym,
       mutable: !!mut,
       line: line,
@@ -90,7 +90,7 @@ class Parser
 
   def parse_lit!(type)
     c, lit = consume! type
-    { type: type,
+    { node_type: type,
       line: @line,
       column: c,
       value: lit }
@@ -99,7 +99,7 @@ class Parser
   def parse_bool!(type)
     assert { [:false, :true].include? type }
     c, _ = consume! type
-    { type: :bool_lit,
+    { node_type: :bool_lit,
       line: @line,
       column: c,
       value: type.to_s == "true" }
@@ -112,11 +112,12 @@ class Parser
     while peek_type != :close_b
       _, sym = consume! :identifier
       consume! :colon
+      # TODO: will have to allow more than strings as keys at some point
       record[sym] = parse_expr
       consume! :comma unless peek_type == :close_b
     end
     consume! :close_b
-    { type: :record_lit,
+    { node_type: :record_lit,
       line: line,
       column: c,
       value: record }
@@ -131,7 +132,7 @@ class Parser
       consume! :comma unless peek_type == :close_sb
     end
     consume! :close_sb
-    { type: :array_lit,
+    { node_type: :array_lit,
       line: line,
       column: c,
       value: elements }
@@ -164,14 +165,14 @@ class Parser
       @line, @column, body = Parser.new(@statements, @line, @column).parse_with_position!
       consume! :close_b
     end
-    return { type: :function,
+    return { node_type: :function,
              line: fn_line,
              column: c,
              arg: nil,
              body: body } if args.size == 0
 
     args.reverse.reduce(body) do |prev_return_value, (c, arg)|
-      { type: :function,
+      { node_type: :function,
         line: fn_line,
         column: c,
         arg: arg,
@@ -181,7 +182,7 @@ class Parser
 
   def parse_sym!
     c, sym = consume! :identifier
-    { type: :identifier_lookup,
+    { node_type: :identifier_lookup,
       line: @line,
       column: c,
       sym: sym }
@@ -190,7 +191,7 @@ class Parser
   def parse_expr
     type = peek_type
     case
-    when [:int_lit, :str_lit, :float_lit].include?(type)
+    when [:int_lit, :str_lit, :float_lit, :symbol].include?(type)
       parse_lit! type
     when [:true, :false].include?(type)
       parse_bool! type

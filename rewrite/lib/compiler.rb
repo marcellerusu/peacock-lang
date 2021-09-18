@@ -1,6 +1,19 @@
 class Compiler
   def initialize(ast)
     @ast = ast
+    @symbols = {}
+    @sym_number = 0
+  end
+
+  def eval_symbol(node)
+    # :value -> 0
+    if @symbols[node[:value]]
+      "#{@symbols[node[:value]]}"
+    else
+      @sym_number += 1
+      @symbols[node[:value]] = @sym_number
+      "#{@symbols[node[:value]]}"
+    end
   end
 
   def eval_str(node)
