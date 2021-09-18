@@ -21,6 +21,8 @@ TOKENS = {
   "/" => :div,
   "+" => :plus,
   "-" => :minus,
+  "true" => :true,
+  "false" => :false,
 }
 
 class Token
