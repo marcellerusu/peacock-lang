@@ -470,7 +470,7 @@ let add = (a, b) => {
       {
         node_type: :function_call,
         line: 0,
-        column: 0, #broken
+        column: 0,
         arg: { node_type: :int_lit,
                line: 0,
                column: 7,
