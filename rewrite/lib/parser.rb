@@ -1,5 +1,7 @@
 require "utils"
 
+OPERATORS = [:plus, :minus, :mult, :div, :pipe, :eq, :not_eq]
+
 class Parser
   def initialize(statements, line = 0, column = 0)
     @statements = statements
@@ -43,13 +45,13 @@ class Parser
     @column = 0
   end
 
-  def consume!(token_type)
+  def consume!(token_type = nil)
     next_line! if @column == statement.size
     # puts "#{token_type} #{token}"
-    assert { token_type == token[1] }
+    assert { token_type == token[1] } unless token_type.nil?
     column_number, type, value = token
     @column += 1
-    return column_number, value
+    return column_number, value, type
   end
 
   def peek_next_line
@@ -67,10 +69,7 @@ class Parser
     c, _ = consume! :return unless implicit_return
     expr = parse_expr
     c = expr[:column] if implicit_return
-    { node_type: :return,
-      line: @line,
-      column: c,
-      expr: expr }
+    _return(@line, c, expr)
   end
 
   def parse_assignment
@@ -165,27 +164,37 @@ class Parser
       @line, @column, body = Parser.new(@statements, @line, @column).parse_with_position!
       consume! :close_b
     end
-    return { node_type: :function,
-             line: fn_line,
-             column: c,
-             arg: nil,
-             body: body } if args.size == 0
+    return function(fn_line, c, body) if args.size == 0
 
-    args.reverse.reduce(body) do |prev_return_value, (c, arg)|
-      { node_type: :function,
-        line: fn_line,
-        column: c,
-        arg: arg,
-        body: prev_return_value }
+    for c, arg in args.reverse
+      fn = function(fn_line, c, body, arg)
+      body = [_return(fn_line, c, fn)]
     end
+    fn
+  end
+
+  def parse_operator_call!
+    c, sym = consume! :identifier
+    c1, _, op = consume!
+    rhs_expr = parse_expr
+    fn_identifier = "Peacock.#{op.to_s}"
+
+    function_call(
+      @line,
+      c1,
+      rhs_expr,
+      function_call(
+        @line,
+        c1,
+        identifier_lookup(@line, c, sym),
+        identifier_lookup(@line, c1, fn_identifier)
+      )
+    )
   end
 
   def parse_sym!
     c, sym = consume! :identifier
-    { node_type: :identifier_lookup,
-      line: @line,
-      column: c,
-      sym: sym }
+    identifier_lookup @line, c, sym
   end
 
   def parse_expr
@@ -202,9 +211,12 @@ class Parser
     when type == :open_p
       parse_function_def!
     when type == :identifier
-      case peek_type(1)
-      when :arrow
+      peek = peek_type(1)
+      case
+      when peek == :arrow
         parse_function_def!
+      when OPERATORS.include?(peek)
+        parse_operator_call!
       else
         parse_sym!
       end
@@ -212,5 +224,37 @@ class Parser
       puts "no match [parse_expr] :#{type}"
       assert { false }
     end
+  end
+
+  private
+
+  def function_call(line, c, arg, expr)
+    { node_type: :function_call,
+      line: line,
+      column: c,
+      arg: arg,
+      expr: expr }
+  end
+
+  def function(line, c, body, arg = nil)
+    { node_type: :function,
+      line: line,
+      column: c,
+      arg: arg,
+      body: body }
+  end
+
+  def identifier_lookup(line, c, sym)
+    { node_type: :identifier_lookup,
+      line: line,
+      column: c,
+      sym: sym }
+  end
+
+  def _return(line, c, expr)
+    { node_type: :return,
+      line: line,
+      column: c,
+      expr: expr }
   end
 end

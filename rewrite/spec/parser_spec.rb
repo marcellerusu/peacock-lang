@@ -286,5 +286,91 @@ let a = () => {
         } },
       ])
     end
+
+    it "a + b" do
+      tokens = Lexer.new("a + b").tokenize
+      ast = Parser.new(tokens).parse!
+      expect(ast).to eq([
+        { node_type: :function_call,
+         line: 0,
+         column: 2,
+         arg: {
+          node_type: :identifier_lookup,
+          line: 0,
+          column: 4,
+          sym: "b",
+        },
+         expr: {
+          node_type: :function_call,
+          line: 0,
+          column: 2,
+          arg: {
+            node_type: :identifier_lookup,
+            line: 0,
+            column: 0,
+            sym: "a",
+          },
+          expr: {
+            node_type: :identifier_lookup,
+            line: 0,
+            column: 2,
+            sym: "Peacock.plus",
+          },
+        } },
+      ])
+    end
+    it "let add = (a, b) => a + b" do
+      tokens = Lexer.new("let add = (a, b) => a + b").tokenize
+      ast = Parser.new(tokens).parse!
+      expect(ast).to eq([
+        { node_type: :declare,
+         mutable: false,
+         line: 0,
+         column: 4,
+         sym: "add",
+         expr: {
+          node_type: :function,
+          line: 0,
+          column: 11,
+          arg: "a",
+          body: [{
+            node_type: :return,
+            line: 0,
+            column: 14,
+            expr: {
+              node_type: :function,
+              line: 0,
+              column: 14,
+              arg: "b",
+              body: [{
+                node_type: :return,
+                line: 0,
+                column: 22,
+                expr: {
+                  node_type: :function_call,
+                  line: 0,
+                  column: 22,
+                  arg: { node_type: :identifier_lookup,
+                         line: 0,
+                         column: 24,
+                         sym: "b" },
+                  expr: { node_type: :function_call,
+                         line: 0,
+                         column: 22,
+                         arg: { node_type: :identifier_lookup,
+                                line: 0,
+                                column: 20,
+                                sym: "a" },
+                         expr: { node_type: :identifier_lookup,
+                                 line: 0,
+                                 column: 22,
+                                 sym: "Peacock.plus" } },
+                },
+              }],
+            },
+          }],
+        } },
+      ])
+    end
   end
 end
