@@ -3,10 +3,10 @@ require "utils"
 OPERATORS = [:plus, :minus, :mult, :div, :pipe, :eq, :not_eq]
 
 class Parser
-  def initialize(statements, line = 0, column = 0)
+  def initialize(statements, line = 0, token_index = 0)
     @statements = statements
     @line = line
-    @column = column
+    @token_index = token_index
   end
 
   def statement
@@ -14,7 +14,7 @@ class Parser
   end
 
   def token
-    statement[@column]
+    statement[@token_index]
   end
 
   def parse!
@@ -33,24 +33,24 @@ class Parser
       elsif peek_type == :close_b # end of function
         break
       else
-        ast.push parse_expr
+        ast.push parse_expr!
       end
       next_line!
     end
-    return @line, @column, ast
+    return @line, @token_index, ast
   end
 
   def next_line!
     @line += 1
-    @column = 0
+    @token_index = 0
   end
 
   def consume!(token_type = nil)
-    next_line! if @column == statement.size
+    next_line! if @token_index == statement.size
     # puts "#{token_type} #{token}"
     assert { token_type == token[1] } unless token_type.nil?
     column_number, type, value = token
-    @column += 1
+    @token_index += 1
     return column_number, value, type
   end
 
@@ -59,14 +59,14 @@ class Parser
   end
 
   def peek_type(by = 0)
-    line, column = @line, @column
-    line, column = peek_next_line if (column + by) >= statement.size
-    @statements[line][column + by][1] unless @statements[line].nil? || @statements[line][column + by].nil?
+    line, token_index = @line, @token_index
+    line, token_index = peek_next_line if (token_index + by) >= statement.size
+    @statements[line][token_index + by][1] unless @statements[line].nil? || @statements[line][token_index + by].nil?
   end
 
   def parse_return!(implicit_return = false)
     c, _ = consume! :return unless implicit_return
-    expr = parse_expr
+    expr = parse_expr!
     c = expr[:column] if implicit_return
     _return(@line, c, expr)
   end
@@ -77,7 +77,7 @@ class Parser
     c, sym = consume! :identifier
     consume! :assign
     line = @line
-    expr = parse_expr
+    expr = parse_expr!
     { node_type: :declare,
       sym: sym,
       mutable: !!mut,
@@ -111,7 +111,7 @@ class Parser
       _, sym = consume! :identifier
       consume! :colon
       # TODO: will have to allow more than strings as keys at some point
-      record[sym] = parse_expr
+      record[sym] = parse_expr!
       consume! :comma unless peek_type == :close_b
     end
     consume! :close_b
@@ -126,7 +126,7 @@ class Parser
     elements = []
     line = @line
     while peek_type != :close_sb
-      elements.push parse_expr
+      elements.push parse_expr!
       consume! :comma unless peek_type == :close_sb
     end
     consume! :close_sb
@@ -137,7 +137,7 @@ class Parser
   end
 
   def parse_function_def_args!(sym_expr)
-    return @column, [[sym_expr[:column], sym_expr[:sym]]] unless sym_expr.nil?
+    return @token_index, [[sym_expr[:column], sym_expr[:sym]]] unless sym_expr.nil?
     c, _ = consume! :open_p
     args = []
     while peek_type != :close_p
@@ -157,7 +157,7 @@ class Parser
       body = [parse_return!(true)]
     else
       consume! :open_b
-      @line, @column, body = Parser.new(@statements, @line, @column).parse_with_position!
+      @line, @token_index, body = Parser.new(@statements, @line, @token_index).parse_with_position!
       consume! :close_b
     end
     return function(fn_line, c, body) if args.size == 0
@@ -172,7 +172,7 @@ class Parser
 
   def parse_operator_call!(lhs)
     c1, _, op = consume!
-    rhs_expr = parse_expr
+    rhs_expr = parse_expr!
     fn_identifier = "Peacock.#{op.to_s}"
 
     function_call(
@@ -188,12 +188,29 @@ class Parser
     )
   end
 
+  def parse_function_call!(fn_expr)
+    consume! :open_p
+    args = []
+    while peek_type != :close_p
+      expr = parse_expr!
+      args.push expr
+      consume! :comma unless peek_type == :close_p
+    end
+
+    for arg in args
+      fn_call = function_call(fn_expr[:line], fn_expr[:column], arg, fn_expr)
+      fn_expr = fn_call
+    end
+
+    fn_call
+  end
+
   def parse_sym!
     c, sym = consume! :identifier
     identifier_lookup @line, c, sym
   end
 
-  def parse_expr
+  def parse_expr!
     type = peek_type
     case
     when [:int_lit, :str_lit, :float_lit, :symbol].include?(type)
@@ -220,16 +237,12 @@ class Parser
         parse_function_def! sym_expr
       when OPERATORS.include?(type)
         parse_operator_call! sym_expr
-      when peek == :arrow
-        parse_function_def!
-      when OPERATORS.include?(peek)
-        parse_operator_call!
-      else
-        parse_sym!
+      when type == :open_p
+        parse_function_call! sym_expr
       else sym_expr
       end
     else
-      puts "no match [parse_expr] :#{type}"
+      puts "no match [parse_expr!] :#{type}"
       assert { false }
     end
   end

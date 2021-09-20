@@ -462,4 +462,33 @@ let add = (a, b) => {
       ])
     end
   end
+
+  it "add(1, 2)" do
+    tokens = Lexer.new("add(1, 2)").tokenize
+    ast = Parser.new(tokens).parse!
+    expect(ast).to eq([
+      {
+        node_type: :function_call,
+        line: 0,
+        column: 0, #broken
+        arg: { node_type: :int_lit,
+               line: 0,
+               column: 7,
+               value: 2 },
+        expr: {
+          node_type: :function_call,
+          line: 0,
+          column: 0,
+          arg: { node_type: :int_lit,
+                 line: 0,
+                 column: 4,
+                 value: 1 },
+          expr: { node_type: :identifier_lookup,
+                  line: 0,
+                  column: 0,
+                  sym: "add" },
+        },
+      },
+    ])
+  end
 end
