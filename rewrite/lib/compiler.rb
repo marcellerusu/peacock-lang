@@ -1,3 +1,5 @@
+require "utils"
+
 class Compiler
   def initialize(ast)
     @ast = ast
@@ -38,16 +40,18 @@ class Compiler
 
   def eval_record(node, indent = 0)
     padding = " " * (indent + 2)
-    "{\n#{node[:value].map { |k, v| "#{padding}#{k}: #{eval_expr v}" }.join(",\n")}\n}"
+    "{\n#{node[:value].map do |k, v|
+      "#{padding}#{k}: #{eval_expr v}"
+    end.join(",\n")}\n}"
   end
 
   def eval_declaration(node)
     declartion_type = if node[:mutable] then "let" else "const" end
-    "#{declartion_type} #{node[:identifier]} = #{eval_expr node[:expr]}"
+    "#{declartion_type} #{node[:sym]} = #{eval_expr node[:expr]}"
   end
 
   def eval_expr(node, indent = 0)
-    program = case node[:type]
+    program = case node[:node_type]
       when :declare
         eval_declaration node
       when :array_lit
@@ -62,6 +66,9 @@ class Compiler
         eval_float node
       when :str_lit
         eval_str node
+      else
+        puts "no case matched node_type: #{node[:node_type]}"
+        assert { false }
       end
     return (" " * indent) + program
   end
