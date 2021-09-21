@@ -461,34 +461,67 @@ let add = (a, b) => {
         } },
       ])
     end
+
+    it "add(1, 2)" do
+      tokens = Lexer.new("add(1, 2)").tokenize
+      ast = Parser.new(tokens).parse!
+      expect(ast).to eq([
+                       { node_type: :function_call,
+                        line: 0,
+                        column: 0,
+                        arg: {
+                         node_type: :int_lit,
+                         line: 0,
+                         column: 7,
+                         value: 2,
+                       },
+                        expr: {
+                         node_type: :function_call,
+                         line: 0,
+                         column: 0,
+                         arg: { node_type: :int_lit,
+                                line: 0,
+                                column: 4,
+                                value: 1 },
+                         expr: { node_type: :identifier_lookup,
+                                 line: 0,
+                                 column: 0,
+                                 sym: "add" },
+                       } },
+                     ])
+    end
   end
 
-  it "add(1, 2)" do
-    tokens = Lexer.new("add(1, 2)").tokenize
-    ast = Parser.new(tokens).parse!
-    expect(ast).to eq([
-      {
-        node_type: :function_call,
-        line: 0,
-        column: 0,
-        arg: { node_type: :int_lit,
-               line: 0,
-               column: 7,
-               value: 2 },
-        expr: {
-          node_type: :function_call,
+  context "if expressions" do
+    it "if true {}" do
+      tokens = Lexer.new("if true {}").tokenize
+      ast = Parser.new(tokens).parse!
+      expect(ast).to eq([
+        { node_type: :if,
           line: 0,
           column: 0,
-          arg: { node_type: :int_lit,
-                 line: 0,
-                 column: 4,
-                 value: 1 },
-          expr: { node_type: :identifier_lookup,
+          expr: { node_type: :bool_lit,
                   line: 0,
-                  column: 0,
-                  sym: "add" },
-        },
-      },
-    ])
+                  column: 3,
+                  value: true },
+          pass: [],
+          fail: [] },
+      ])
+    end
+    it "if true {} else {}" do
+      tokens = Lexer.new("if true {} else {}").tokenize
+      ast = Parser.new(tokens).parse!
+      expect(ast).to eq([
+        { node_type: :if,
+          line: 0,
+          column: 0,
+          expr: { node_type: :bool_lit,
+                  line: 0,
+                  column: 3,
+                  value: true },
+          pass: [],
+          fail: [] },
+      ])
+    end
   end
 end

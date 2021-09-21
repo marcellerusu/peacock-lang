@@ -85,6 +85,8 @@ class Parser
       parse_record!
     when type == :open_parenthesis
       parse_function_def!
+    when type == :if
+      parse_if_expression!
     when type == :identifier
       sym_expr = parse_sym!
       type = peek_type
@@ -258,9 +260,33 @@ class Parser
     fn_call
   end
 
+  def parse_if_expression!
+    c, _ = consume! :if
+    if_line = @line
+    check = parse_expr!
+    consume! :open_brace
+    @line, @token_index, pass_body = Parser.new(@statements, @line, @token_index).parse_with_position!
+    consume! :close_brace
+    return if_expr(if_line, c, check, pass_body, []) unless peek_type == :else
+    consume! :else
+    consume! :open_brace
+    @line, @token_index, fail_body = Parser.new(@statements, @line, @token_index).parse_with_position!
+    consume! :close_brace
+    if_expr(if_line, c, check, pass_body, fail_body)
+  end
+
   def parse_sym!
     c, sym = consume! :identifier
     identifier_lookup @line, c, sym
+  end
+
+  def if_expr(line, c, expr, pass, _fail)
+    { node_type: :if,
+      line: line,
+      column: c,
+      expr: expr,
+      pass: pass,
+      fail: _fail }
   end
 
   def function_call(line, c, arg, expr)

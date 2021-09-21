@@ -24,6 +24,10 @@ TOKENS = {
   "true" => :true,
   "false" => :false,
   "return" => :return,
+  # Constructs
+  "if" => :if,
+  "else" => :else,
+  "match" => :match,
 }
 
 class Token
