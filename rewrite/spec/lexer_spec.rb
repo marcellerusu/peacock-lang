@@ -103,13 +103,13 @@ describe Lexer, "#tokenize" do
       it "[1]" do
         res = Lexer.new("[1]").tokenize
         expect(res).to eq([
-          [[0, :open_sb], [1, :int_lit, 1], [2, :close_sb]],
+          [[0, :open_square_bracket], [1, :int_lit, 1], [2, :close_square_bracket]],
         ])
       end
       it "[ 1 ]" do
         res = Lexer.new("[ 1 ]").tokenize
         expect(res).to eq([
-          [[0, :open_sb], [2, :int_lit, 1], [4, :close_sb]],
+          [[0, :open_square_bracket], [2, :int_lit, 1], [4, :close_square_bracket]],
         ])
       end
     end
@@ -117,13 +117,13 @@ describe Lexer, "#tokenize" do
       it "{a: 3}" do
         res = Lexer.new("{a: 3}").tokenize
         expect(res).to eq([
-          [[0, :open_b], [1, :identifier, "a"], [2, :colon], [4, :int_lit, 3], [5, :close_b]],
+          [[0, :open_brace], [1, :identifier, "a"], [2, :colon], [4, :int_lit, 3], [5, :close_brace]],
         ])
       end
       it "{   a   :  3, }" do
         res = Lexer.new("{   a   :  3, }").tokenize
         expect(res).to eq([
-          [[0, :open_b], [4, :identifier, "a"], [8, :colon], [11, :int_lit, 3], [12, :comma], [14, :close_b]],
+          [[0, :open_brace], [4, :identifier, "a"], [8, :colon], [11, :int_lit, 3], [12, :comma], [14, :close_brace]],
         ])
       end
     end

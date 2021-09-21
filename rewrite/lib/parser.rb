@@ -26,11 +26,13 @@ class Parser
     ast = []
     while @line < @statements.size
       if peek_type == :let
-        ast.push parse_assignment
+        ast.push parse_declaration!
+      elsif peek_type == :identifier && peek_type(1) == :assign
+        ast.push parse_assignment!
       elsif peek_type == :return
         ast.push parse_return!
         break
-      elsif peek_type == :close_b # end of function
+      elsif peek_type == :close_brace
         break
       else
         ast.push parse_expr!
@@ -64,6 +66,45 @@ class Parser
     @statements[line][token_index + by][1] unless @statements[line].nil? || @statements[line][token_index + by].nil?
   end
 
+  def parse_expr!
+    type = peek_type
+    case
+    when [:int_lit, :str_lit, :float_lit, :symbol].include?(type)
+      lit_expr = parse_lit! type
+      peek = peek_type
+      case
+      when OPERATORS.include?(peek)
+        parse_operator_call! lit_expr
+      else lit_expr
+      end
+    when [:true, :false].include?(type)
+      parse_bool! type
+    when type == :open_square_bracket
+      parse_array!
+    when type == :open_brace
+      parse_record!
+    when type == :open_parenthesis
+      parse_function_def!
+    when type == :identifier
+      sym_expr = parse_sym!
+      type = peek_type
+      case
+      when type == :arrow
+        parse_function_def! sym_expr
+      when OPERATORS.include?(type)
+        parse_operator_call! sym_expr
+      when type == :open_parenthesis
+        parse_function_call! sym_expr
+      else sym_expr
+      end
+    else
+      puts "no match [parse_expr!] :#{type}"
+      assert { false }
+    end
+  end
+
+  private
+
   def parse_return!(implicit_return = false)
     c, _ = consume! :return unless implicit_return
     expr = parse_expr!
@@ -71,7 +112,19 @@ class Parser
     _return(@line, c, expr)
   end
 
-  def parse_assignment
+  def parse_assignment!
+    c, sym = consume! :identifier
+    consume! :assign
+    line = @line
+    expr = parse_expr!
+    { node_type: :assign,
+      sym: sym,
+      line: line,
+      column: c,
+      expr: expr }
+  end
+
+  def parse_declaration!
     consume! :let
     mut = consume! :mut if peek_type == :mut
     c, sym = consume! :identifier
@@ -104,17 +157,17 @@ class Parser
   end
 
   def parse_record!
-    c, _ = consume! :open_b
+    c, _ = consume! :open_brace
     record = {}
     line = @line
-    while peek_type != :close_b
+    while peek_type != :close_brace
       _, sym = consume! :identifier
       consume! :colon
       # TODO: will have to allow more than strings as keys at some point
       record[sym] = parse_expr!
-      consume! :comma unless peek_type == :close_b
+      consume! :comma unless peek_type == :close_brace
     end
-    consume! :close_b
+    consume! :close_brace
     { node_type: :record_lit,
       line: line,
       column: c,
@@ -122,14 +175,14 @@ class Parser
   end
 
   def parse_array!
-    c, _ = consume! :open_sb
+    c, _ = consume! :open_square_bracket
     elements = []
     line = @line
-    while peek_type != :close_sb
+    while peek_type != :close_square_bracket
       elements.push parse_expr!
-      consume! :comma unless peek_type == :close_sb
+      consume! :comma unless peek_type == :close_square_bracket
     end
-    consume! :close_sb
+    consume! :close_square_bracket
     { node_type: :array_lit,
       line: line,
       column: c,
@@ -138,14 +191,14 @@ class Parser
 
   def parse_function_def_args!(sym_expr)
     return @token_index, [[sym_expr[:column], sym_expr[:sym]]] unless sym_expr.nil?
-    c, _ = consume! :open_p
+    c, _ = consume! :open_parenthesis
     args = []
-    while peek_type != :close_p
+    while peek_type != :close_parenthesis
       c1, sym = consume! :identifier
       args.push [c1, sym]
-      consume! :comma unless peek_type == :close_p
+      consume! :comma unless peek_type == :close_parenthesis
     end
-    consume! :close_p
+    consume! :close_parenthesis
     return c, args
   end
 
@@ -153,12 +206,12 @@ class Parser
     c, args = parse_function_def_args! sym_expr
     consume! :arrow
     fn_line = @line
-    if peek_type != :open_b
+    if peek_type != :open_brace
       body = [parse_return!(true)]
     else
-      consume! :open_b
+      consume! :open_brace
       @line, @token_index, body = Parser.new(@statements, @line, @token_index).parse_with_position!
-      consume! :close_b
+      consume! :close_brace
     end
     return function(fn_line, c, body) if args.size == 0
 
@@ -189,12 +242,12 @@ class Parser
   end
 
   def parse_function_call!(fn_expr)
-    consume! :open_p
+    consume! :open_parenthesis
     args = []
-    while peek_type != :close_p
+    while peek_type != :close_parenthesis
       expr = parse_expr!
       args.push expr
-      consume! :comma unless peek_type == :close_p
+      consume! :comma unless peek_type == :close_parenthesis
     end
 
     for arg in args
@@ -209,45 +262,6 @@ class Parser
     c, sym = consume! :identifier
     identifier_lookup @line, c, sym
   end
-
-  def parse_expr!
-    type = peek_type
-    case
-    when [:int_lit, :str_lit, :float_lit, :symbol].include?(type)
-      lit_expr = parse_lit! type
-      peek = peek_type
-      case
-      when OPERATORS.include?(peek)
-        parse_operator_call! lit_expr
-      else lit_expr
-      end
-    when [:true, :false].include?(type)
-      parse_bool! type
-    when type == :open_sb
-      parse_array!
-    when type == :open_b
-      parse_record!
-    when type == :open_p
-      parse_function_def!
-    when type == :identifier
-      sym_expr = parse_sym!
-      type = peek_type
-      case
-      when type == :arrow
-        parse_function_def! sym_expr
-      when OPERATORS.include?(type)
-        parse_operator_call! sym_expr
-      when type == :open_p
-        parse_function_call! sym_expr
-      else sym_expr
-      end
-    else
-      puts "no match [parse_expr!] :#{type}"
-      assert { false }
-    end
-  end
-
-  private
 
   def function_call(line, c, arg, expr)
     { node_type: :function_call,

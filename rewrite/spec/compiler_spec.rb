@@ -22,7 +22,7 @@ describe Compiler do
       js = Compiler.new(ast).eval.strip
       expect(js).to eq("\"string\"")
     end
-    it "[1, 2.3]", :f do
+    it "[1, 2.3]" do
       tokens = Lexer.new("[1, 2.3]").tokenize
       ast = Parser.new(tokens).parse!
       js = Compiler.new(ast).eval.strip
