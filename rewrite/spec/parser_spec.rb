@@ -523,5 +523,30 @@ let add = (a, b) => {
           fail: [] },
       ])
     end
+    it "if true {} else if false {}" do
+      tokens = Lexer.new("if true {} else if false {}").tokenize
+      ast = Parser.new(tokens).parse!
+      expect(ast).to eq([
+        { node_type: :if,
+         line: 0,
+         column: 0,
+         expr: { node_type: :bool_lit,
+                 line: 0,
+                 column: 3,
+                 value: true },
+         pass: [],
+         fail: [
+          { node_type: :if,
+            line: 0,
+            column: 16,
+            expr: { node_type: :bool_lit,
+                    line: 0,
+                    column: 19,
+                    value: false },
+            pass: [],
+            fail: [] },
+        ] },
+      ])
+    end
   end
 end

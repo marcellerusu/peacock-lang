@@ -269,6 +269,7 @@ class Parser
     consume! :close_brace
     return if_expr(if_line, c, check, pass_body, []) unless peek_type == :else
     consume! :else
+    return if_expr(if_line, c, check, pass_body, [parse_if_expression!]) if peek_type == :if
     consume! :open_brace
     @line, @token_index, fail_body = Parser.new(@statements, @line, @token_index).parse_with_position!
     consume! :close_brace
