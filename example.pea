@@ -29,11 +29,11 @@ arr := [1, 2, 3]
 print { second: arr[1] }
 
 # functions
-fn a =
+func a =
   if a == [1, 2]
   print 'we do deep value equality!'
 
-fn [1, 2]
+func [1, 2]
 
 # objects
 
