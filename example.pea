@@ -55,8 +55,10 @@ Person name =
 
 # pattern matching
 
-f arr = case arr of
-  [a, b, c] => a * b * c
-end
+f arr =
+  case arr
+  when [a, b, c]
+    a * b * c
+  end
 
 print (f [5, 2, 3])
