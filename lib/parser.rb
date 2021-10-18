@@ -171,12 +171,11 @@ class Parser
   end
 
   def parse_bool!(type)
-    assert { [:false, :true].include? type }
     c, _ = consume! type
     { node_type: :bool_lit,
       line: @line,
       column: c,
-      value: type.to_s == "true" }
+      value: type == :true }
   end
 
   def parse_record!
@@ -280,7 +279,7 @@ class Parser
     if_line = @line
     check = parse_expr!
     @line, @token_index, pass_body = Parser.new(@statements, @line, @token_index).parse_with_position! end_tokens
-    consume! :then if peek_token :then
+    # consume! :then if peek_token :then
     unless peek_type == :else
       consume! :end
       return if_expr(if_line, c, check, pass_body, [])
