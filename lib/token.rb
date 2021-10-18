@@ -29,6 +29,7 @@ TOKENS = {
   "if" => :if,
   "unless" => :unless,
   "else" => :else,
+  "then" => :then,
   "end" => :end,
   "reduce" => :reduce, # TODO
   "next" => :next, # TODO

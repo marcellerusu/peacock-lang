@@ -1,0 +1,62 @@
+# Variables
+
+# declaration
+some_thing_long := 3
+print some_thing_long
+
+# mutable & assignment
+b := 'str'
+print b
+b := 5
+print b
+
+# if statements
+
+if 1 > 3
+  print 'nope'
+else
+  print 'oh yea'
+end
+
+# ifs are expressions!
+
+print { b }
+three := if b > 3 then 3 end
+print { three: three }
+
+# arrays
+arr := [1, 2, 3]
+print { second: arr[1] }
+
+# functions
+fn a =
+  if a == [1, 2]
+  print 'we do deep value equality!'
+
+fn [1, 2]
+
+# objects
+
+obj := {
+  a: 1,
+  b: { c: 'three' }
+}
+
+print obj
+
+Person name =
+  obj := {
+    name: name,
+    print: fn => print obj.name
+  }
+  return obj
+
+(Person 'Marcelle').print();
+
+# pattern matching
+
+f arr = case arr of
+  [a, b, c] => a * b * c
+end
+
+print (f [5, 2, 3])

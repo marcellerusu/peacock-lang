@@ -280,6 +280,7 @@ class Parser
     if_line = @line
     check = parse_expr!
     @line, @token_index, pass_body = Parser.new(@statements, @line, @token_index).parse_with_position! end_tokens
+    consume! :then if peek_token :then
     unless peek_type == :else
       consume! :end
       return if_expr(if_line, c, check, pass_body, [])
