@@ -3,64 +3,46 @@ require "parser"
 
 describe Parser do
   context "assignment" do
-    it "let a = 3" do
-      tokens = Lexer.new("let a = 3").tokenize
+    it "a := 3" do
+      tokens = Lexer.new("a := 3").tokenize
       ast = Parser.new(tokens).parse!
       expect(ast).to eq([
-        { node_type: :declare,
-         mutable: false,
+        { node_type: :assign,
          sym: "a",
          line: 0,
-         column: 4,
+         column: 0,
          expr: { node_type: :int_lit,
                  line: 0,
-                 column: 8,
+                 column: 5,
                  value: 3 } },
       ])
     end
-    it "let a = \"3\"" do
-      tokens = Lexer.new("let a = \"3\"").tokenize
+    it "a := \"3\"" do
+      tokens = Lexer.new("a := \"3\"").tokenize
       ast = Parser.new(tokens).parse!
       expect(ast).to eq([
-        { node_type: :declare,
-         mutable: false,
+        { node_type: :assign,
          sym: "a",
          line: 0,
-         column: 4,
+         column: 0,
          expr: { node_type: :str_lit,
                  line: 0,
-                 column: 8,
+                 column: 5,
                  value: "3" } },
       ])
     end
-    it "let a = 25.32" do
-      tokens = Lexer.new("let a = 25.32").tokenize
+    it "a := 25.32" do
+      tokens = Lexer.new("a := 25.32").tokenize
       ast = Parser.new(tokens).parse!
       expect(ast).to eq([
-        { node_type: :declare,
-         mutable: false,
+        { node_type: :assign,
          sym: "a",
          line: 0,
-         column: 4,
+         column: 0,
          expr: { node_type: :float_lit,
                  line: 0,
-                 column: 8,
+                 column: 5,
                  value: 25.32 } },
-      ])
-    end
-    it "let mut a = 3" do
-      tokens = Lexer.new("let mut a = 3").tokenize
-      ast = Parser.new(tokens).parse!
-      expect(ast).to eq([
-        { node_type: :declare,
-         mutable: true,
-         sym: "a",
-         line: 0,
-         column: 8,
-         expr: { node_type: :int_lit,
-                 line: 0,
-                 column: 12,
-                 value: 3 } },
       ])
     end
   end
@@ -198,80 +180,51 @@ describe Parser do
     end
   end
   context "functions" do
-    it "let a = () => 1" do
-      tokens = Lexer.new("let a = () => 1").tokenize
+    it "a := fn => 1" do
+      tokens = Lexer.new("a := fn => 1").tokenize
       ast = Parser.new(tokens).parse!
       expect(ast).to eq([
-        { node_type: :declare,
-         mutable: false,
+        { node_type: :assign,
          line: 0,
-         column: 4,
+         column: 0,
          sym: "a",
          expr: {
           node_type: :function,
           line: 0,
-          column: 8,
-          arg: nil,
+          column: 5,
+          args: [],
           body: [{
             node_type: :return,
             line: 0,
-            column: 14,
+            column: 11,
             expr: {
               node_type: :int_lit,
               line: 0,
-              column: 14,
+              column: 11,
               value: 1,
             },
           }],
         } },
       ])
     end
-    it "let a = () => { return 1 }" do
-      tokens = Lexer.new("
-let a = () => {
-  return 1
-}
-      ".strip).tokenize
+    it "id := fn x => x" do
+      tokens = Lexer.new("id := fn x => x".strip).tokenize
       ast = Parser.new(tokens).parse!
       expect(ast).to eq([
-        { node_type: :declare,
-         mutable: false,
+        { node_type: :assign,
          line: 0,
-         column: 4,
-         sym: "a",
-         expr: {
-          node_type: :function,
-          line: 0,
-          column: 8,
-          arg: nil,
-          body: [{
-            node_type: :return,
-            line: 1,
-            column: 2,
-            expr: {
-              node_type: :int_lit,
-              line: 1,
-              column: 9,
-              value: 1,
-            },
-          }],
-        } },
-      ])
-    end
-    it "let id = x => x" do
-      tokens = Lexer.new("let id = x => x".strip).tokenize
-      ast = Parser.new(tokens).parse!
-      expect(ast).to eq([
-        { node_type: :declare,
-         mutable: false,
-         line: 0,
-         column: 4,
+         column: 0,
          sym: "id",
          expr: {
           node_type: :function,
           line: 0,
-          column: 9,
-          arg: "x",
+          column: 6,
+          args: [
+            { node_type: :function_argument,
+              line: 0,
+              column: 9,
+              sym: "x" },
+          ],
           body: [{
             node_type: :return,
             line: 0,
@@ -294,29 +247,20 @@ let a = () => {
         { node_type: :function_call,
          line: 0,
          column: 2,
-         arg: {
-          node_type: :identifier_lookup,
-          line: 0,
-          column: 4,
-          sym: "b",
-        },
-         expr: {
-          node_type: :function_call,
-          line: 0,
-          column: 2,
-          arg: {
-            node_type: :identifier_lookup,
+         args: [
+          { node_type: :identifier_lookup,
             line: 0,
             column: 0,
-            sym: "a",
-          },
-          expr: {
-            node_type: :identifier_lookup,
+            sym: "a" },
+          { node_type: :identifier_lookup,
             line: 0,
-            column: 2,
-            sym: "Peacock.plus",
-          },
-        } },
+            column: 4,
+            sym: "b" },
+        ],
+         expr: { node_type: :identifier_lookup,
+                 line: 0,
+                 column: 2,
+                 sym: "Peacock.plus" } },
       ])
     end
 
@@ -327,174 +271,157 @@ let a = () => {
         { node_type: :function_call,
          line: 0,
          column: 4,
-         arg: {
-          node_type: :float_lit,
-          line: 0,
-          column: 6,
-          value: 2.4,
-        },
-         expr: {
-          node_type: :function_call,
-          line: 0,
-          column: 4,
-          arg: {
+         args: [
+          {
             node_type: :float_lit,
             line: 0,
             column: 0,
             value: 1.5,
-          },
-          expr: {
-            node_type: :identifier_lookup,
+          }, {
+            node_type: :float_lit,
             line: 0,
-            column: 4,
-            sym: "Peacock.plus",
+            column: 6,
+            value: 2.4,
           },
-        } },
+        ],
+         expr: { node_type: :identifier_lookup,
+                 line: 0,
+                 column: 4,
+                 sym: "Peacock.plus" } },
       ])
     end
-    it "let add = (a, b) => a + b" do
-      tokens = Lexer.new("let add = (a, b) => a + b").tokenize
+
+    it "add a b = a + b" do
+      tokens = Lexer.new("add a b = a + b").tokenize
       ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { node_type: :declare,
-         mutable: false,
          line: 0,
-         column: 4,
+         column: 0,
          sym: "add",
          expr: {
           node_type: :function,
           line: 0,
-          column: 11,
-          arg: "a",
+          column: 0,
+          args: [
+            { node_type: :function_argument,
+              line: 0,
+              column: 4,
+              sym: "a" },
+            { node_type: :function_argument,
+              line: 0,
+              column: 6,
+              sym: "b" },
+          ],
           body: [{
             node_type: :return,
             line: 0,
-            column: 14,
+            column: 10,
             expr: {
-              node_type: :function,
+              node_type: :function_call,
               line: 0,
-              column: 14,
-              arg: "b",
-              body: [{
-                node_type: :return,
-                line: 0,
-                column: 22,
-                expr: {
-                  node_type: :function_call,
+              column: 12,
+              args: [
+                { node_type: :identifier_lookup,
                   line: 0,
-                  column: 22,
-                  arg: { node_type: :identifier_lookup,
-                         line: 0,
-                         column: 24,
-                         sym: "b" },
-                  expr: { node_type: :function_call,
-                         line: 0,
-                         column: 22,
-                         arg: { node_type: :identifier_lookup,
-                                line: 0,
-                                column: 20,
-                                sym: "a" },
-                         expr: { node_type: :identifier_lookup,
-                                 line: 0,
-                                 column: 22,
-                                 sym: "Peacock.plus" } },
-                },
-              }],
+                  column: 10,
+                  sym: "a" },
+                { node_type: :identifier_lookup,
+                  line: 0,
+                  column: 14,
+                  sym: "b" },
+              ],
+              expr: { node_type: :identifier_lookup,
+                      line: 0,
+                      column: 12,
+                      sym: "Peacock.plus" },
             },
           }],
         } },
       ])
     end
-    it "let add = (a, b) => { return a + b }" do
+    it "add a b = return a + b" do
       tokens = Lexer.new("
-let add = (a, b) => {
+add a b =
   return a + b
-}".strip).tokenize
+".strip).tokenize
       ast = Parser.new(tokens).parse!
+      # puts "#{ast}"
       expect(ast).to eq([
         { node_type: :declare,
-         mutable: false,
          line: 0,
-         column: 4,
+         column: 0,
          sym: "add",
          expr: {
           node_type: :function,
           line: 0,
-          column: 11,
-          arg: "a",
+          column: 0,
+          args: [
+            { node_type: :function_argument,
+              line: 0,
+              column: 4,
+              sym: "a" },
+            { node_type: :function_argument,
+              line: 0,
+              column: 6,
+              sym: "b" },
+          ],
           body: [{
             node_type: :return,
-            line: 0,
-            column: 14,
+            line: 1,
+            column: 2,
             expr: {
-              node_type: :function,
-              line: 0,
-              column: 14,
-              arg: "b",
-              body: [{
-                node_type: :return,
-                line: 1,
-                column: 2,
-                expr: {
-                  node_type: :function_call,
+              node_type: :function_call,
+              line: 1,
+              column: 11,
+              args: [
+                { node_type: :identifier_lookup,
                   line: 1,
-                  column: 11,
-                  arg: { node_type: :identifier_lookup,
-                         line: 1,
-                         column: 13,
-                         sym: "b" },
-                  expr: { node_type: :function_call,
-                         line: 1,
-                         column: 11,
-                         arg: { node_type: :identifier_lookup,
-                                line: 1,
-                                column: 9,
-                                sym: "a" },
-                         expr: { node_type: :identifier_lookup,
-                                 line: 1,
-                                 column: 11,
-                                 sym: "Peacock.plus" } },
-                },
-              }],
+                  column: 9,
+                  sym: "a" },
+                { node_type: :identifier_lookup,
+                  line: 1,
+                  column: 13,
+                  sym: "b" },
+              ],
+              expr: { node_type: :identifier_lookup,
+                      line: 1,
+                      column: 11,
+                      sym: "Peacock.plus" },
             },
           }],
         } },
       ])
     end
 
-    it "add(1, 2)" do
-      tokens = Lexer.new("add(1, 2)").tokenize
+    it "add 1 2" do
+      tokens = Lexer.new("add 1 2").tokenize
       ast = Parser.new(tokens).parse!
-      expect(ast).to eq([
-                       { node_type: :function_call,
-                        line: 0,
-                        column: 0,
-                        arg: {
-                         node_type: :int_lit,
-                         line: 0,
-                         column: 7,
-                         value: 2,
-                       },
-                        expr: {
-                         node_type: :function_call,
-                         line: 0,
-                         column: 0,
-                         arg: { node_type: :int_lit,
-                                line: 0,
-                                column: 4,
-                                value: 1 },
-                         expr: { node_type: :identifier_lookup,
-                                 line: 0,
-                                 column: 0,
-                                 sym: "add" },
-                       } },
-                     ])
+      expect(ast).to eq(
+        [
+          { node_type: :function_call,
+           line: 0,
+           column: 0,
+           args: [{ node_type: :int_lit,
+                    line: 0,
+                    column: 4,
+                    value: 1 },
+                  { node_type: :int_lit,
+                    line: 0,
+                    column: 6,
+                    value: 2 }],
+           expr: { node_type: :identifier_lookup,
+                   line: 0,
+                   column: 0,
+                   sym: "add" } },
+        ]
+      )
     end
   end
 
   context "if expressions" do
-    it "if true {}" do
-      tokens = Lexer.new("if true {}").tokenize
+    it "if true end" do
+      tokens = Lexer.new("if true end").tokenize
       ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { node_type: :if,
@@ -508,8 +435,8 @@ let add = (a, b) => {
           fail: [] },
       ])
     end
-    it "if true {} else {}" do
-      tokens = Lexer.new("if true {} else {}").tokenize
+    it "if true else end" do
+      tokens = Lexer.new("if true else end").tokenize
       ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { node_type: :if,
@@ -523,8 +450,8 @@ let add = (a, b) => {
           fail: [] },
       ])
     end
-    it "if true {} else if false {}" do
-      tokens = Lexer.new("if true {} else if false {}").tokenize
+    it "if true else if false end" do
+      tokens = Lexer.new("if true else if false end").tokenize
       ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { node_type: :if,
@@ -538,10 +465,10 @@ let add = (a, b) => {
          fail: [
           { node_type: :if,
             line: 0,
-            column: 16,
+            column: 13,
             expr: { node_type: :bool_lit,
                     line: 0,
-                    column: 19,
+                    column: 16,
                     value: false },
             pass: [],
             fail: [] },

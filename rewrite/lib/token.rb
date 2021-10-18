@@ -1,9 +1,8 @@
 # require "pry"
 
 TOKENS = {
-  "=" => :assign,
-  "let" => :let,
-  "mut" => :mut,
+  "=" => :declare,
+  ":=" => :assign,
   "(" => :open_parenthesis,
   ")" => :close_parenthesis,
   "{" => :open_brace,
@@ -11,23 +10,32 @@ TOKENS = {
   "[" => :open_square_bracket,
   "]" => :close_square_bracket,
   "=>" => :arrow,
+  "." => :dot,
   ":" => :colon,
   "," => :comma,
   # Operators
   "==" => :eq,
   "!=" => :not_eq,
-  "|>" => :pipe,
   "*" => :mult,
   "/" => :div,
   "+" => :plus,
   "-" => :minus,
+  # values
   "true" => :true,
   "false" => :false,
-  "return" => :return,
+  "self" => :self,
   # Constructs
+  "fn" => :fn,
   "if" => :if,
+  "unless" => :unless,
   "else" => :else,
-  "match" => :match,
+  "end" => :end,
+  "reduce" => :reduce, # TODO
+  "next" => :next, # TODO
+  "break" => :break, # TODO
+  "module" => :module, # TODO
+  "class" => :class, # TODO
+  "return" => :return,
 }
 
 class Token
@@ -64,7 +72,7 @@ class Token
   end
 
   def valid?
-    keyword? || literal? || symbol? || identifier?
+    keyword? || literal? || symbol? || identifier? || instance_identifier?
   end
 
   # Parsing
@@ -74,6 +82,7 @@ class Token
     return as_keyword if keyword?
     return as_identifier if identifier?
     return as_symbol if symbol?
+    return as_instance_identifier if instance_identifier?
   end
 
   def as_keyword
@@ -84,14 +93,19 @@ class Token
     [@start_index, :identifier, @token]
   end
 
+  def as_instance_identifier
+    [@start_index, :instance_identifier, @token]
+  end
+
   def as_symbol
     [@start_index, :symbol, @token]
   end
 
   def as_literal
+    return [@start_index, :str_lit, as_str] if str?
+    return [@start_index, :regex_lit, as_regex] if regex?
     return [@start_index, :int_lit, as_int] if int?
     return [@start_index, :float_lit, as_float] if float?
-    return [@start_index, :str_lit, as_str] if str?
   end
 
   def symbol?
@@ -102,8 +116,13 @@ class Token
   def identifier?
     return false if TOKENS.include?(@token)
     return false if @token =~ /[\s]/
-    return false unless @token =~ /^[a-zA-Z][a-zA-Z1-9]*$/
+    return false unless @token =~ /^[a-zA-Z][a-zA-Z1-9\-!?]*$/
     return true
+  end
+
+  def instance_identifier?
+    return false if @token.chr != "@"
+    return Token.new(@token.delete_prefix(":"), nil, nil).identifier?
   end
 
   def keyword?
@@ -120,6 +139,10 @@ class Token
 
   def str?
     !!(@token =~ /^".*"$/)
+  end
+
+  def regex?
+    !!(@token =~ /^\/.*\/[gim]?$/)
   end
 
   def as_str

@@ -99,7 +99,8 @@ class Compiler
 
   def eval_function(node)
     body = Compiler.new(node[:body], @indent + 2).eval
-    "(#{node[:arg]}) => {\n#{body}\n#{" " * @indent}}"
+    args = node[:args].map { |arg| arg[:sym] }.join ", "
+    "(#{args}) => {\n#{body}\n#{" " * @indent}}"
   end
 
   def eval_return(node)
@@ -107,7 +108,8 @@ class Compiler
   end
 
   def eval_function_call(node)
-    "#{eval_expr node[:expr]}(#{eval_expr node[:arg]})"
+    args = node[:args].map { |arg| eval_expr arg }.join ", "
+    "#{eval_expr node[:expr]}(#{args})"
   end
 
   def eval_identifier_lookup(node)

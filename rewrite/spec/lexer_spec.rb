@@ -2,16 +2,16 @@ require "lexer"
 
 describe Lexer, "#tokenize" do
   describe "single tokens" do
-    it "should tokenize let" do
-      res = Lexer.new("let").tokenize
+    it "should tokenize variable" do
+      res = Lexer.new("variable-name!").tokenize
       expect(res).to eq([
         # Line 1, col 0
-        [[0, :let]],
+        [[0, :identifier, "variable-name!"]],
       ])
     end
 
     it "should ignore comments" do
-      res = Lexer.new("# let something = ").tokenize
+      res = Lexer.new("# something-ok = ").tokenize
       expect(res).to eq([
         [],
       ])
@@ -27,6 +27,14 @@ describe Lexer, "#tokenize" do
 
     it "=" do
       res = Lexer.new("=").tokenize
+      expect(res).to eq([
+        # Line 1, col 0
+        [[0, :declare]],
+      ])
+    end
+
+    it ":=" do
+      res = Lexer.new(":=").tokenize
       expect(res).to eq([
         # Line 1, col 0
         [[0, :assign]],
@@ -81,22 +89,22 @@ describe Lexer, "#tokenize" do
   end
 
   describe "single-line" do
-    it "let a = 3" do
-      res = Lexer.new("let a = 3").tokenize
+    it "a := 3" do
+      res = Lexer.new("a := 3").tokenize
       expect(res).to eq([
-        [[0, :let], [4, :identifier, "a"], [6, :assign], [8, :int_lit, 3]],
+        [[0, :identifier, "a"], [2, :assign], [5, :int_lit, 3]],
       ])
     end
-    it "let a = 3 == 4.0" do
-      res = Lexer.new("let a = 3 == 4.0").tokenize
+    it "a := 3 == 4.0" do
+      res = Lexer.new("a := 3 == 4.0").tokenize
       expect(res).to eq([
-        [[0, :let], [4, :identifier, "a"], [6, :assign], [8, :int_lit, 3], [10, :eq], [13, :float_lit, 4.0]],
+        [[0, :identifier, "a"], [2, :assign], [5, :int_lit, 3], [7, :eq], [10, :float_lit, 4.0]],
       ])
     end
-    it "let a = 3 == \"4\"" do
-      res = Lexer.new("let a = 3 == \"4\"").tokenize
+    it "a := 3 == \"4\"" do
+      res = Lexer.new("a := 3 == \"4\"").tokenize
       expect(res).to eq([
-        [[0, :let], [4, :identifier, "a"], [6, :assign], [8, :int_lit, 3], [10, :eq], [13, :str_lit, "4"]],
+        [[0, :identifier, "a"], [2, :assign], [5, :int_lit, 3], [7, :eq], [10, :str_lit, "4"]],
       ])
     end
     describe "array" do
@@ -128,10 +136,10 @@ describe Lexer, "#tokenize" do
       end
     end
     describe "function" do
-      it "let a = x => x * x" do
-        res = Lexer.new("let a = x => x * x").tokenize
+      it "a x = x * x" do
+        res = Lexer.new("a x = x * x").tokenize
         expect(res).to eq([
-          [[0, :let], [4, :identifier, "a"], [6, :assign], [8, :identifier, "x"], [10, :arrow], [13, :identifier, "x"], [15, :mult], [17, :identifier, "x"]],
+          [[0, :identifier, "a"], [2, :identifier, "x"], [4, :declare], [6, :identifier, "x"], [8, :mult], [10, :identifier, "x"]],
         ])
       end
     end
