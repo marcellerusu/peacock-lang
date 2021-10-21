@@ -476,4 +476,33 @@ add a b =
       ])
     end
   end
+
+  context "statements" do
+    it "statements in multiple lines" do
+      tokens = Lexer.new("
+a := 1
+
+a := 1".strip).tokenize
+      # puts "#{tokens}"
+      ast = Parser.new(tokens).parse!
+      expect(ast).to eq([
+        { node_type: :assign,
+         column: 0,
+         line: 0,
+         sym: "a",
+         expr: { node_type: :int_lit,
+                 line: 0,
+                 column: 5,
+                 value: 1 } },
+        { node_type: :assign,
+         column: 0,
+         line: 2,
+         sym: "a",
+         expr: { node_type: :int_lit,
+                 line: 2,
+                 column: 5,
+                 value: 1 } },
+      ])
+    end
+  end
 end

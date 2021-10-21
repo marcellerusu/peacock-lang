@@ -33,7 +33,7 @@ class Parser
     # puts "c - #{column}"
     # binding.pry
     next_line! unless token
-    while @line < @statements.size && column >= @indentation
+    while @line < @statements.size && (column.nil? || column >= @indentation)
       break if end_tokens.include? peek_type
       if peek_type == :identifier && peek_type(1) == :assign
         ast.push parse_assignment!
