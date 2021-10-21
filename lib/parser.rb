@@ -1,5 +1,5 @@
 require "utils"
-require "pry"
+# require "pry"
 
 OPERATORS = [:plus, :minus, :mult, :div, :pipe, :eq, :not_eq]
 
@@ -46,6 +46,11 @@ class Parser
         ast.push parse_expr!
       end
       next_line!
+    end
+    # TODO: find a better way to know if we're in a function
+    unless @indentation == 0 || ast.last[:node_type] == :return
+      node = ast.pop
+      ast.push _return(node[:line], node[:column], node)
     end
     return @line, @token_index, ast
   end
@@ -278,7 +283,7 @@ class Parser
     c, _ = consume! :if
     if_line = @line
     check = parse_expr!
-    @line, @token_index, pass_body = Parser.new(@statements, @line, @token_index).parse_with_position! end_tokens
+    @line, @token_index, pass_body = Parser.new(@statements, @line, @token_index, @indentation).parse_with_position! end_tokens
     # consume! :then if peek_token :then
     unless peek_type == :else
       consume! :end
@@ -286,7 +291,7 @@ class Parser
     end
     consume! :else
     return if_expr(if_line, c, check, pass_body, [parse_if_expression!]) if peek_type == :if
-    @line, @token_index, fail_body = Parser.new(@statements, @line, @token_index).parse_with_position! end_tokens
+    @line, @token_index, fail_body = Parser.new(@statements, @line, @token_index, @indentation).parse_with_position! end_tokens
     consume! :end
     if_expr(if_line, c, check, pass_body, fail_body)
   end

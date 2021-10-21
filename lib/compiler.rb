@@ -11,7 +11,7 @@ class Compiler
   def eval
     program = ""
     for statement in @ast
-      program += "#{" " * @indent}#{eval_expr statement}\n"
+      program += "#{" " * @indent}#{eval_expr statement};\n"
     end
     program.rstrip
   end
@@ -84,7 +84,7 @@ class Compiler
   def eval_record(node)
     padding = " " * (@indent + 2)
     "{\n#{node[:value].map do |k, v|
-      "#{padding}#{k}: #{eval_expr v}"
+      "#{padding}\"#{k}\": #{eval_expr v}"
     end.join(",\n")}\n}"
   end
 
