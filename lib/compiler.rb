@@ -82,10 +82,18 @@ class Compiler
   end
 
   def eval_record(node)
-    padding = " " * (@indent + 2)
-    "{\n#{node[:value].map do |k, v|
+    @indent += 2
+
+    def padding(by = 0)
+      " " * (@indent + by)
+    end
+
+    record = "{\n#{node[:value].map do |k, v|
       "#{padding}\"#{k}\": #{eval_expr v}"
-    end.join(",\n")}\n}"
+    end.join(",\n")}\n#{padding(-2)}}"
+    @indent -= 2
+
+    record
   end
 
   def eval_declaration(node)

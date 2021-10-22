@@ -46,8 +46,8 @@ describe Compiler do
   \"a\": 3,
   \"b\": [1, 2.3, \"s\"],
   \"c\": {
-  \"d\": 3
-}
+    \"d\": 3
+  }
 };")
     end
   end
