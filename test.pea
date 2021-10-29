@@ -1,0 +1,5 @@
+obj := {a: 3, b: [1, 2, {d: "s"}]}
+
+add a b =
+  res-thing := a + b
+  return res
