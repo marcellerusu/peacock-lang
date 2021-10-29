@@ -1,0 +1,26 @@
+declare Peacock.Lexer exposing (Lexer)
+import Peacock.Token
+
+module Lexer @program =
+  tokenize = fn =>
+    @program.split('\n').map tokenize-Line
+
+  private
+
+  consume-token line =
+    line, amount = line.trim-left
+    char = line.first
+    token = Token.new char, line
+    reduce
+      return nil, amount if char == '#'
+      amount = token.consume! char
+      break [token, amount] if token.full-token?
+      next [token, amount]
+    end
+
+  tokenize-line line = 
+    reduce with tokens = []
+      token, i = consume-token line
+      next tokens if nil? token
+      next [...tokens, token]
+    end

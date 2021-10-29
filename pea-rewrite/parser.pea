@@ -1,0 +1,87 @@
+
+OPERATORS := [:plus, :minus, :mult, :div, :pipe, :eq, :not-eq]
+
+class Parser @statements, @line = 0, @token-index = 0 =
+  statement = @statements[@line]
+  token = statement[@token-index]
+
+  parse! =
+    _, _, ast = parse-with-position!
+    return ast
+  
+  parse-with-position! =
+    ast = reduce ast with ast = []
+      break ast if @line < @statements.size || peek-type == :close-brace
+      next ast.push parse-declaration! if peek-type == :let
+      next ast.push parse-assignment! if peek-type == :identifier && peek-type(1) == :assign
+      break ast.push parse-return! if peek-type == :return
+      next parse-expr!
+    always # iffy
+      next-line!
+    end
+    return @line, @token-index, ast
+
+  next-line! =
+    @line += 1
+    @token-index = 0
+
+  consume! token-type := nil =
+    next-line! if @token-index == statement.size
+    # puts '#{token-type} #{token}'
+    assert fn => token-type == token[1] end unless token-type.nil?
+    column-number, type, value = token
+    @token-index += 1
+    return column-number, value, type
+
+  peek-next-line = @line + 1, 0
+
+  peek-type by := 0 =
+    line, token-index = @line, @token-index
+    line, token-index = peek-next-line if (token-index + by) >= statement.size
+    @statements[line][token-index + by][1] unless @statements[line].nil? || @statements[line][token-index + by].nil?
+
+  parse-expr! =
+    type = peek-type
+    case
+    when [:int-lit, :str-lit, :float-lit, :symbol].include?(type)
+      lit-expr = parse-lit! type
+      peek = peek-type
+      case 
+      when OPERATORS.include?(peek)
+        parse-operator-call! lit-expr  
+      else lit-expr
+      end
+    when [:true, :false].include?(type)
+      parse-bool! type
+    when type == :open-square-bracket
+      parse-array!
+    when type == :open-brace
+      parse-record!
+    when type == :open-parenthesis
+      parse-function-def!
+    when type == :if
+      parse-if-expression!
+    when type == :identifier
+      sym-expr = parse-sym!
+      type = peek-type
+      case
+      when type == :arrow
+        parse-function-def! sym-expr
+      when OPERATORS.include?(type)
+        parse-operator-call! sym-expr
+      when type == :open-parenthesis
+        parse-function-call! sym-expr
+      else sym-expr
+      end
+    else
+      puts "no match [parse-expr!] :#{type}"
+      assert { false }
+    end
+
+  private
+
+  parse-return! implicit-return := false =
+    c, _ = consume! :return unless implicit-return
+    expr = parse_expr!
+    c = expr[:column] if implicit-return
+    _return(@line, c, expr)
