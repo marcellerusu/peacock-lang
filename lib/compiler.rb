@@ -13,7 +13,7 @@ class Compiler
     @ast.each do |statement|
       program << " " * @indent
       program << eval_expr(statement)
-      program << ";\n"
+      program << ";" << "\n"
     end
     program.rstrip
   end
@@ -24,12 +24,20 @@ class Compiler
     " " * (@indent + by)
   end
 
+  def from_kabob_case(sym)
+    sym.sub("_", "__").sub("-", "_")
+  end
+
+  def to_kabob_case(sym)
+    sym.sub("__", "_").sub("_", "-")
+  end
+
   def eval_assignment_declarations
     nodes = find_assignments
     if nodes.any?
       vars = padding
       vars << "let "
-      vars << nodes.map { |node| node[:sym] }.join(", ")
+      vars << nodes.map { |node| from_kabob_case(node[:sym]) }.join(", ")
       vars << ";" << "\n"
     end
     vars || ""
@@ -123,17 +131,28 @@ class Compiler
   end
 
   def eval_declaration(node)
-    "const #{node[:sym]} = #{eval_expr node[:expr]}"
+    declaration = "const "
+    declaration << from_kabob_case(node[:sym])
+    declaration << " = "
+    declaration << eval_expr(node[:expr])
   end
 
   def eval_assignment(node)
-    "#{node[:sym]} = #{eval_expr node[:expr]}"
+    assignment = from_kabob_case(node[:sym])
+    assignment << " = "
+    assignment << eval_expr(node[:expr])
   end
 
   def eval_function(node)
     body = Compiler.new(node[:body], @indent + 2).eval
-    args = node[:args].map { |arg| arg[:sym] }.join ", "
-    "(#{args}) => {\n#{body}\n#{" " * @indent}}"
+    function = "("
+    function << node[:args].map { |arg| arg[:sym] }.join(", ")
+    function << ")"
+    function << " => "
+    function << "{" << "\n"
+    function << body << "\n"
+    function << padding
+    function << "}"
   end
 
   def eval_return(node)
