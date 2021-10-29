@@ -30,8 +30,6 @@ class Parser
 
   def parse_with_position!(end_tokens = [])
     ast = []
-    # puts "c - #{column}"
-    # binding.pry
     next_line! unless token
     while @line < @statements.size && (column.nil? || column >= @indentation)
       break if end_tokens.include? peek_type
@@ -152,7 +150,7 @@ class Parser
     c, _ = consume! :return unless implicit_return
     expr = parse_expr!
     c = expr[:column] if implicit_return
-    _return(@line, c, expr)
+    AST::return @line, c, expr
   end
 
   def parse_assignment!
@@ -160,11 +158,7 @@ class Parser
     consume! :assign
     line = @line
     expr = parse_expr!
-    { node_type: :assign,
-      sym: sym,
-      line: line,
-      column: c,
-      expr: expr }
+    AST::assignment sym, line, c, expr
   end
 
   def parse_lit!(type)
@@ -177,10 +171,7 @@ class Parser
 
   def parse_bool!(type)
     c, _ = consume! type
-    { node_type: :bool_lit,
-      line: @line,
-      column: c,
-      value: type == :true }
+    AST::bool @line, c, type == :true
   end
 
   def parse_record!
@@ -195,10 +186,7 @@ class Parser
       consume! :comma unless peek_type == :close_brace
     end
     consume! :close_brace
-    { node_type: :record_lit,
-      line: line,
-      column: c,
-      value: record }
+    AST::record line, c, record
   end
 
   def parse_array!
@@ -210,17 +198,14 @@ class Parser
       consume! :comma unless peek_type == :close_square_bracket
     end
     consume! :close_square_bracket
-    { node_type: :array_lit,
-      line: line,
-      column: c,
-      value: elements }
+    AST::array line, c, elements
   end
 
   def parse_function_arguments!(end_type)
     args = []
     while peek_type != end_type
       c1, sym = consume! :identifier
-      args.push function_argument(@line, c1, sym)
+      args.push AST::function_argument(@line, c1, sym)
     end
     args
   end
@@ -235,13 +220,11 @@ class Parser
     else
       return_c = column
       expr = parse_expr!
-      body = [_return(@line, return_c, expr)]
+      body = [AST::return(@line, return_c, expr)]
     end
-    { node_type: :declare,
-      sym: sym_expr[:sym],
-      line: sym_expr[:line],
-      column: sym_expr[:column],
-      expr: function(fn_line, sym_expr[:column], body, args) }
+
+    function = AST::function(fn_line, sym_expr[:column], body, args)
+    AST::declare(sym_expr, function)
   end
 
   def parse_anon_function_def!
@@ -250,10 +233,10 @@ class Parser
     consume! :arrow
     fn_line = @line
     expr = parse_expr!
-    body = [_return(@line, expr[:column], expr)]
+    body = [AST::return(@line, expr[:column], expr)]
     # TODO: none 1-liners
     # @line, @token_index, body = Parser.new(@statements, @line, @token_index).parse_with_position!
-    function(fn_line, c, body, args)
+    AST::function fn_line, c, body, args
   end
 
   def parse_operator_call!(lhs)
@@ -261,12 +244,8 @@ class Parser
     rhs_expr = parse_expr!
     fn_identifier = "Peacock.#{op.to_s}"
 
-    function_call(
-      @line,
-      c1,
-      [lhs, rhs_expr],
-      identifier_lookup(@line, c1, fn_identifier)
-    )
+    operator = AST::identifier_lookup @line, c1, fn_identifier
+    AST::function_call @line, c1, [lhs, rhs_expr], operator
   end
 
   def parse_function_call!(fn_expr)
@@ -275,7 +254,7 @@ class Parser
       args.push parse_expr!
     end
 
-    function_call(fn_expr[:line], fn_expr[:column], args, fn_expr)
+    AST::function_call fn_expr[:line], fn_expr[:column], args, fn_expr
   end
 
   def parse_if_expression!
@@ -287,21 +266,30 @@ class Parser
     # consume! :then if peek_token :then
     unless peek_type == :else
       consume! :end
-      return if_expr(if_line, c, check, pass_body, [])
+      return AST::if if_line, c, check, pass_body, []
     end
     consume! :else
-    return if_expr(if_line, c, check, pass_body, [parse_if_expression!]) if peek_type == :if
+    return AST::if(if_line, c, check, pass_body, [parse_if_expression!]) if peek_type == :if
     @line, @token_index, fail_body = Parser.new(@statements, @line, @token_index, @indentation).parse_with_position! end_tokens
     consume! :end
-    if_expr(if_line, c, check, pass_body, fail_body)
+    AST::if if_line, c, check, pass_body, fail_body
   end
 
   def parse_sym!
     c, sym = consume! :identifier
-    identifier_lookup @line, c, sym
+    AST::identifier_lookup @line, c, sym
+  end
+end
+
+module AST
+  def self.return(line, c, expr)
+    { node_type: :return,
+      line: line,
+      column: c,
+      expr: expr }
   end
 
-  def if_expr(line, c, expr, pass, _fail)
+  def self.if(line, c, expr, pass, _fail)
     { node_type: :if,
       line: line,
       column: c,
@@ -310,7 +298,7 @@ class Parser
       fail: _fail }
   end
 
-  def function_call(line, c, args, expr)
+  def self.function_call(line, c, args, expr)
     { node_type: :function_call,
       line: line,
       column: c,
@@ -318,7 +306,7 @@ class Parser
       expr: expr }
   end
 
-  def function(line, c, body, args)
+  def self.function(line, c, body, args)
     { node_type: :function,
       line: line,
       column: c,
@@ -326,22 +314,52 @@ class Parser
       body: body }
   end
 
-  def function_argument(line, c, sym)
+  def self.function_argument(line, c, sym)
     { node_type: :function_argument,
       line: line,
       column: c,
       sym: sym }
   end
 
-  def identifier_lookup(line, c, sym)
+  def self.identifier_lookup(line, c, sym)
     { node_type: :identifier_lookup,
       line: line,
       column: c,
       sym: sym }
   end
 
-  def _return(line, c, expr)
-    { node_type: :return,
+  def self.declare(sym_expr, expr)
+    { node_type: :declare,
+      sym: sym_expr[:sym],
+      line: sym_expr[:line],
+      column: sym_expr[:column],
+      expr: expr }
+  end
+
+  def self.array(line, c, value)
+    { node_type: :array_lit,
+      line: line,
+      column: c,
+      value: value }  
+  end
+
+  def self.record(line, c, value)
+    { node_type: :record_lit,
+      line: line,
+      column: c,
+      value: value }
+  end
+
+  def self.bool(line, c, value)
+    { node_type: :bool_lit,
+      line: line,
+      column: c,
+      value: value }  
+  end
+
+  def self.assignment(sym, line, c, expr)
+    { node_type: :assign,
+      sym: sym,
       line: line,
       column: c,
       expr: expr }
