@@ -9,14 +9,36 @@ class Compiler
   end
 
   def eval
-    program = ""
-    for statement in @ast
-      program += "#{" " * @indent}#{eval_expr statement};\n"
+    program = eval_assignment_declarations
+    @ast.each do |statement|
+      program << " " * @indent
+      program << eval_expr(statement)
+      program << ";\n"
     end
     program.rstrip
   end
 
   private
+
+  def padding(by = 0)
+    " " * (@indent + by)
+  end
+
+  def eval_assignment_declarations
+    nodes = find_assignments
+    if nodes.any?
+      vars = padding
+      vars << "let "
+      vars << nodes.map { |node| node[:sym] }.join(", ")
+      vars << ";" << "\n"
+    end
+    vars || ""
+  end
+
+  def find_assignments
+    @ast.filter { |node| node[:node_type] == :assign }
+      .uniq { |node| node[:sym] }
+  end
 
   def eval_expr(node)
     case node[:node_type]
@@ -78,27 +100,30 @@ class Compiler
   end
 
   def eval_array(node)
-    "[#{node[:value].map { |n| eval_expr n }.join ", "}]"
+    arr = "["
+    arr << node[:value].map { |n| eval_expr n }.join(", ")
+    arr << "]"
   end
 
   def eval_record(node)
     @indent += 2
 
-    def padding(by = 0)
-      " " * (@indent + by)
-    end
+    record = "{" << "\n"
+    record << node[:value].map do |key, value|
+      entry = padding
+      entry << "\"" << key << "\""
+      entry << ": "
+      entry << eval_expr(value)
+    end.join(",\n")
+    record << "\n" << padding(-2) << "}"
 
-    record = "{\n#{node[:value].map do |k, v|
-      "#{padding}\"#{k}\": #{eval_expr v}"
-    end.join(",\n")}\n#{padding(-2)}}"
     @indent -= 2
 
     record
   end
 
   def eval_declaration(node)
-    declartion_type = if node[:mutable] then "let" else "const" end
-    "#{declartion_type} #{node[:sym]} = #{eval_expr node[:expr]}"
+    "const #{node[:sym]} = #{eval_expr node[:expr]}"
   end
 
   def eval_assignment(node)
