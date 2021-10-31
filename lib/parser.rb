@@ -48,7 +48,7 @@ class Parser
     # TODO: find a better way to know if we're in a function
     unless @indentation == 0 || ast.last[:node_type] == :return
       node = ast.pop
-      ast.push _return(node[:line], node[:column], node)
+      ast.push AST::return(node[:line], node[:column], node)
     end
     return @line, @token_index, ast
   end
@@ -340,7 +340,7 @@ module AST
     { node_type: :array_lit,
       line: line,
       column: c,
-      value: value }  
+      value: value }
   end
 
   def self.record(line, c, value)
@@ -354,7 +354,7 @@ module AST
     { node_type: :bool_lit,
       line: line,
       column: c,
-      value: value }  
+      value: value }
   end
 
   def self.assignment(sym, line, c, expr)

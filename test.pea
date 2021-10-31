@@ -1,8 +1,9 @@
-obj := {a: 3, b: [1, 2, {d: "s"}]}
+add a b = a + b
 
-four := 4
+add a = a + 3
 
-add a b =
-  res-thing := a + b
-  three := "3"
-  return res
+five := add 2
+
+six := add 2 4
+
+print five six
