@@ -2,10 +2,13 @@ require "utils"
 require "pry"
 
 class Compiler
+  # TODO: do something better for tests
+  @@use_std_lib = true
+  def self.use_std_lib=(other)
+    @@use_std_lib = other
+  end
   def initialize(ast, indent = 0)
     @ast = ast
-    @symbols = {}
-    @sym_number = 0
     @indent = indent
   end
 
@@ -26,14 +29,19 @@ class Compiler
 
   def first_run?
     # TODO: I don't think this is correct
-    @indent == 0
+    @@use_std_lib && @indent == 0
   end
 
   def std_lib
     functions = find_used_peacock_functions
-    code = "const Peacock = {\n"
-    code << padding(2) << "plus: (a, b) => a + b,\n" if functions.include? "Peacock.plus"
-    code << padding(2) << "minus: (a, b) => a - b,\n" if functions.include? "Peacock.minus"
+    code = "const __Symbols = {}\n"
+    code << "const Peacock = {\n"
+    indent!
+    code << padding << "plus: (a, b) => a + b,\n" if functions.include? "Peacock.plus"
+    code << padding << "minus: (a, b) => a - b,\n" if functions.include? "Peacock.minus"
+    code << padding << "symbol: symName => __Symbols[symName] || (__Symbols[symName] = Symbol(symName)),\n"
+    code << padding << "eq: (a, b) => a === b,\n"
+    dedent!
     code << "};\n"
     code << "const print = (...params) => console.log(...params);\n"
   end
@@ -101,9 +109,9 @@ class Compiler
       function << "(...params)" << " => "
       function << "{" << "\n" << padding
       function << "const functions = ["
-      function << function_group.map { |f| "[" << eval_function(f[:expr]) << ", " << eval_shape_of(f) << "]" }.join(", ")
+      function << function_group.map { |f| eval_function(f[:expr]) }.join(", ")
       function << "];" << "\n" << padding
-      function << "const [f_by_length] = functions.find(([f]) => f.length === params.length);\n" << padding
+      function << "const f_by_length = functions.find(f => f.length === params.length);\n" << padding
       function << "if (f_by_length) return f_by_length(...params);\n"
       # TODO: function by shape
       # function << "const f_by_shape = functions.find(([_, shape]) => shape_eq(shape_of(params), shape));\n" << padding
@@ -164,6 +172,8 @@ class Compiler
       eval_identifier_lookup node
     when :if
       eval_if_expression node
+    when :symbol
+      eval_symbol node
     else
       puts "no case matched node_type: #{node[:node_type]}"
       assert { false }
@@ -171,14 +181,7 @@ class Compiler
   end
 
   def eval_symbol(node)
-    # :value -> 0
-    if @symbols[node[:value]]
-      "#{@symbols[node[:value]]}"
-    else
-      @sym_number += 1
-      @symbols[node[:value]] = @sym_number
-      "#{@symbols[node[:value]]}"
-    end
+    "Peacock.symbol('#{node[:value]}')"
   end
 
   def eval_str(node)

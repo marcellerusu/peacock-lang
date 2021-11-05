@@ -1,4 +1,4 @@
-$LOAD_PATH.push "/Users/marcelrusu/Documents/Projects/peacock/lib"
+$LOAD_PATH.push "/Users/marcellerusu/repos/m-lang/lib"
 
 require "lexer"
 require "parser"

@@ -10,6 +10,23 @@ describe Lexer, "#tokenize" do
       ])
     end
 
+    it "true" do
+      res = Lexer.new("true").tokenize  
+      expect(res).to eq([
+        # Line 1, col 0
+        [[0, :true]],
+      ])
+    end
+
+    it "false" do
+      res = Lexer.new("false").tokenize  
+      expect(res).to eq([
+        # Line 1, col 0
+        [[0, :false]],
+      ])
+    end
+
+
     it "should ignore comments" do
       res = Lexer.new("# something-ok = ").tokenize
       expect(res).to eq([
@@ -17,7 +34,7 @@ describe Lexer, "#tokenize" do
       ])
     end
 
-    it "symbol 'a'" do
+    it "identifier 'a'" do
       res = Lexer.new("a").tokenize
       expect(res).to eq([
         # Line 1, col 0
@@ -72,18 +89,18 @@ describe Lexer, "#tokenize" do
     end
 
     # TODO: fix
-    # it "string with no space", :f do
-    #   res = Lexer.new("\"some string\"").tokenize
-    #   expect(res).to eq([
-    #     [[1, :str_lit, "some string"]],
-    #   ])
-    # end
+    it "string with no space at start" do
+      res = Lexer.new("\"some string\"").tokenize
+      expect(res).to eq([
+        [[0, :str_lit, "some string"]],
+      ])
+    end
 
     it ":symbol" do
       res = Lexer.new(":symbol").tokenize
       expect(res).to eq([
         # Line 1, col 0
-        [[0, :symbol, ":symbol"]],
+        [[0, :symbol, "symbol"]],
       ])
     end
   end

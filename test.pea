@@ -1,9 +1,3 @@
-add a b = a + b
+v := { value: :sym-thing }
 
-add a = a + 3
-
-five := add 2
-
-six := add 2 4
-
-print five six
+print(v)

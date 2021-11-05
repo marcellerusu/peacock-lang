@@ -74,7 +74,7 @@ describe Parser do
         { node_type: :symbol,
           line: 0,
           column: 0,
-          value: ":symbol" },
+          value: "symbol" },
       ])
     end
     it "[]" do
@@ -394,8 +394,8 @@ add a b =
       ])
     end
 
-    it "add 1 2" do
-      tokens = Lexer.new("add 1 2").tokenize
+    it "add(1, 2)" do
+      tokens = Lexer.new("add(1, 2)").tokenize
       ast = Parser.new(tokens).parse!
       expect(ast).to eq(
         [
@@ -408,7 +408,7 @@ add a b =
                     value: 1 },
                   { node_type: :int_lit,
                     line: 0,
-                    column: 6,
+                    column: 7,
                     value: 2 }],
            expr: { node_type: :identifier_lookup,
                    line: 0,

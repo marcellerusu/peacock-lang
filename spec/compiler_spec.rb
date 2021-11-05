@@ -3,6 +3,9 @@ require "parser"
 require "compiler"
 
 describe Compiler do
+  # TODO: do something better for tests
+  Compiler.use_std_lib = false
+
   context "literals" do
     it "1" do
       tokens = Lexer.new("1").tokenize

@@ -28,7 +28,7 @@ describe TypeEvaluator do
           line: 0,
           column: 0,
           type: { type: :symbol },
-          value: ":symbol",
+          value: "symbol",
         },
       ])
     end
@@ -109,7 +109,7 @@ describe TypeEvaluator do
             },
             {
               node_type: :symbol,
-              value: ":sym",
+              value: "sym",
               line: 0,
               column: 4,
             },

@@ -11,18 +11,6 @@ class Parser
     @indentation = indentation
   end
 
-  def statement
-    @statements[@line]
-  end
-
-  def token
-    statement[@token_index]
-  end
-
-  def column
-    token[0] if token
-  end
-
   def parse!
     _, _, ast = parse_with_position!
     return ast
@@ -46,12 +34,70 @@ class Parser
       next_line!
     end
     # TODO: find a better way to know if we're in a function
+    # Add implicit return
     unless @indentation == 0 || ast.last[:node_type] == :return
       node = ast.pop
       ast.push AST::return(node[:line], node[:column], node)
     end
     return @line, @token_index, ast
   end
+
+  private
+
+  def parse_expr!
+    type = peek_type
+    case
+    when [:int_lit, :str_lit, :float_lit, :symbol].include?(type)
+      lit_expr = parse_lit! type
+      peek = peek_type
+      case
+      when OPERATORS.include?(peek)
+        parse_operator_call! lit_expr
+      else lit_expr
+      end
+    when [:true, :false].include?(type)
+      parse_bool! type
+    when type == :open_square_bracket
+      parse_array!
+    when type == :open_brace
+      parse_record!
+    when type == :fn
+      parse_anon_function_def!
+    when type == :if
+      parse_if_expression!
+    when type == :identifier
+      sym_expr = parse_sym!
+      type = peek_type
+      case
+      when is_function?
+        parse_function_def! sym_expr
+      when OPERATORS.include?(type)
+        parse_operator_call! sym_expr
+      when is_function_call?
+        parse_function_call! sym_expr
+      else sym_expr
+      end
+    else
+      puts "no match [parse_expr!] :#{type}"
+      assert { false }
+    end
+  end
+
+  # Convenience methods
+
+  def statement
+    @statements[@line]
+  end
+
+  def token
+    statement[@token_index]
+  end
+
+  def column
+    token[0] if token
+  end
+
+  # Parsing helpers
 
   def next_line!
     @line += 1
@@ -101,50 +147,10 @@ class Parser
   end
 
   def is_function_call?
-    # TODO: multi-line function calls
-    !new_line?(1)
+    peek_type == :open_parenthesis
   end
 
-  def parse_expr!
-    type = peek_type
-    case
-    when [:int_lit, :str_lit, :float_lit, :symbol].include?(type)
-      lit_expr = parse_lit! type
-      peek = peek_type
-      case
-      when OPERATORS.include?(peek)
-        parse_operator_call! lit_expr
-      else lit_expr
-      end
-    when [:true, :false].include?(type)
-      parse_bool! type
-    when type == :open_square_bracket
-      parse_array!
-    when type == :open_brace
-      parse_record!
-    when type == :fn
-      parse_anon_function_def!
-    when type == :if
-      parse_if_expression!
-    when type == :identifier
-      sym_expr = parse_sym!
-      type = peek_type
-      case
-      when is_function?
-        parse_function_def! sym_expr
-      when OPERATORS.include?(type)
-        parse_operator_call! sym_expr
-      when is_function_call?
-        parse_function_call! sym_expr
-      else sym_expr
-      end
-    else
-      puts "no match [parse_expr!] :#{type}"
-      assert { false }
-    end
-  end
-
-  private
+  # Parsers
 
   def parse_return!(implicit_return = false)
     c, _ = consume! :return unless implicit_return
@@ -249,10 +255,13 @@ class Parser
   end
 
   def parse_function_call!(fn_expr)
+    consume! :open_parenthesis  
     args = []
-    while !new_line?
+    while peek_type != :close_parenthesis
       args.push parse_expr!
+      consume! :comma unless peek_type == :close_parenthesis
     end
+    consume! :close_parenthesis
 
     AST::function_call fn_expr[:line], fn_expr[:column], args, fn_expr
   end
