@@ -16,7 +16,6 @@ class Lexer
 
   def tokenize_line
     @tokens = []
-    @current_token = nil
     scanner = StringScanner.new(@line)
     while true
       column = scanner.pos
