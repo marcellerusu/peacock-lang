@@ -254,6 +254,6 @@ class Compiler
   end
 
   def eval_identifier_lookup(node)
-    node[:sym]
+    from_kabob_case node[:sym]
   end
 end
