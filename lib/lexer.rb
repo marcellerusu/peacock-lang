@@ -14,12 +14,6 @@ class Lexer
 
   private
 
-  def consume_token!
-    return if @current_token.nil?
-    @tokens.push @current_token.as_token if @current_token.valid?
-    @current_token = nil
-  end
-
   def tokenize_line
     @tokens = []
     @current_token = nil
