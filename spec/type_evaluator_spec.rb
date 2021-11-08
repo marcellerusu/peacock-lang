@@ -5,7 +5,7 @@ require "parser"
 describe TypeEvaluator do
   context "literals" do
     it "3" do
-      tokens = Lexer.new("3").tokenize
+      tokens = Lexer::tokenize("3")
       ast = Parser.new(tokens).parse!
       ast_with_types = TypeEvaluator.new(ast).eval
       expect(ast_with_types).to eq([
@@ -19,7 +19,7 @@ describe TypeEvaluator do
       ])
     end
     it ":symbol" do
-      tokens = Lexer.new(":symbol").tokenize
+      tokens = Lexer::tokenize(":symbol")
       ast = Parser.new(tokens).parse!
       ast_with_types = TypeEvaluator.new(ast).eval
       expect(ast_with_types).to eq([
@@ -33,7 +33,7 @@ describe TypeEvaluator do
       ])
     end
     it "4.5" do
-      tokens = Lexer.new("4.5").tokenize
+      tokens = Lexer::tokenize("4.5")
       ast = Parser.new(tokens).parse!
       ast_with_types = TypeEvaluator.new(ast).eval
       expect(ast_with_types).to eq([
@@ -47,7 +47,7 @@ describe TypeEvaluator do
       ])
     end
     it " \"some string\"" do
-      tokens = Lexer.new(" \"some string\"").tokenize
+      tokens = Lexer::tokenize(" \"some string\"")
       ast = Parser.new(tokens).parse!
       ast_with_types = TypeEvaluator.new(ast).eval
       expect(ast_with_types).to eq([
@@ -61,7 +61,7 @@ describe TypeEvaluator do
       ])
     end
     it "[1]" do
-      tokens = Lexer.new("[1]").tokenize
+      tokens = Lexer::tokenize("[1]")
       ast = Parser.new(tokens).parse!
       ast_with_types = TypeEvaluator.new(ast).eval
       expect(ast_with_types).to eq([
@@ -85,7 +85,7 @@ describe TypeEvaluator do
       ])
     end
     it "[1, :sym]" do
-      tokens = Lexer.new("[1, :sym]").tokenize
+      tokens = Lexer::tokenize("[1, :sym]")
       ast = Parser.new(tokens).parse!
       ast_with_types = TypeEvaluator.new(ast).eval
       expect(ast_with_types).to eq([
@@ -118,7 +118,7 @@ describe TypeEvaluator do
       ])
     end
     it "{ a: 3 }" do
-      tokens = Lexer.new("{ a: 3 }").tokenize
+      tokens = Lexer::tokenize("{ a: 3 }")
       ast = Parser.new(tokens).parse!
       ast_with_types = TypeEvaluator.new(ast).eval
       expect(ast_with_types).to eq([

@@ -1,22 +1,15 @@
 require "strscan"
-class Lexer
-  def initialize(program)
-    @program = program
-  end
-
-  def tokenize
-    lines = @program.split("\n")
+module Lexer
+  def self.tokenize(program)
+    lines = program.split("\n")
     lines.map do |line|
-      @line = line
-      tokenize_line
+      Lexer::tokenize_line line
     end
   end
 
-  private
-
-  def tokenize_line
-    @tokens = []
-    scanner = StringScanner.new(@line)
+  def self.tokenize_line(line)
+    tokens = []
+    scanner = StringScanner.new(line)
     while true
       column = scanner.pos
       case
@@ -27,81 +20,81 @@ class Lexer
       when scanner.scan(/#.*/)
         break
       when scanner.scan(/".*"/)
-        @tokens.push [column, :str_lit, scanner.matched[1...-1]]
+        tokens.push [column, :str_lit, scanner.matched[1...-1]]
       when scanner.scan(/(true|false)\b/)
-        @tokens.push [column, (scanner.matched == "true").to_s.to_sym]
+        tokens.push [column, (scanner.matched == "true").to_s.to_sym]
       when scanner.scan(/self\b/)
-        @tokens.push [column, :self]
+        tokens.push [column, :self]
       when scanner.scan(/fn\b/)
-        @tokens.push [column, :fn]
+        tokens.push [column, :fn]
       when scanner.scan(/if\b/)
-        @tokens.push [column, :if]
+        tokens.push [column, :if]
       when scanner.scan(/unless\b/)
-        @tokens.push [column, :unless]
+        tokens.push [column, :unless]
       when scanner.scan(/else\b/)
-        @tokens.push [column, :else]
+        tokens.push [column, :else]
       when scanner.scan(/end\b/)
-        @tokens.push [column, :end]
+        tokens.push [column, :end]
       when scanner.scan(/=>/)
-        @tokens.push [column, :arrow]
+        tokens.push [column, :arrow]
       when scanner.scan(/==/)
-        @tokens.push [column, :eq]
+        tokens.push [column, :eq]
       when scanner.scan(/=/)
-        @tokens.push [column, :declare]
+        tokens.push [column, :declare]
       when scanner.scan(/:=/)
-        @tokens.push [column, :assign]
+        tokens.push [column, :assign]
       when scanner.scan(/\(/)
-        @tokens.push [column, :open_parenthesis]
+        tokens.push [column, :open_parenthesis]
       when scanner.scan(/\)/)
-        @tokens.push [column, :close_parenthesis]
+        tokens.push [column, :close_parenthesis]
       when scanner.scan(/\{/)
-        @tokens.push [column, :open_brace]
+        tokens.push [column, :open_brace]
       when scanner.scan(/\}/)
-        @tokens.push [column, :close_brace]
+        tokens.push [column, :close_brace]
       when scanner.scan(/\[/)
-        @tokens.push [column, :open_square_bracket]
+        tokens.push [column, :open_square_bracket]
       when scanner.scan(/\]/)
-        @tokens.push [column, :close_square_bracket]
+        tokens.push [column, :close_square_bracket]
       when scanner.scan(/\./)
-        @tokens.push [column, :dot]
+        tokens.push [column, :dot]
       when scanner.scan(/,/)
-        @tokens.push [column, :comma]
+        tokens.push [column, :comma]
       when scanner.scan(/\*/)
-        @tokens.push [column, :mult]
+        tokens.push [column, :mult]
       when scanner.scan(/\//)
-        @tokens.push [column, :div]
+        tokens.push [column, :div]
       when scanner.scan(/\+/)
-        @tokens.push [column, :plus]
+        tokens.push [column, :plus]
       when scanner.scan(/-/)
-        @tokens.push [column, :minus]
+        tokens.push [column, :minus]
       when scanner.scan(/reduce\b/)
-        @tokens.push [column, :reduce]
+        tokens.push [column, :reduce]
       when scanner.scan(/next\b/)
-        @tokens.push [column, :next]
+        tokens.push [column, :next]
       when scanner.scan(/break\b/)
-        @tokens.push [column, :break]
+        tokens.push [column, :break]
       when scanner.scan(/module\b/)
-        @tokens.push [column, :module]
+        tokens.push [column, :module]
       when scanner.scan(/class\b/)
-        @tokens.push [column, :class]
+        tokens.push [column, :class]
       when scanner.scan(/return\b/)
-        @tokens.push [column, :return]
+        tokens.push [column, :return]
       when scanner.scan(/self\b/)
-        @tokens.push [column, :self]
+        tokens.push [column, :self]
       when scanner.scan(/:[a-zA-Z][a-zA-Z1-9\-!?]*/)
-        @tokens.push [column, :symbol, scanner.matched[1..]]
+        tokens.push [column, :symbol, scanner.matched[1..]]
       when scanner.scan(/:/)
-        @tokens.push [column, :colon]
+        tokens.push [column, :colon]
       when scanner.scan(/[a-zA-Z][a-zA-Z1-9\-!?]*/)
-        @tokens.push [column, :identifier, scanner.matched]
+        tokens.push [column, :identifier, scanner.matched]
       when scanner.scan(/\d+\.\d+/)
-        @tokens.push [column, :float_lit, scanner.matched.to_f]
+        tokens.push [column, :float_lit, scanner.matched.to_f]
       when scanner.scan(/\d+/)
-        @tokens.push [column, :int_lit, scanner.matched.to_i]
+        tokens.push [column, :int_lit, scanner.matched.to_i]
       else
         raise AssertionError
       end  
     end
-    return @tokens
+    return tokens
   end
 end

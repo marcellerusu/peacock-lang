@@ -185,9 +185,9 @@ class Parser
     record = {}
     line = @line
     while peek_type != :close_brace
+      # TODO: will have to allow more than strings as keys at some point
       _, sym = consume! :identifier
       consume! :colon
-      # TODO: will have to allow more than strings as keys at some point
       record[sym] = parse_expr!
       consume! :comma unless peek_type == :close_brace
     end

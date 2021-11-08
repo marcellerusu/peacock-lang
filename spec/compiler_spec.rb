@@ -8,31 +8,31 @@ describe Compiler do
 
   context "literals" do
     it "1" do
-      tokens = Lexer.new("1").tokenize
+      tokens = Lexer::tokenize("1")
       ast = Parser.new(tokens).parse!
       js = Compiler.new(ast).eval.strip
       expect(js).to eq("1;")
     end
     it "234.234" do
-      tokens = Lexer.new("234.234").tokenize
+      tokens = Lexer::tokenize("234.234")
       ast = Parser.new(tokens).parse!
       js = Compiler.new(ast).eval.strip
       expect(js).to eq("234.234;")
     end
     it "\"string\"" do
-      tokens = Lexer.new("\"string\"").tokenize
+      tokens = Lexer::tokenize("\"string\"")
       ast = Parser.new(tokens).parse!
       js = Compiler.new(ast).eval.strip
       expect(js).to eq("\"string\";")
     end
     it "[1, 2.3]" do
-      tokens = Lexer.new("[1, 2.3]").tokenize
+      tokens = Lexer::tokenize("[1, 2.3]")
       ast = Parser.new(tokens).parse!
       js = Compiler.new(ast).eval.strip
       expect(js).to eq("[1, 2.3];")
     end
     it "{a: 3, b: [1, 2.3, \"s\"]}" do
-      tokens = Lexer.new("{a: 3, b: [1, 2.3, \"s\"]}").tokenize
+      tokens = Lexer::tokenize("{a: 3, b: [1, 2.3, \"s\"]}")
       ast = Parser.new(tokens).parse!
       js = Compiler.new(ast).eval.strip
       expect(js).to eq("{
@@ -42,7 +42,7 @@ describe Compiler do
     end
     it "{a: 3, b: [1, 2.3, \"s\"], c: { d: 3 }}" do
       # TODO: fix indent on object
-      tokens = Lexer.new("{a: 3, b: [1, 2.3, \"s\"], c: { d: 3 }}").tokenize
+      tokens = Lexer::tokenize("{a: 3, b: [1, 2.3, \"s\"], c: { d: 3 }}")
       ast = Parser.new(tokens).parse!
       js = Compiler.new(ast).eval.strip
       expect(js).to eq("{

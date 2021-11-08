@@ -4,7 +4,7 @@ require "parser"
 describe Parser do
   context "assignment" do
     it "a := 3" do
-      tokens = Lexer.new("a := 3").tokenize
+      tokens = Lexer::tokenize("a := 3")
       ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { node_type: :assign,
@@ -18,7 +18,7 @@ describe Parser do
       ])
     end
     it "a := \"3\"" do
-      tokens = Lexer.new("a := \"3\"").tokenize
+      tokens = Lexer::tokenize("a := \"3\"")
       ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { node_type: :assign,
@@ -32,7 +32,7 @@ describe Parser do
       ])
     end
     it "a := 25.32" do
-      tokens = Lexer.new("a := 25.32").tokenize
+      tokens = Lexer::tokenize("a := 25.32")
       ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { node_type: :assign,
@@ -48,7 +48,7 @@ describe Parser do
   end
   context "literals" do
     it "true" do
-      tokens = Lexer.new("true").tokenize
+      tokens = Lexer::tokenize("true")
       ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { node_type: :bool_lit,
@@ -58,7 +58,7 @@ describe Parser do
       ])
     end
     it "false" do
-      tokens = Lexer.new("false").tokenize
+      tokens = Lexer::tokenize("false")
       ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { node_type: :bool_lit,
@@ -68,7 +68,7 @@ describe Parser do
       ])
     end
     it ":symbol" do
-      tokens = Lexer.new(":symbol").tokenize
+      tokens = Lexer::tokenize(":symbol")
       ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { node_type: :symbol,
@@ -78,7 +78,7 @@ describe Parser do
       ])
     end
     it "[]" do
-      tokens = Lexer.new("[]").tokenize
+      tokens = Lexer::tokenize("[]")
       ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { node_type: :array_lit,
@@ -88,7 +88,7 @@ describe Parser do
       ])
     end
     it "[false]" do
-      tokens = Lexer.new("[false]").tokenize
+      tokens = Lexer::tokenize("[false]")
       ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { node_type: :array_lit,
@@ -101,7 +101,7 @@ describe Parser do
       ])
     end
     it "[false, 1, \"3\"]" do
-      tokens = Lexer.new("[false, 1, \"3\"]").tokenize
+      tokens = Lexer::tokenize("[false, 1, \"3\"]")
       ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { node_type: :array_lit,
@@ -122,7 +122,7 @@ describe Parser do
       ])
     end
     it "{ a: 3.5 }" do
-      tokens = Lexer.new("{ a: 3.5 }").tokenize
+      tokens = Lexer::tokenize("{ a: 3.5 }")
       ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { node_type: :record_lit,
@@ -137,7 +137,7 @@ describe Parser do
       ])
     end
     it "{a: [false, 1, \"3\"]}" do
-      tokens = Lexer.new("{a: [false, 1, \"3\"]}").tokenize
+      tokens = Lexer::tokenize("{a: [false, 1, \"3\"]}")
       ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { node_type: :record_lit,
@@ -163,7 +163,7 @@ describe Parser do
       ])
     end
     it "[{ a: 3.5 }]" do
-      tokens = Lexer.new("[{ a: 3.5 }]").tokenize
+      tokens = Lexer::tokenize("[{ a: 3.5 }]")
       ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { node_type: :array_lit,
@@ -181,7 +181,7 @@ describe Parser do
   end
   context "functions" do
     it "a := fn => 1" do
-      tokens = Lexer.new("a := fn => 1").tokenize
+      tokens = Lexer::tokenize("a := fn => 1")
       ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { node_type: :assign,
@@ -208,7 +208,7 @@ describe Parser do
       ])
     end
     it "id := fn x => x" do
-      tokens = Lexer.new("id := fn x => x".strip).tokenize
+      tokens = Lexer::tokenize("id := fn x => x".strip)
       ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { node_type: :assign,
@@ -241,7 +241,7 @@ describe Parser do
     end
 
     it "a + b" do
-      tokens = Lexer.new("a + b").tokenize
+      tokens = Lexer::tokenize("a + b")
       ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { node_type: :function_call,
@@ -265,7 +265,7 @@ describe Parser do
     end
 
     it "1.5 + 2.4" do
-      tokens = Lexer.new("1.5 + 2.4").tokenize
+      tokens = Lexer::tokenize("1.5 + 2.4")
       ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { node_type: :function_call,
@@ -292,7 +292,7 @@ describe Parser do
     end
 
     it "add a b = a + b" do
-      tokens = Lexer.new("add a b = a + b").tokenize
+      tokens = Lexer::tokenize("add a b = a + b")
       ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { node_type: :declare,
@@ -341,10 +341,10 @@ describe Parser do
       ])
     end
     it "add a b = return a + b" do
-      tokens = Lexer.new("
+      tokens = Lexer::tokenize("
 add a b =
   return a + b
-".strip).tokenize
+".strip)
       ast = Parser.new(tokens).parse!
       # puts "#{ast}"
       expect(ast).to eq([
@@ -395,7 +395,7 @@ add a b =
     end
 
     it "add(1, 2)" do
-      tokens = Lexer.new("add(1, 2)").tokenize
+      tokens = Lexer::tokenize("add(1, 2)")
       ast = Parser.new(tokens).parse!
       expect(ast).to eq(
         [
@@ -421,7 +421,7 @@ add a b =
 
   context "if expressions" do
     it "if true end" do
-      tokens = Lexer.new("if true end").tokenize
+      tokens = Lexer::tokenize("if true end")
       ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { node_type: :if,
@@ -436,7 +436,7 @@ add a b =
       ])
     end
     it "if true else end" do
-      tokens = Lexer.new("if true else end").tokenize
+      tokens = Lexer::tokenize("if true else end")
       ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { node_type: :if,
@@ -451,7 +451,7 @@ add a b =
       ])
     end
     it "if true else if false end" do
-      tokens = Lexer.new("if true else if false end").tokenize
+      tokens = Lexer::tokenize("if true else if false end")
       ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { node_type: :if,
@@ -479,10 +479,10 @@ add a b =
 
   context "statements" do
     it "statements in multiple lines" do
-      tokens = Lexer.new("
+      tokens = Lexer::tokenize("
 a := 1
 
-a := 1".strip).tokenize
+a := 1".strip)
       # puts "#{tokens}"
       ast = Parser.new(tokens).parse!
       expect(ast).to eq([
