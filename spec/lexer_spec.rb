@@ -3,15 +3,15 @@ require "lexer"
 describe Lexer, "#tokenize" do
   describe "single tokens" do
     it "should tokenize variable" do
-      res = Lexer::tokenize("variable-name!")
+      res = Lexer::tokenize("variable_name!")
       expect(res).to eq([
         # Line 1, col 0
-        [[0, :identifier, "variable-name!"]],
+        [[0, :identifier, "variable_name!"]],
       ])
     end
 
     it "true" do
-      res = Lexer::tokenize("true")   
+      res = Lexer::tokenize("true")
       expect(res).to eq([
         # Line 1, col 0
         [[0, :true]],
@@ -19,13 +19,12 @@ describe Lexer, "#tokenize" do
     end
 
     it "false" do
-      res = Lexer::tokenize("false")  
+      res = Lexer::tokenize("false")
       expect(res).to eq([
         # Line 1, col 0
         [[0, :false]],
       ])
     end
-
 
     it "should ignore comments" do
       res = Lexer::tokenize("# something-ok = ")

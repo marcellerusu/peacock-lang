@@ -7,6 +7,7 @@ class Compiler
   def self.use_std_lib=(other)
     @@use_std_lib = other
   end
+
   def initialize(ast, indent = 0)
     @ast = ast
     @indent = indent
@@ -86,14 +87,6 @@ class Compiler
     " " * (@indent + by)
   end
 
-  def from_kabob_case(sym)
-    sym.sub("_", "__").sub("-", "_")
-  end
-
-  def to_kabob_case(sym)
-    sym.sub("__", "_").sub("_", "-")
-  end
-
   def collapse_function_overloading
     functions = @ast
       .filter { |node| node[:node_type] == :declare }
@@ -104,8 +97,7 @@ class Compiler
     function = ""
     functions.each do |sym, function_group|
       indent!
-      function_name = from_kabob_case(sym)
-      function << "const " << function_name << " = "
+      function << "const " << sym << " = "
       function << "(...params)" << " => "
       function << "{" << "\n" << padding
       function << "const functions = ["
@@ -133,7 +125,7 @@ class Compiler
     if nodes.any?
       vars = padding
       vars << "let "
-      vars << nodes.map { |node| from_kabob_case(node[:sym]) }.join(", ")
+      vars << nodes.map { |node| node[:sym] }.join(", ")
       vars << ";" << "\n"
     end
     vars || ""
@@ -221,13 +213,13 @@ class Compiler
 
   def eval_declaration(node)
     declaration = "const "
-    declaration << from_kabob_case(node[:sym])
+    declaration << node[:sym]
     declaration << " = "
     declaration << eval_expr(node[:expr])
   end
 
   def eval_assignment(node)
-    assignment = from_kabob_case(node[:sym])
+    assignment = node[:sym]
     assignment << " = "
     assignment << eval_expr(node[:expr])
   end
@@ -254,6 +246,6 @@ class Compiler
   end
 
   def eval_identifier_lookup(node)
-    from_kabob_case node[:sym]
+    node[:sym]
   end
 end

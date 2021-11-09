@@ -1,4 +1,5 @@
 require "strscan"
+
 module Lexer
   def self.tokenize(program)
     lines = program.split("\n")
@@ -81,11 +82,11 @@ module Lexer
         tokens.push [column, :return]
       when scanner.scan(/self\b/)
         tokens.push [column, :self]
-      when scanner.scan(/:[a-zA-Z][a-zA-Z1-9\-!?]*/)
+      when scanner.scan(/:[a-zA-Z][a-zA-Z1-9\_!?]*/)
         tokens.push [column, :symbol, scanner.matched[1..]]
       when scanner.scan(/:/)
         tokens.push [column, :colon]
-      when scanner.scan(/[a-zA-Z][a-zA-Z1-9\-!?]*/)
+      when scanner.scan(/[a-zA-Z][a-zA-Z1-9\_!?]*/)
         tokens.push [column, :identifier, scanner.matched]
       when scanner.scan(/\d+\.\d+/)
         tokens.push [column, :float_lit, scanner.matched.to_f]
@@ -93,7 +94,7 @@ module Lexer
         tokens.push [column, :int_lit, scanner.matched.to_i]
       else
         raise AssertionError
-      end  
+      end
     end
     return tokens
   end
