@@ -1,7 +1,9 @@
 require "utils"
 # require "pry"
 
-OPERATORS = [:plus, :minus, :mult, :div, :pipe, :eq, :not_eq]
+OPERATORS = [:plus, :minus, :mult, :div, :and, :or, :schema_and, :schema_or, :eq, :not_eq]
+
+ANON_SHORTHAND_ID = "__ANON_SHORT"
 
 class Parser
   def initialize(statements, line = 0, token_index = 0, indentation = 0)
@@ -21,7 +23,9 @@ class Parser
     next_line! unless token
     while @line < @statements.size && (column.nil? || column >= @indentation)
       break if end_tokens.include? peek_type
-      if peek_type == :identifier && peek_type(1) == :assign
+      if peek_type == :schema
+        ast.push parse_schema!
+      elsif peek_type == :identifier && peek_type(1) == :assign
         ast.push parse_assignment!
       elsif peek_type == :return
         ast.push parse_return!
@@ -44,8 +48,125 @@ class Parser
 
   private
 
-  def parse_expr!
+  def prev_line!
+    @line -= 1
+    @column = statement.size - 1
+  end
+
+  def undo_one!
+    return prev_line! if @column == 0
+    @column -= 1
+  end
+
+  def undo_until!(line, column)
+    while @line != line && @column != column
+      undo_one!
+    end
+  end
+
+  def find_anon_shorthand
+    expr = parse_expr!(false)
+    return id_function if expr[:node_type] == :anon_short
+    return transform_array_to_fn(expr) if expr[:node_type] == :array_lit
+    return transform_record_to_fn(expr) if expr[:node_type] == :record_lit
+    return transform_dot_to_fn(expr) if expr[:node_type] == :property_lookup
+    return transform_fn_call_to_fn(expr) if expr[:node_type] == :function_call
+  end
+
+  def transform_array_to_fn(expr)
+    found = false
+    pp expr
+    expr[:value] = expr[:value].map do |node|
+      node, f = convert_node(node)
+      found ||= f
+      node
+    end
+    # pp expr
+    if found
+      anon_shorthand_func(expr)
+    else
+      expr
+    end
+  end
+
+  def transform_record_to_fn(expr)
+    found = false
+    expr[:value] = expr[:value].map do |k, node|
+      node, f = convert_node(node)
+      found ||= f
+      [k, node]
+    end
+    if found
+      anon_shorthand_func(expr)
+    else
+      expr
+    end
+  end
+
+  def transform_dot_to_fn(expr)
+    args = [anon_shorthand_arg(expr)]
+    body = [
+      AST::return(
+        expr[:line],
+        expr[:column],
+        AST::dot(expr[:line],
+                 expr[:column],
+                 anon_shorthand_lookup(expr), expr[:property])
+      ),
+    ]
+    AST::function(expr[:line], expr[:column], body, args)
+  end
+
+  def transform_fn_call_to_fn(expr)
+    args = [anon_shorthand_arg(expr)]
+    body = [
+      AST::return(
+        expr[:line],
+        expr[:column],
+        AST::function_call(expr[:line],
+                           expr[:column],
+                           [anon_shorthand_lookup(expr)],
+                           expr[:expr])
+      ),
+    ]
+    AST::function(expr[:line], expr[:column], body, args)
+  end
+
+  def convert_node(node)
+    node = anon_shorthand_lookup(node) if node[:node_type] == :anon_short
+    node = transform_array_to_fn(node) if node[:node_type] == :array_lit
+    node = transform_record_to_fn(node) if node[:node_type] == :record_lit
+    node = transform_dot_to_fn(node) if node[:node_type] == :property_lookup
+    node = transform_fn_call_to_fn(node) if node[:node_type] == :function_call
+    [node, node[:node_type] == :function]
+  end
+
+  def anon_shorthand_func(expr)
+    AST::function(expr[:line], expr[:column], [expr], [anon_shorthand_arg(expr)])
+  end
+
+  def anon_shorthand_lookup(node)
+    AST::identifier_lookup(node[:line], node[:column], ANON_SHORTHAND_ID)
+  end
+
+  def anon_shorthand_arg(node)
+    AST::function_argument(node[:line], node[:column], ANON_SHORTHAND_ID)
+  end
+
+  def id_function
+    AST::function(@line, @column, [
+      AST::return(@line, @column, AST::identifier_lookup(@line, @column, ANON_SHORTHAND_ID)),
+    ], [
+      AST::function_argument(@line, @column, ANON_SHORTHAND_ID),
+    ])
+  end
+
+  def parse_expr!(check_anon = true)
     type = peek_type
+    if check_anon
+      anon_shorthand_fn = find_anon_shorthand
+      return anon_shorthand_fn if anon_shorthand_fn[:node_type] == :function
+    end
     case
     when [:int_lit, :str_lit, :float_lit, :symbol].include?(type)
       lit_expr = parse_lit! type
@@ -69,14 +190,21 @@ class Parser
       sym_expr = parse_sym!
       type = peek_type
       case
-      when is_function?
-        parse_function_def! sym_expr
+      when type == :dot
+        parse_dot_expression! sym_expr
       when OPERATORS.include?(type)
-        parse_operator_call! sym_expr
+        parse_function_def! sym_expr
       when is_function_call?
         parse_function_call! sym_expr
+      when is_function?
+        parse_operator_call! sym_expr
       else sym_expr
       end
+    when type == :anon_short
+      consume! :anon_short
+      { node_type: :anon_short,
+        line: @line,
+        column: @column }
     else
       puts "no match [parse_expr!] :#{type}"
       assert { false }
@@ -169,10 +297,7 @@ class Parser
 
   def parse_lit!(type)
     c, lit = consume! type
-    { node_type: type,
-      line: @line,
-      column: c,
-      value: lit }
+    AST::literal @line, c, type, lit
   end
 
   def parse_bool!(type)
@@ -187,8 +312,12 @@ class Parser
     while peek_type != :close_brace
       # TODO: will have to allow more than strings as keys at some point
       _, sym = consume! :identifier
-      consume! :colon
-      record[sym] = parse_expr!
+      if peek_type == :colon
+        consume! :colon
+        record[sym] = parse_expr!
+      else
+        record[sym] = call_schema_any
+      end
       consume! :comma unless peek_type == :close_brace
     end
     consume! :close_brace
@@ -248,14 +377,17 @@ class Parser
   def parse_operator_call!(lhs)
     c1, _, op = consume!
     rhs_expr = parse_expr!
-    fn_identifier = "Peacock.#{op.to_s}"
-
-    operator = AST::identifier_lookup @line, c1, fn_identifier
+    operator = case op
+      when :plus, :minus, :mult, :div, :and, :or, :eq, :not_eq
+        dot(peacock, [c1, op.to_s])
+      when :schema_and, :schema_or
+        dot(schema, [c1, op.to_s.split("schema_")[1]])
+      end
     AST::function_call @line, c1, [lhs, rhs_expr], operator
   end
 
   def parse_function_call!(fn_expr)
-    consume! :open_parenthesis  
+    consume! :open_parenthesis
     args = []
     while peek_type != :close_parenthesis
       args.push parse_expr!
@@ -263,7 +395,55 @@ class Parser
     end
     consume! :close_parenthesis
 
+    return parse_match_assignment!(fn_expr, args[0]) if args.size == 1 && peek_type == :assign
+
     AST::function_call fn_expr[:line], fn_expr[:column], args, fn_expr
+  end
+
+  def parse_match_assignment!(fn_expr, match_expr)
+    # TODO: line & column #s are off
+    line, c = @line, @column
+    consume! :assign
+    expr = parse_expr!
+    if_expr = call_schema_valid(fn_expr, expr)
+
+    pass_body = find_bound_variables(match_expr).map do |path, sym|
+      AST::assignment(sym, @line, @column, eval_path_on_expr(path, expr))
+    end
+    fail_body = [
+      AST::throw(@line, @column, AST::str(@line, @column, "Match error")),
+    ]
+    AST::if line, c, if_expr, pass_body, fail_body
+  end
+
+  def eval_path_on_expr(path, expr)
+    assert { path == nil || path.is_a?(String) }
+    # pp dot(expr, path)
+    return dot(expr, path) if path.is_a?(String)
+    return expr
+  end
+
+  def find_bound_variables(match_expr)
+    case match_expr[:node_type]
+    when :identifier_lookup
+      return [[nil, match_expr[:sym]]]
+    when :record_lit
+      bound_variables = []
+      match_expr[:value].each do |key, value|
+        bound_variables.push [key, key] if schema_any?(value)
+      end
+      bound_variables
+    end
+  end
+
+  def schema_any?(node)
+    # function_call([], dot(schema, "any"))
+    # pp node
+    node[:node_type] == :function_call &&
+      node[:expr][:node_type] == :property_lookup &&
+      node[:expr][:lhs_expr][:lhs_expr][:sym] == "Peacock" &&
+      node[:expr][:lhs_expr][:property][:value] == "Schema" &&
+      node[:expr][:property][:value] == "any"
   end
 
   def parse_if_expression!
@@ -272,7 +452,7 @@ class Parser
     if_line = @line
     check = parse_expr!
     @line, @token_index, pass_body = Parser.new(@statements, @line, @token_index, @indentation).parse_with_position! end_tokens
-    # consume! :then if peek_token :then
+    consume! :then if peek_type == :then
     unless peek_type == :else
       consume! :end
       return AST::if if_line, c, check, pass_body, []
@@ -288,9 +468,94 @@ class Parser
     c, sym = consume! :identifier
     AST::identifier_lookup @line, c, sym
   end
+
+  def parse_dot_expression!(lhs)
+    c, line = @column, @line
+    consume! :dot
+    AST::dot line, c, lhs, consume!(:identifier)
+  end
+
+  # Schema parsing
+
+  def peacock
+    AST::identifier_lookup @line, @column, "Peacock"
+  end
+
+  def schema
+    dot(peacock, "Schema")
+  end
+
+  def call_schema_valid(schema_fn, expr)
+    function_call([expr], dot(schema_fn, "valid"))
+  end
+
+  def call_schema_any
+    function_call([], dot(schema, "any"))
+  end
+
+  def schema_for
+    dot(dot(peacock, "Schema"), "for")
+  end
+
+  def dot(lhs, id)
+    id = [@column, id] unless id.is_a?(Array)
+    AST::dot @line, @column, lhs, id
+  end
+
+  def function_call(args, expr)
+    AST::function_call(@line, @column, args, expr)
+  end
+
+  def parse_schema!
+    line = @line
+    consume! :schema
+    c, sym = consume! :identifier
+    consume! :declare
+    expr = parse_expr!
+    schema = function_call([expr], schema_for)
+    while OPERATORS.include?(peek_type)
+      schema = parse_operator_call!(schema)
+    end
+    AST::assignment(sym, line, c, schema)
+  end
 end
 
 module AST
+  def self.literal(line, c, type, value)
+    { node_type: type,
+      line: line,
+      column: c,
+      value: value }
+  end
+
+  def self.array(line, c, value)
+    { node_type: :array_lit,
+      line: line,
+      column: c,
+      value: value }
+  end
+
+  def self.record(line, c, value)
+    { node_type: :record_lit,
+      line: line,
+      column: c,
+      value: value }
+  end
+
+  def self.bool(line, c, value)
+    { node_type: :bool_lit,
+      line: line,
+      column: c,
+      value: value }
+  end
+
+  def self.str(line, c, value)
+    { node_type: :str_lit,
+      line: line,
+      column: c,
+      value: value }
+  end
+
   def self.return(line, c, expr)
     { node_type: :return,
       line: line,
@@ -345,30 +610,31 @@ module AST
       expr: expr }
   end
 
-  def self.array(line, c, value)
-    { node_type: :array_lit,
-      line: line,
-      column: c,
-      value: value }
-  end
-
-  def self.record(line, c, value)
-    { node_type: :record_lit,
-      line: line,
-      column: c,
-      value: value }
-  end
-
-  def self.bool(line, c, value)
-    { node_type: :bool_lit,
-      line: line,
-      column: c,
-      value: value }
-  end
-
   def self.assignment(sym, line, c, expr)
     { node_type: :assign,
       sym: sym,
+      line: line,
+      column: c,
+      expr: expr }
+  end
+
+  def self.property_lookup(line, c, lhs_expr, property)
+    # just convert to string for now... TODO: idk
+    { node_type: :property_lookup,
+      lhs_expr: lhs_expr,
+      line: line,
+      column: c,
+      property: property }
+  end
+
+  def self.dot(line, c, lhs_expr, id)
+    lit_c, sym = id
+    property = AST::literal line, lit_c, :str_lit, sym
+    AST::property_lookup line, c, lhs_expr, property
+  end
+
+  def self.throw(line, c, expr)
+    { node_type: :throw,
       line: line,
       column: c,
       expr: expr }

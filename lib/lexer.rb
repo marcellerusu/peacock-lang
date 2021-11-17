@@ -66,6 +66,16 @@ module Lexer
         tokens.push [column, :div]
       when scanner.scan(/\+/)
         tokens.push [column, :plus]
+      when scanner.scan(/\|\|/)
+        tokens.push [column, :or]
+      when scanner.scan(/&&/)
+        tokens.push [column, :and]
+      when scanner.scan(/\|/)
+        tokens.push [column, :schema_or]
+      when scanner.scan(/&/)
+        tokens.push [column, :schema_and]
+      when scanner.scan(/%/)
+        tokens.push [column, :anon_short]
       when scanner.scan(/-/)
         tokens.push [column, :minus]
       when scanner.scan(/reduce\b/)
@@ -80,8 +90,8 @@ module Lexer
         tokens.push [column, :class]
       when scanner.scan(/return\b/)
         tokens.push [column, :return]
-      when scanner.scan(/self\b/)
-        tokens.push [column, :self]
+      when scanner.scan(/schema\b/)
+        tokens.push [column, :schema]
       when scanner.scan(/:[a-zA-Z][a-zA-Z1-9\_!?]*/)
         tokens.push [column, :symbol, scanner.matched[1..]]
       when scanner.scan(/:/)

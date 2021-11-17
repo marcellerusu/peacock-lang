@@ -26,6 +26,17 @@ class Compiler
     program.rstrip
   end
 
+  def eval_without_variable_declarations
+    program = ""
+    program << collapse_function_overloading
+    @ast.each do |statement|
+      program << " " * @indent
+      program << eval_expr(statement)
+      program << ";" << "\n"
+    end
+    program.rstrip
+  end
+
   private
 
   def first_run?
@@ -34,17 +45,100 @@ class Compiler
   end
 
   def std_lib
-    functions = find_used_peacock_functions
+    functions = [] # find_used_peacock_functions
     code = "const __Symbols = {}\n"
+    code << schema_lib
     code << "const Peacock = {\n"
     indent!
     code << padding << "plus: (a, b) => a + b,\n" if functions.include? "Peacock.plus"
     code << padding << "minus: (a, b) => a - b,\n" if functions.include? "Peacock.minus"
     code << padding << "symbol: symName => __Symbols[symName] || (__Symbols[symName] = Symbol(symName)),\n"
     code << padding << "eq: (a, b) => a === b,\n"
+    code << padding << "Schema,\n"
     dedent!
     code << "};\n"
     code << "const print = (...params) => console.log(...params);\n"
+  end
+
+  def schema_lib
+    <<-EOS
+class Schema {
+  static for(schema) {
+    if (schema instanceof Schema) return schema;
+    if (schema instanceof Array) return new OrSchema(...schema);
+    if (schema instanceof Function) return new FnSchema(schema);
+    if (schema === undefined) return new AnySchema();
+    // TODO: this should be more specific
+    if (typeof schema === "object") return new RecordSchema(schema);
+    const literals = ["boolean", "number", "string", "symbol"];
+    if (literals.includes(typeof schema)) return new LiteralSchema(schema);
+  }
+
+  static or(...schema) {
+    return new OrSchema(...schema);
+  }
+
+  static any() {
+    return new AnySchema();
+  }
+
+  constructor(schema) {
+    this.schema = schema;
+  }
+
+  valid(other) {
+    throw null;
+  }
+}
+
+class OrSchema extends Schema {
+  constructor(...schema) {
+    super(schema.map(Schema.for));
+  }
+  valid(other) {
+    return this.schema.some((s) => s.valid(other));
+  }
+}
+
+class AndSchema extends Schema {
+  constructor(...schema) {
+    super(schema.map(Schema.for));
+  }
+  valid(other) {
+    return this.schema.every((s) => s.valid(other));
+  }
+}
+
+class RecordSchema extends Schema {
+  constructor(schema) {
+    super(Object.entries(schema).map(([k, v]) => [k, Schema.for(v)]));
+  }
+
+  valid(other) {
+    return this.schema.every(
+      ([k, v]) => typeof other[k] !== "undefined" && v.valid(other[k])
+    );
+  }
+}
+
+class FnSchema extends Schema {
+  valid(other) {
+    return this.schema(other);
+  }
+}
+
+class AnySchema extends Schema {
+  valid(other) {
+    return true;
+  }
+}
+
+class LiteralSchema extends Schema {
+  valid(other) {
+    return this.schema === other;
+  }
+}
+    EOS
   end
 
   def find_function_call_in(node)
@@ -132,7 +226,15 @@ class Compiler
   end
 
   def find_assignments
-    @ast.filter { |node| node[:node_type] == :assign }
+    @ast
+      .flat_map { |node|
+      if node[:node_type] == :if
+        node[:pass] + node[:fail]
+      else
+        [node]
+      end
+    }
+      .filter { |node| node[:node_type] == :assign }
       .uniq { |node| node[:sym] }
   end
 
@@ -142,6 +244,8 @@ class Compiler
       eval_declaration node
     when :assign
       eval_assignment node
+    when :property_lookup
+      eval_property_lookup node
     when :array_lit
       eval_array node
     when :record_lit
@@ -166,10 +270,24 @@ class Compiler
       eval_if_expression node
     when :symbol
       eval_symbol node
+    when :throw
+      eval_throw node
     else
       puts "no case matched node_type: #{node[:node_type]}"
       assert { false }
     end
+  end
+
+  def eval_if_expression(node)
+    _if = padding << "if (" << eval_expr(node[:expr]) << ")" << "{\n"
+    _if << Compiler.new(node[:pass], @indent + 2).eval_without_variable_declarations << "\n"
+    _if << padding << "} else {\n"
+    _if << Compiler.new(node[:fail], @indent + 2).eval_without_variable_declarations << "\n"
+    _if << padding << "}"
+  end
+
+  def eval_throw(node)
+    "throw " << eval_expr(node[:expr])
   end
 
   def eval_symbol(node)
@@ -211,6 +329,10 @@ class Compiler
     record << "\n" << padding << "}"
   end
 
+  def eval_property_lookup(node)
+    eval_expr(node[:lhs_expr]) << "[" << eval_expr(node[:property]) << "]"
+  end
+
   def eval_declaration(node)
     declaration = "const "
     declaration << node[:sym]
@@ -219,7 +341,7 @@ class Compiler
   end
 
   def eval_assignment(node)
-    assignment = node[:sym]
+    assignment = node[:sym] + ""
     assignment << " = "
     assignment << eval_expr(node[:expr])
   end
