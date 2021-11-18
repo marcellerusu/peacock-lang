@@ -1,7 +1,7 @@
 require "utils"
 # require "pry"
 
-OPERATORS = [:plus, :minus, :mult, :div, :and, :or, :schema_and, :schema_or, :eq, :not_eq]
+OPERATORS = [:plus, :minus, :mult, :div, :and, :or, :schema_and, :schema_or, :eq, :not_eq, :gt, :ls, :gt_eq, :ls_eq]
 
 ANON_SHORTHAND_ID = "__ANON_SHORT_ID"
 
@@ -150,10 +150,7 @@ class Parser
     end
   end
 
-  # Individual parsers
-
-  def parse_identifier!
-    sym_expr = parse_sym!
+  def parse_id_modifier_if_exists!(sym_expr)
     type = peek_type
     case
     when type == :dot
@@ -166,6 +163,13 @@ class Parser
       parse_function_def! sym_expr
     else sym_expr
     end
+  end
+
+  # Individual parsers
+
+  def parse_identifier!
+    sym_expr = parse_sym!
+    parse_id_modifier_if_exists!(sym_expr)
   end
 
   def parse_return!(implicit_return = false)
@@ -237,7 +241,8 @@ class Parser
 
   def parse_anon_short_id!
     consume! :anon_short_id
-    AST::identifier_lookup(@line, @column, ANON_SHORTHAND_ID)
+    sym_expr = AST::identifier_lookup(@line, @column, ANON_SHORTHAND_ID)
+    parse_id_modifier_if_exists!(sym_expr)
   end
 
   def parse_function_arguments!(end_type)
@@ -282,10 +287,10 @@ class Parser
     c1, _, op = consume!
     rhs_expr = parse_expr!
     operator = case op
-      when :plus, :minus, :mult, :div, :and, :or, :eq, :not_eq
-        dot(peacock, [c1, op.to_s])
       when :schema_and, :schema_or
         dot(schema, [c1, op.to_s.split("schema_")[1]])
+      else
+        dot(peacock, [c1, op.to_s])
       end
     AST::function_call @line, c1, [lhs, rhs_expr], operator
   end

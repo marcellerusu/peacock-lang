@@ -45,13 +45,18 @@ class Compiler
   end
 
   def std_lib
-    functions = [] # find_used_peacock_functions
     code = "const __Symbols = {}\n"
     code << schema_lib
     code << "const Peacock = {\n"
     indent!
-    code << padding << "plus: (a, b) => a + b,\n" if functions.include? "Peacock.plus"
-    code << padding << "minus: (a, b) => a - b,\n" if functions.include? "Peacock.minus"
+    code << padding << "plus: (a, b) => a + b,\n"
+    code << padding << "minus: (a, b) => a - b,\n"
+    code << padding << "mult: (a, b) => a * b,\n"
+    code << padding << "div: (a, b) => a / b,\n"
+    code << padding << "gt: (a, b) => a > b,\n"
+    code << padding << "ls: (a, b) => a < b,\n"
+    code << padding << "gt_eq: (a, b) => a >= b,\n"
+    code << padding << "ls_eq: (a, b) => a <= b,\n"
     code << padding << "symbol: symName => __Symbols[symName] || (__Symbols[symName] = Symbol(symName)),\n"
     code << padding << "eq: (a, b) => a === b,\n"
     code << padding << "Schema,\n"
@@ -76,6 +81,14 @@ class Schema {
 
   static or(...schema) {
     return new OrSchema(...schema);
+  }
+
+  static and(a, b) {
+    [a, b] = [Schema.for(a), Schema.for(b)];
+    if (a instanceof RecordSchema && b instanceof RecordSchema) {
+      return a.combine(b);
+    }
+    return new AndSchema(a, b);
   }
 
   static any() {
@@ -112,6 +125,14 @@ class AndSchema extends Schema {
 class RecordSchema extends Schema {
   constructor(schema) {
     super(Object.entries(schema).map(([k, v]) => [k, Schema.for(v)]));
+  }
+
+  combine(other) {
+    let newSchema = Object.fromEntries(this.schema);
+    for (let [k, v] of other.schema) {
+      newSchema[k] = v;
+    }
+    return new RecordSchema(newSchema);
   }
 
   valid(other) {

@@ -1,2 +1,4 @@
-f := #{[%]}
-print(f(1123))
+schema GT3 = { id } & { name: "Marcelle" }
+
+GT3(b) := { id: 4, name: "Marcelle" }
+print(b)

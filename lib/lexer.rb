@@ -68,6 +68,14 @@ module Lexer
         tokens.push [column, :div]
       when scanner.scan(/\+/)
         tokens.push [column, :plus]
+      when scanner.scan(/\>/)
+        tokens.push [column, :gt]
+      when scanner.scan(/</)
+        tokens.push [column, :ls]
+      when scanner.scan(/\>=/)
+        tokens.push [column, :gt_eq]
+      when scanner.scan(/<=/)
+        tokens.push [column, :ls_eq]
       when scanner.scan(/\|\|/)
         tokens.push [column, :or]
       when scanner.scan(/&&/)
