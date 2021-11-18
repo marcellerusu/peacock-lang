@@ -18,6 +18,8 @@ module Lexer
         break
       when scanner.scan(/\s+/)
         next
+      when scanner.scan(/#\{/)
+        tokens.push [column, :anon_short_fn_start]
       when scanner.scan(/#.*/)
         break
       when scanner.scan(/".*"/)
@@ -75,7 +77,7 @@ module Lexer
       when scanner.scan(/&/)
         tokens.push [column, :schema_and]
       when scanner.scan(/%/)
-        tokens.push [column, :anon_short]
+        tokens.push [column, :anon_short_id]
       when scanner.scan(/-/)
         tokens.push [column, :minus]
       when scanner.scan(/reduce\b/)

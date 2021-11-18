@@ -3,7 +3,7 @@ require "utils"
 
 OPERATORS = [:plus, :minus, :mult, :div, :and, :or, :schema_and, :schema_or, :eq, :not_eq]
 
-ANON_SHORTHAND_ID = "__ANON_SHORT"
+ANON_SHORTHAND_ID = "__ANON_SHORT_ID"
 
 class Parser
   def initialize(statements, line = 0, token_index = 0, indentation = 0)
@@ -47,169 +47,6 @@ class Parser
   end
 
   private
-
-  def prev_line!
-    @line -= 1
-    @column = statement.size - 1
-  end
-
-  def undo_one!
-    return prev_line! if @column == 0
-    @column -= 1
-  end
-
-  def undo_until!(line, column)
-    while @line != line && @column != column
-      undo_one!
-    end
-  end
-
-  def find_anon_shorthand
-    expr = parse_expr!(false)
-    return id_function if expr[:node_type] == :anon_short
-    return transform_array_to_fn(expr) if expr[:node_type] == :array_lit
-    return transform_record_to_fn(expr) if expr[:node_type] == :record_lit
-    return transform_dot_to_fn(expr) if expr[:node_type] == :property_lookup
-    return transform_fn_call_to_fn(expr) if expr[:node_type] == :function_call
-  end
-
-  def transform_array_to_fn(expr)
-    found = false
-    pp expr
-    expr[:value] = expr[:value].map do |node|
-      node, f = convert_node(node)
-      found ||= f
-      node
-    end
-    # pp expr
-    if found
-      anon_shorthand_func(expr)
-    else
-      expr
-    end
-  end
-
-  def transform_record_to_fn(expr)
-    found = false
-    expr[:value] = expr[:value].map do |k, node|
-      node, f = convert_node(node)
-      found ||= f
-      [k, node]
-    end
-    if found
-      anon_shorthand_func(expr)
-    else
-      expr
-    end
-  end
-
-  def transform_dot_to_fn(expr)
-    args = [anon_shorthand_arg(expr)]
-    body = [
-      AST::return(
-        expr[:line],
-        expr[:column],
-        AST::dot(expr[:line],
-                 expr[:column],
-                 anon_shorthand_lookup(expr), expr[:property])
-      ),
-    ]
-    AST::function(expr[:line], expr[:column], body, args)
-  end
-
-  def transform_fn_call_to_fn(expr)
-    args = [anon_shorthand_arg(expr)]
-    body = [
-      AST::return(
-        expr[:line],
-        expr[:column],
-        AST::function_call(expr[:line],
-                           expr[:column],
-                           [anon_shorthand_lookup(expr)],
-                           expr[:expr])
-      ),
-    ]
-    AST::function(expr[:line], expr[:column], body, args)
-  end
-
-  def convert_node(node)
-    node = anon_shorthand_lookup(node) if node[:node_type] == :anon_short
-    node = transform_array_to_fn(node) if node[:node_type] == :array_lit
-    node = transform_record_to_fn(node) if node[:node_type] == :record_lit
-    node = transform_dot_to_fn(node) if node[:node_type] == :property_lookup
-    node = transform_fn_call_to_fn(node) if node[:node_type] == :function_call
-    [node, node[:node_type] == :function]
-  end
-
-  def anon_shorthand_func(expr)
-    AST::function(expr[:line], expr[:column], [expr], [anon_shorthand_arg(expr)])
-  end
-
-  def anon_shorthand_lookup(node)
-    AST::identifier_lookup(node[:line], node[:column], ANON_SHORTHAND_ID)
-  end
-
-  def anon_shorthand_arg(node)
-    AST::function_argument(node[:line], node[:column], ANON_SHORTHAND_ID)
-  end
-
-  def id_function
-    AST::function(@line, @column, [
-      AST::return(@line, @column, AST::identifier_lookup(@line, @column, ANON_SHORTHAND_ID)),
-    ], [
-      AST::function_argument(@line, @column, ANON_SHORTHAND_ID),
-    ])
-  end
-
-  def parse_expr!(check_anon = true)
-    type = peek_type
-    if check_anon
-      anon_shorthand_fn = find_anon_shorthand
-      return anon_shorthand_fn if anon_shorthand_fn[:node_type] == :function
-    end
-    case
-    when [:int_lit, :str_lit, :float_lit, :symbol].include?(type)
-      lit_expr = parse_lit! type
-      peek = peek_type
-      case
-      when OPERATORS.include?(peek)
-        parse_operator_call! lit_expr
-      else lit_expr
-      end
-    when [:true, :false].include?(type)
-      parse_bool! type
-    when type == :open_square_bracket
-      parse_array!
-    when type == :open_brace
-      parse_record!
-    when type == :fn
-      parse_anon_function_def!
-    when type == :if
-      parse_if_expression!
-    when type == :identifier
-      sym_expr = parse_sym!
-      type = peek_type
-      case
-      when type == :dot
-        parse_dot_expression! sym_expr
-      when OPERATORS.include?(type)
-        parse_function_def! sym_expr
-      when is_function_call?
-        parse_function_call! sym_expr
-      when is_function?
-        parse_operator_call! sym_expr
-      else sym_expr
-      end
-    when type == :anon_short
-      consume! :anon_short
-      { node_type: :anon_short,
-        line: @line,
-        column: @column }
-    else
-      puts "no match [parse_expr!] :#{type}"
-      assert { false }
-    end
-  end
 
   # Convenience methods
 
@@ -278,7 +115,58 @@ class Parser
     peek_type == :open_parenthesis
   end
 
-  # Parsers
+  # Parsing begins!
+
+  def parse_expr!
+    type = peek_type
+    case
+    when [:int_lit, :str_lit, :float_lit, :symbol].include?(type)
+      lit_expr = parse_lit! type
+      peek = peek_type
+      case
+      when OPERATORS.include?(peek)
+        parse_operator_call! lit_expr
+      else lit_expr
+      end
+    when [:true, :false].include?(type)
+      parse_bool! type
+    when type == :open_square_bracket
+      parse_array!
+    when type == :open_brace
+      parse_record!
+    when type == :fn
+      parse_anon_function_def!
+    when type == :if
+      parse_if_expression!
+    when type == :identifier
+      parse_identifier!
+    when type == :anon_short_fn_start
+      parse_anon_function_shorthand!
+    when type == :anon_short_id
+      parse_anon_short_id!
+    else
+      puts "no match [parse_expr!] :#{type}"
+      assert { false }
+    end
+  end
+
+  # Individual parsers
+
+  def parse_identifier!
+    sym_expr = parse_sym!
+    type = peek_type
+    case
+    when type == :dot
+      parse_dot_expression! sym_expr
+    when OPERATORS.include?(type)
+      parse_operator_call! sym_expr
+    when is_function_call?
+      parse_function_call! sym_expr
+    when is_function?
+      parse_function_def! sym_expr
+    else sym_expr
+    end
+  end
 
   def parse_return!(implicit_return = false)
     c, _ = consume! :return unless implicit_return
@@ -316,6 +204,7 @@ class Parser
         consume! :colon
         record[sym] = parse_expr!
       else
+        # We can't always do this
         record[sym] = call_schema_any
       end
       consume! :comma unless peek_type == :close_brace
@@ -334,6 +223,21 @@ class Parser
     end
     consume! :close_square_bracket
     AST::array line, c, elements
+  end
+
+  def parse_anon_function_shorthand!
+    line, c = @line, @column
+    consume! :anon_short_fn_start
+    expr = parse_expr!
+    expr = AST::return(line, c, expr) unless expr[:node_type] == :return
+    consume! :close_brace
+    args = [AST::function_argument(line, c, ANON_SHORTHAND_ID)]
+    AST::function(line, c, [expr], args)
+  end
+
+  def parse_anon_short_id!
+    consume! :anon_short_id
+    AST::identifier_lookup(@line, @column, ANON_SHORTHAND_ID)
   end
 
   def parse_function_arguments!(end_type)

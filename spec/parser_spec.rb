@@ -1,6 +1,24 @@
 require "lexer"
 require "parser"
 
+def add(line, column)
+  { node_type: :property_lookup,
+   line: line,
+   column: nil, # TODO
+   lhs_expr: {
+    column: nil, # TODO
+    line: line,
+    node_type: :identifier_lookup,
+    sym: "Peacock",
+  },
+   property: {
+    column: column,
+    line: line,
+    node_type: :str_lit,
+    value: "plus",
+  } }
+end
+
 describe Parser do
   context "assignment" do
     it "a := 3" do
@@ -245,22 +263,17 @@ describe Parser do
       ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { node_type: :function_call,
-         line: 0,
-         column: 2,
-         args: [
-          { node_type: :identifier_lookup,
-            line: 0,
-            column: 0,
-            sym: "a" },
-          { node_type: :identifier_lookup,
-            line: 0,
-            column: 4,
-            sym: "b" },
-        ],
-         expr: { node_type: :identifier_lookup,
-                 line: 0,
-                 column: 2,
-                 sym: "Peacock.plus" } },
+          line: 0,
+          column: 2,
+          args: [{ node_type: :identifier_lookup,
+                   line: 0,
+                   column: 0,
+                   sym: "a" },
+                 { node_type: :identifier_lookup,
+                   line: 0,
+                   column: 4,
+                   sym: "b" }],
+          expr: add(0, 2) },
       ])
     end
 
@@ -269,9 +282,9 @@ describe Parser do
       ast = Parser.new(tokens).parse!
       expect(ast).to eq([
         { node_type: :function_call,
-         line: 0,
-         column: 4,
-         args: [
+          line: 0,
+          column: 4,
+          args: [
           {
             node_type: :float_lit,
             line: 0,
@@ -284,10 +297,7 @@ describe Parser do
             value: 2.4,
           },
         ],
-         expr: { node_type: :identifier_lookup,
-                 line: 0,
-                 column: 4,
-                 sym: "Peacock.plus" } },
+          expr: add(0, 4) },
       ])
     end
 
@@ -331,10 +341,7 @@ describe Parser do
                   column: 14,
                   sym: "b" },
               ],
-              expr: { node_type: :identifier_lookup,
-                      line: 0,
-                      column: 12,
-                      sym: "Peacock.plus" },
+              expr: add(0, 12),
             },
           }],
         } },
@@ -384,10 +391,7 @@ add a b =
                   column: 13,
                   sym: "b" },
               ],
-              expr: { node_type: :identifier_lookup,
-                      line: 1,
-                      column: 11,
-                      sym: "Peacock.plus" },
+              expr: add(1, 11),
             },
           }],
         } },

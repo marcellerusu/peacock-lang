@@ -1,3 +1,2 @@
-some-variable := { value: :sym-thing }
-
-print(some-variable)
+f := #{[%]}
+print(f(1123))
