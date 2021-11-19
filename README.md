@@ -50,5 +50,11 @@ schema NewUser = User & { created_at: #{ % > Date::start_of_month() }}
 write File({ user_id: user_id }) User({ id: user_id }) = true
 
 # classes
-# modules
+# modules (ts style namespaces)
+# case expressions (via schemas)
+# ifs as expressions
+# proper value equality (will implement via operator overloading)
+# operator overloading (via classes)
+# wrap primitive values in classes
+# immutable data structures
 ```
