@@ -30,8 +30,6 @@ class Parser
       elsif peek_type == :return
         ast.push parse_return!
         break
-      elsif peek_type == :close_brace
-        break
       else
         ast.push parse_expr!
       end
@@ -153,6 +151,8 @@ class Parser
   def parse_id_modifier_if_exists!(sym_expr)
     type = peek_type
     case
+    when type == :open_square_bracket
+      parse_dynamic_lookup! sym_expr
     when type == :dot
       parse_dot_expression! sym_expr
     when OPERATORS.include?(type)
@@ -242,7 +242,7 @@ class Parser
     expr = AST::return(line, c, expr) unless expr[:node_type] == :return
     consume! :close_brace
     args = [AST::function_argument(line, c, ANON_SHORTHAND_ID)]
-    AST::function(line, c, [expr], args)
+    AST::function line, c, [expr], args
   end
 
   def parse_anon_short_id!
@@ -427,6 +427,16 @@ class Parser
     AST::dot line, c, lhs, consume!(:identifier)
   end
 
+  def parse_dynamic_lookup!(lhs)
+    c, line = @column, @line
+    consume! :open_square_bracket
+    expr = parse_expr!
+    consume! :close_square_bracket
+    assert { [:str_lit, :symbol, :int_lit, :float_lit].include? expr[:node_type] }
+    node = AST::property_lookup(line, c, lhs, expr)
+    parse_id_modifier_if_exists!(node)
+  end
+
   # Schema parsing
 
   def peacock
@@ -479,6 +489,21 @@ class Parser
 end
 
 module AST
+  def self.remove_numbers_single(node)
+    node = node.except(:line, :column)
+    node[:expr] = AST::remove_numbers_single(node[:expr]) if node[:expr]
+    node[:property] = AST::remove_numbers_single(node[:property]) if node[:property]
+    node[:lhs_expr] = AST::remove_numbers_single(node[:lhs_expr]) if node[:lhs_expr]
+    node[:value] = AST::remove_numbers(node[:value]) if node[:value].is_a?(Array)
+    node[:args] = AST::remove_numbers(node[:args]) if node[:args]
+    node[:body] = AST::remove_numbers(node[:body]) if node[:body]
+    return node
+  end
+
+  def self.remove_numbers(nodes)
+    nodes.map { |n| AST::remove_numbers_single(n) }
+  end
+
   def self.literal(line, c, type, value)
     { node_type: type,
       line: line,

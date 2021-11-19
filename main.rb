@@ -12,11 +12,11 @@ ast = Parser.new(tokens).parse!
 # # begin
 
 case ARGV[1]
-when "-T"
+when "-t"
   puts tokens
-when "-A"
-  puts ast
-when "-N"
+when "-a"
+  pp AST::remove_numbers(ast)
+when "-n"
 else
   js = Compiler.new(ast).eval
   puts js

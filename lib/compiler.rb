@@ -15,24 +15,24 @@ class Compiler
 
   def eval
     program = ""
-    program << std_lib if first_run?
-    program << eval_assignment_declarations
-    program << collapse_function_overloading
+    program += std_lib if first_run?
+    program += eval_assignment_declarations
+    program += collapse_function_overloading
     @ast.each do |statement|
-      program << " " * @indent
-      program << eval_expr(statement)
-      program << ";" << "\n"
+      program += " " * @indent
+      program += eval_expr(statement)
+      program += ";" << "\n"
     end
     program.rstrip
   end
 
   def eval_without_variable_declarations
     program = ""
-    program << collapse_function_overloading
+    program += collapse_function_overloading
     @ast.each do |statement|
-      program << " " * @indent
-      program << eval_expr(statement)
-      program << ";" << "\n"
+      program += " " * @indent
+      program += eval_expr(statement)
+      program += ";" << "\n"
     end
     program.rstrip
   end
@@ -46,23 +46,23 @@ class Compiler
 
   def std_lib
     code = "const __Symbols = {}\n"
-    code << schema_lib
-    code << "const Peacock = {\n"
+    code += schema_lib
+    code += "const Peacock = {\n"
     indent!
-    code << padding << "plus: (a, b) => a + b,\n"
-    code << padding << "minus: (a, b) => a - b,\n"
-    code << padding << "mult: (a, b) => a * b,\n"
-    code << padding << "div: (a, b) => a / b,\n"
-    code << padding << "gt: (a, b) => a > b,\n"
-    code << padding << "ls: (a, b) => a < b,\n"
-    code << padding << "gt_eq: (a, b) => a >= b,\n"
-    code << padding << "ls_eq: (a, b) => a <= b,\n"
-    code << padding << "symbol: symName => __Symbols[symName] || (__Symbols[symName] = Symbol(symName)),\n"
-    code << padding << "eq: (a, b) => a === b,\n"
-    code << padding << "Schema,\n"
+    code += padding + "plus: (a, b) => a + b,\n"
+    code += padding + "minus: (a, b) => a - b,\n"
+    code += padding + "mult: (a, b) => a * b,\n"
+    code += padding + "div: (a, b) => a / b,\n"
+    code += padding + "gt: (a, b) => a > b,\n"
+    code += padding + "ls: (a, b) => a < b,\n"
+    code += padding + "gt_eq: (a, b) => a >= b,\n"
+    code += padding + "ls_eq: (a, b) => a <= b,\n"
+    code += padding + "symbol: symName => __Symbols[symName] || (__Symbols[symName] = Symbol(symName)),\n"
+    code += padding + "eq: (a, b) => a === b,\n"
+    code += padding + "Schema,\n"
     dedent!
-    code << "};\n"
-    code << "const print = (...params) => console.log(...params);\n"
+    code += "};\n"
+    code += "const print = (...params) => console.log(...params);\n"
   end
 
   def schema_lib
@@ -169,33 +169,6 @@ class LiteralSchema extends Schema {
     EOS
   end
 
-  def find_function_call_in(node)
-    return if node.nil?
-    return node if node[:node_type] == :function_call
-    find_function_call_in(node[:expr])
-  end
-
-  def find_used_peacock_functions(scope = @ast)
-    # TODO: examine non :identifier_lookup expressions too
-    # TODO: will need to update when dot (.) expressions are implemented
-    peacock_calls = scope
-      .map { |node| find_function_call_in(node) }
-      .filter { |node| !node.nil? }
-      .map do |node|
-      assert { node[:expr][:node_type] == :identifier_lookup }
-      node[:expr][:sym]
-    end
-      .filter { |sym| sym.start_with? "Peacock." }
-
-    # dig into functions
-    scope.filter { |node| node[:node_type] == :declare }
-      .map do |scope|
-      assert { scope[:expr][:node_type] == :function }
-      peacock_calls += find_used_peacock_functions(scope[:expr][:body])
-    end
-    peacock_calls.uniq
-  end
-
   def indent!
     @indent += 2
   end
@@ -219,36 +192,31 @@ class LiteralSchema extends Schema {
     function = ""
     functions.each do |sym, function_group|
       indent!
-      function << "const " << sym << " = "
-      function << "(...params)" << " => "
-      function << "{" << "\n" << padding
-      function << "const functions = ["
-      function << function_group.map { |f| eval_function(f[:expr]) }.join(", ")
-      function << "];" << "\n" << padding
-      function << "const f_by_length = functions.find(f => f.length === params.length);\n" << padding
-      function << "if (f_by_length) return f_by_length(...params);\n"
-      # TODO: function by shape
+      function += "const " + sym + " = "
+      function += "(...params)" + " => "
+      function += "{" << "\n" + padding
+      function += "const functions = ["
+      function += function_group.map { |f| eval_function(f[:expr]) }.join(", ")
+      function += "];" << "\n" + padding
+      function += "const f_by_length = functions.find(f => f.length === params.length);\n" << padding
+      function += "if (f_by_length) return f_by_length(...params);\n"
+      # TODO: function by shape -- schemas will take care of this
       # function << "const f_by_shape = functions.find(([_, shape]) => shape_eq(shape_of(params), shape));\n" << padding
       # function << "assert("
-      function << "};\n"
+      function += "};\n"
       dedent!
       @ast = @ast.filter { |node| node[:sym] != sym }
     end
     function
   end
 
-  def eval_shape_of(function_node)
-    # function_node[:args]
-    "{}"
-  end
-
   def eval_assignment_declarations
     nodes = find_assignments
     if nodes.any?
       vars = padding
-      vars << "let "
-      vars << nodes.map { |node| node[:sym] }.join(", ")
-      vars << ";" << "\n"
+      vars += "let "
+      vars += nodes.map { |node| node[:sym] }.join(", ")
+      vars += ";" << "\n"
     end
     vars || ""
   end
@@ -307,15 +275,15 @@ class LiteralSchema extends Schema {
   end
 
   def eval_if_expression(node)
-    _if = padding << "if (" << eval_expr(node[:expr]) << ")" << "{\n"
-    _if << Compiler.new(node[:pass], @indent + 2).eval_without_variable_declarations << "\n"
-    _if << padding << "} else {\n"
-    _if << Compiler.new(node[:fail], @indent + 2).eval_without_variable_declarations << "\n"
-    _if << padding << "}"
+    _if = padding + "if (" + eval_expr(node[:expr]) + ")" + "{\n"
+    _if += Compiler.new(node[:pass], @indent + 2).eval_without_variable_declarations + "\n"
+    _if += padding + "} else {\n"
+    _if += Compiler.new(node[:fail], @indent + 2).eval_without_variable_declarations + "\n"
+    _if += padding + "}"
   end
 
   def eval_throw(node)
-    "throw " << eval_expr(node[:expr])
+    "throw " + eval_expr(node[:expr])
   end
 
   def eval_symbol(node)
@@ -340,50 +308,50 @@ class LiteralSchema extends Schema {
 
   def eval_array(node)
     arr = "["
-    arr << node[:value].map { |n| eval_expr n }.join(", ")
-    arr << "]"
+    arr += node[:value].map { |n| eval_expr n }.join(", ")
+    arr += "]"
   end
 
   def eval_record(node)
     indent!
     record = "{" << "\n"
-    record << node[:value].map do |key, value|
+    record += node[:value].map do |key, value|
       entry = padding
-      entry << "\"" << key << "\""
-      entry << ": "
-      entry << eval_expr(value)
+      entry += "\"" + key + "\""
+      entry += ": "
+      entry += eval_expr(value)
     end.join(",\n")
     dedent!
-    record << "\n" << padding << "}"
+    record += "\n" + padding + "}"
   end
 
   def eval_property_lookup(node)
-    eval_expr(node[:lhs_expr]) << "[" << eval_expr(node[:property]) << "]"
+    eval_expr(node[:lhs_expr]) + "[" + eval_expr(node[:property]) + "]"
   end
 
   def eval_declaration(node)
     declaration = "const "
-    declaration << node[:sym]
-    declaration << " = "
-    declaration << eval_expr(node[:expr])
+    declaration += node[:sym]
+    declaration += " = "
+    declaration += eval_expr(node[:expr])
   end
 
   def eval_assignment(node)
-    assignment = node[:sym] + ""
-    assignment << " = "
-    assignment << eval_expr(node[:expr])
+    assignment = node[:sym].clone
+    assignment += " = "
+    assignment += eval_expr(node[:expr])
   end
 
   def eval_function(node)
     body = Compiler.new(node[:body], @indent + 2).eval
     function = "("
-    function << node[:args].map { |arg| arg[:sym] }.join(", ")
-    function << ")"
-    function << " => "
-    function << "{" << "\n"
-    function << body << "\n"
-    function << padding
-    function << "}"
+    function += node[:args].map { |arg| arg[:sym] }.join(", ")
+    function += ")"
+    function += " => "
+    function += "{" << "\n"
+    function += body << "\n"
+    function += padding
+    function += "}"
   end
 
   def eval_return(node)
