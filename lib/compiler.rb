@@ -275,15 +275,19 @@ class LiteralSchema extends Schema {
   end
 
   def eval_if_expression(node)
-    _if = padding + "if (" + eval_expr(node[:expr]) + ")" + "{\n"
-    _if += Compiler.new(node[:pass], @indent + 2).eval_without_variable_declarations + "\n"
-    _if += padding + "} else {\n"
-    _if += Compiler.new(node[:fail], @indent + 2).eval_without_variable_declarations + "\n"
-    _if += padding + "}"
+    cond = eval_expr(node[:expr])
+    pass_body = Compiler.new(node[:pass], @indent + 2).eval_without_variable_declarations
+    fail_body = Compiler.new(node[:fail], @indent + 2).eval_without_variable_declarations
+
+    "#{padding}if (#{cond}) {\n" \
+    "#{pass_body}\n" \
+    "#{padding}} else {\n" \
+    "#{fail_body}\n" \
+    "#{padding}}"
   end
 
   def eval_throw(node)
-    "throw " + eval_expr(node[:expr])
+    "throw #{eval_expr(node[:expr])}"
   end
 
   def eval_symbol(node)
@@ -307,51 +311,37 @@ class LiteralSchema extends Schema {
   end
 
   def eval_array(node)
-    arr = "["
-    arr += node[:value].map { |n| eval_expr n }.join(", ")
-    arr += "]"
+    elements = node[:value].map { |n| eval_expr n }.join(", ")
+    "[#{elements}]"
   end
 
   def eval_record(node)
     indent!
-    record = "{" << "\n"
+    record = "{\n"
     record += node[:value].map do |key, value|
-      entry = padding
-      entry += "\"" + key + "\""
-      entry += ": "
-      entry += eval_expr(value)
+      "#{padding}\"#{key}\": #{eval_expr(value)}"
     end.join(",\n")
     dedent!
-    record += "\n" + padding + "}"
+    record += "\n#{padding}}"
   end
 
   def eval_property_lookup(node)
-    eval_expr(node[:lhs_expr]) + "[" + eval_expr(node[:property]) + "]"
+    lhs, key = eval_expr(node[:lhs_expr]), eval_expr(node[:property])
+    "#{lhs}[#{key}]"
   end
 
   def eval_declaration(node)
-    declaration = "const "
-    declaration += node[:sym]
-    declaration += " = "
-    declaration += eval_expr(node[:expr])
+    "const #{node[:sym]} = #{eval_expr(node[:expr])}"
   end
 
   def eval_assignment(node)
-    assignment = node[:sym].clone
-    assignment += " = "
-    assignment += eval_expr(node[:expr])
+    "#{node[:sym]} = #{eval_expr(node[:expr])}"
   end
 
   def eval_function(node)
     body = Compiler.new(node[:body], @indent + 2).eval
-    function = "("
-    function += node[:args].map { |arg| arg[:sym] }.join(", ")
-    function += ")"
-    function += " => "
-    function += "{" << "\n"
-    function += body << "\n"
-    function += padding
-    function += "}"
+    args = node[:args].map { |arg| arg[:sym] }.join(", ")
+    "(#{args}) => {\n#{body}\n#{padding}}"
   end
 
   def eval_return(node)
@@ -360,7 +350,8 @@ class LiteralSchema extends Schema {
 
   def eval_function_call(node)
     args = node[:args].map { |arg| eval_expr arg }.join ", "
-    "#{eval_expr node[:expr]}(#{args})"
+    fn = eval_expr node[:expr]
+    "#{fn}(#{args})"
   end
 
   def eval_identifier_lookup(node)
