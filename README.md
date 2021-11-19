@@ -17,6 +17,12 @@ print(arr)
 arr := { a: [1, 2, 3 ] }
 print(arr, arr.a)
 
+# Dynamic property lookup
+# on arrays
+[1, 2, 3][0]
+# on objects
+{string: 3}["string"]
+
 # Schemas
 schema GT3 = #{ % > 3 }
 
@@ -35,12 +41,14 @@ schema NewUser = User & { created_at: #{ % > Date::start_of_month() }}
 
 # Broken Things
 
-# Not Implemented Things
+# Not Implemented (Yet) Things
 
 ```
-# Dynamic property lookup
-# on arrays
-[1, 2, 3][0]
-# on objects
-{string: 3}["string"]
+[a, a] := [2, 3] # Match error!
+
+# capture bound variables & create constraints across rules
+write File({ user_id: user_id }) User({ id: user_id }) = true
+
+# classes
+# modules
 ```
