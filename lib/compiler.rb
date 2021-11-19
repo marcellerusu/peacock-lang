@@ -70,7 +70,7 @@ class Compiler
 class Schema {
   static for(schema) {
     if (schema instanceof Schema) return schema;
-    if (schema instanceof Array) return new OrSchema(...schema);
+    if (schema instanceof Array) return new ArraySchema(schema);
     if (schema instanceof Function) return new FnSchema(schema);
     if (schema === undefined) return new AnySchema();
     // TODO: this should be more specific
@@ -139,6 +139,13 @@ class RecordSchema extends Schema {
     return this.schema.every(
       ([k, v]) => typeof other[k] !== "undefined" && v.valid(other[k])
     );
+  }
+}
+
+class ArraySchema extends Schema {
+  valid(other) {
+    if (!(other instanceof Array)) return false;
+    return other.length === this.schema.length;
   }
 }
 

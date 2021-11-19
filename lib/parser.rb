@@ -214,7 +214,10 @@ class Parser
       consume! :comma unless peek_type == :close_brace
     end
     consume! :close_brace
-    AST::record line, c, record
+    node = AST::record line, c, record
+    return parse_match_assignment_without_schema!(node) if peek_type == :assign
+
+    node
   end
 
   def parse_array!
@@ -226,7 +229,10 @@ class Parser
       consume! :comma unless peek_type == :close_square_bracket
     end
     consume! :close_square_bracket
-    AST::array line, c, elements
+    node = AST::array line, c, elements
+    return parse_match_assignment_without_schema!(node) if peek_type == :assign
+
+    node
   end
 
   def parse_anon_function_shorthand!
@@ -309,6 +315,24 @@ class Parser
     AST::function_call fn_expr[:line], fn_expr[:column], args, fn_expr
   end
 
+  def parse_match_assignment_without_schema!(pattern)
+    pattern = replace_identifier_lookups_with_schema_any(pattern) if pattern[:node_type] == :array_lit
+    fn_expr = function_call([pattern], schema_for)
+    parse_match_assignment!(fn_expr, pattern)
+  end
+
+  def replace_identifier_lookups_with_schema_any(pattern)
+    # TODO: make recursive
+    pattern[:value] = pattern[:value].map do |node|
+      if node[:node_type] == :identifier_lookup
+        call_schema_any(node[:sym])
+      else
+        node
+      end
+    end
+    pattern
+  end
+
   def parse_match_assignment!(fn_expr, match_expr)
     # TODO: line & column #s are off
     line, c = @line, @column
@@ -326,10 +350,16 @@ class Parser
   end
 
   def eval_path_on_expr(path, expr)
-    assert { path == nil || path.is_a?(String) }
-    # pp dot(expr, path)
-    return dot(expr, path) if path.is_a?(String)
-    return expr
+    case
+    when path == nil
+      expr
+    when path.is_a?(String)
+      dot(expr, path)
+    when path.is_a?(Integer)
+      index_on(expr, path)
+    else
+      assert { false }
+    end
   end
 
   def find_bound_variables(match_expr)
@@ -342,7 +372,20 @@ class Parser
         bound_variables.push [key, key] if schema_any?(value)
       end
       bound_variables
+    when :array_lit
+      bound_variables = []
+      match_expr[:value].each_with_index do |node, index|
+        bound_variables.push [index, get_schema_any_name(node)] if schema_any?(node)
+      end
+      bound_variables
+    else
+      pp match_expr
+      assert { false }
     end
+  end
+
+  def get_schema_any_name(node)
+    node[:args][0][:value]
   end
 
   def schema_any?(node)
@@ -398,8 +441,9 @@ class Parser
     function_call([expr], dot(schema_fn, "valid"))
   end
 
-  def call_schema_any
-    function_call([], dot(schema, "any"))
+  def call_schema_any(name = nil)
+    args = if name then [AST::literal(@line, @column, :str_lit, name)] else [] end
+    function_call(args, dot(schema, "any"))
   end
 
   def schema_for
@@ -409,6 +453,11 @@ class Parser
   def dot(lhs, id)
     id = [@column, id] unless id.is_a?(Array)
     AST::dot @line, @column, lhs, id
+  end
+
+  def index_on(lhs, index)
+    index = AST::literal(lhs[:line], lhs[:column], :int_lit, index)
+    AST::index_on(lhs, index)
   end
 
   def function_call(args, expr)
@@ -540,6 +589,10 @@ module AST
     lit_c, sym = id
     property = AST::literal line, lit_c, :str_lit, sym
     AST::property_lookup line, c, lhs_expr, property
+  end
+
+  def self.index_on(lhs, index)
+    AST::property_lookup lhs[:line], lhs[:column], lhs, index
   end
 
   def self.throw(line, c, expr)

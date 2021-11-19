@@ -10,7 +10,6 @@ tokens = Lexer::tokenize(content)
 ast = Parser.new(tokens).parse!
 # # puts ast
 # # begin
-js = Compiler.new(ast).eval
 
 case ARGV[1]
 when "-T"
@@ -19,6 +18,7 @@ when "-A"
   puts ast
 when "-N"
 else
+  js = Compiler.new(ast).eval
   puts js
 end
 # rescue Exception => e

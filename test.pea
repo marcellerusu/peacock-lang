@@ -1,4 +1,3 @@
-schema GT3 = { id } & { name: "Marcelle" }
+[a] := [23]
 
-GT3(b) := { id: 4, name: "Marcelle" }
-print(b)
+print(a)
