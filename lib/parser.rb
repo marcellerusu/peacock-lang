@@ -340,7 +340,8 @@ class Parser
     expr = parse_expr!
     if_expr = call_schema_valid(fn_expr, expr)
 
-    pass_body = find_bound_variables(match_expr).map do |path, sym|
+    pass_body = find_bound_variables(match_expr).map do |path_and_sym|
+      sym, path = path_and_sym.last, path_and_sym[0...-1]
       AST::assignment(sym, @line, @column, eval_path_on_expr(path, expr))
     end
     fail_body = [
@@ -349,35 +350,46 @@ class Parser
     AST::if line, c, if_expr, pass_body, fail_body
   end
 
-  def eval_path_on_expr(path, expr)
-    case
-    when path == nil
-      expr
-    when path.is_a?(String)
-      dot(expr, path)
-    when path.is_a?(Integer)
-      index_on(expr, path)
-    else
-      assert { false }
+  def eval_path_on_expr(paths, expr)
+    for path in paths
+      if path.is_a?(String)
+        expr = dot(expr, path)
+      elsif path.is_a?(Integer)
+        expr = index_on(expr, path)
+      else
+        assert { false }
+      end
     end
+    return expr
   end
 
   def find_bound_variables(match_expr)
+    assert { match_expr != nil }
     case match_expr[:node_type]
     when :identifier_lookup
-      return [[nil, match_expr[:sym]]]
+      return [[match_expr[:sym]]]
     when :record_lit
       bound_variables = []
       match_expr[:value].each do |key, value|
-        bound_variables.push [key, key] if schema_any?(value)
+        bound_variables += if schema_any?(value)
+            [[key, key]]
+          else
+            find_bound_variables(value).map { |path| [key] + path }
+          end
       end
       bound_variables
     when :array_lit
       bound_variables = []
       match_expr[:value].each_with_index do |node, index|
-        bound_variables.push [index, get_schema_any_name(node)] if schema_any?(node)
+        bound_variables += if schema_any?(node)
+            [[index, get_schema_any_name(node)]]
+          else
+            find_bound_variables(node).map { |path| [index] + path }
+          end
       end
       bound_variables
+    when :int_lit, :float_lit, :str_lit, :bool_lit
+      []
     else
       pp match_expr
       assert { false }
@@ -389,8 +401,6 @@ class Parser
   end
 
   def schema_any?(node)
-    # function_call([], dot(schema, "any"))
-    # pp node
     node[:node_type] == :function_call &&
       node[:expr][:node_type] == :property_lookup &&
       node[:expr][:lhs_expr][:lhs_expr][:sym] == "Peacock" &&
