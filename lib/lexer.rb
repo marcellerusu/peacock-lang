@@ -5,7 +5,7 @@ module Lexer
     lines = program.split("\n")
     lines.map do |line|
       Lexer::tokenize_line line
-    end
+    end.filter { |line| line.size > 0 }
   end
 
   def self.tokenize_line(line)

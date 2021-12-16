@@ -91,9 +91,14 @@ class Schema {
     return new AndSchema(a, b);
   }
 
-  static any() {
-    return new AnySchema();
+  static any(name) {
+    return new AnySchema(name);
   }
+
+  static literal(value) {
+    return new LiteralSchema(value);
+  }
+
 
   constructor(schema) {
     this.schema = schema;
@@ -101,6 +106,21 @@ class Schema {
 
   valid(other) {
     throw null;
+  }
+
+  verify$(value, path) {
+    if (this.valid(value)) {
+      return evalPath(path, value);
+    } else {
+      throw "Match error";
+    };
+  }
+
+  #evalPath(path, value) {
+    for (let prop of path) {
+      value = value[prop];
+    }
+    return value;
   }
 }
 

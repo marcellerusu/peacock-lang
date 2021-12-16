@@ -1,4 +1,5 @@
 require "utils"
+require "ast"
 # require "pry"
 
 OPERATORS = [:plus, :minus, :mult, :div, :and, :or, :schema_and, :schema_or, :eq, :not_eq, :gt, :ls, :gt_eq, :ls_eq]
@@ -315,19 +316,35 @@ class Parser
     AST::function_call fn_expr[:line], fn_expr[:column], args, fn_expr
   end
 
+  # Parsing pattern matching START
+
   def parse_match_assignment_without_schema!(pattern)
     pattern = replace_identifier_lookups_with_schema_any(pattern) if pattern[:node_type] == :array_lit
+    pattern = replace_literal_values_with_literal_schema(pattern)
     fn_expr = function_call([pattern], schema_for)
     parse_match_assignment!(fn_expr, pattern)
   end
 
   def replace_identifier_lookups_with_schema_any(pattern)
-    # TODO: make recursive
     pattern[:value] = pattern[:value].map do |node|
       if node[:node_type] == :identifier_lookup
         call_schema_any(node[:sym])
+      elsif node[:node_type] == :array_lit
+        replace_identifier_lookups_with_schema_any(node)
       else
         node
+      end
+    end
+    pattern
+  end
+
+  def replace_literal_values_with_literal_schema(pattern)
+    return call_schema_literal(pattern) if [:int_lit, :float_lit, :str_lit, :bool_lit].include?(pattern[:node_type])
+    pattern[:value] = pattern[:value].map do |node|
+      if [:int_lit, :float_lit, :str_lit, :bool_lit].include?(node[:node_type])
+        call_schema_literal(node)
+      else
+        replace_literal_values_with_literal_schema(node)
       end
     end
     pattern
@@ -408,6 +425,8 @@ class Parser
       node[:expr][:property][:value] == "any"
   end
 
+  # Parsing pattern matching END
+
   def parse_if_expression!
     end_tokens = [:end, :else]
     c, _ = consume! :if
@@ -461,6 +480,10 @@ class Parser
     function_call([expr], dot(schema_fn, "valid"))
   end
 
+  def call_schema_literal(literal)
+    function_call([literal], dot(schema, "literal"))
+  end
+
   def call_schema_any(name = nil)
     args = if name then [AST::literal(@line, @column, :str_lit, name)] else [] end
     function_call(args, dot(schema, "any"))
@@ -495,145 +518,5 @@ class Parser
       schema = parse_operator_call!(schema)
     end
     AST::assignment(sym, line, c, schema)
-  end
-end
-
-module AST
-  def self.remove_numbers_single(node)
-    node = node.except(:line, :column)
-    node[:expr] = AST::remove_numbers_single(node[:expr]) if node[:expr]
-    node[:property] = AST::remove_numbers_single(node[:property]) if node[:property]
-    node[:lhs_expr] = AST::remove_numbers_single(node[:lhs_expr]) if node[:lhs_expr]
-    node[:value] = AST::remove_numbers(node[:value]) if node[:value].is_a?(Array)
-    node[:args] = AST::remove_numbers(node[:args]) if node[:args]
-    node[:body] = AST::remove_numbers(node[:body]) if node[:body]
-    return node
-  end
-
-  def self.remove_numbers(nodes)
-    nodes.map { |n| AST::remove_numbers_single(n) }
-  end
-
-  def self.literal(line, c, type, value)
-    { node_type: type,
-      line: line,
-      column: c,
-      value: value }
-  end
-
-  def self.array(line, c, value)
-    { node_type: :array_lit,
-      line: line,
-      column: c,
-      value: value }
-  end
-
-  def self.record(line, c, value)
-    { node_type: :record_lit,
-      line: line,
-      column: c,
-      value: value }
-  end
-
-  def self.bool(line, c, value)
-    { node_type: :bool_lit,
-      line: line,
-      column: c,
-      value: value }
-  end
-
-  def self.str(line, c, value)
-    { node_type: :str_lit,
-      line: line,
-      column: c,
-      value: value }
-  end
-
-  def self.return(line, c, expr)
-    { node_type: :return,
-      line: line,
-      column: c,
-      expr: expr }
-  end
-
-  def self.if(line, c, expr, pass, _fail)
-    { node_type: :if,
-      line: line,
-      column: c,
-      expr: expr,
-      pass: pass,
-      fail: _fail }
-  end
-
-  def self.function_call(line, c, args, expr)
-    { node_type: :function_call,
-      line: line,
-      column: c,
-      args: args,
-      expr: expr }
-  end
-
-  def self.function(line, c, body, args)
-    { node_type: :function,
-      line: line,
-      column: c,
-      args: args,
-      body: body }
-  end
-
-  def self.function_argument(line, c, sym)
-    { node_type: :function_argument,
-      line: line,
-      column: c,
-      sym: sym }
-  end
-
-  def self.identifier_lookup(line, c, sym)
-    { node_type: :identifier_lookup,
-      line: line,
-      column: c,
-      sym: sym }
-  end
-
-  def self.declare(sym_expr, expr)
-    { node_type: :declare,
-      sym: sym_expr[:sym],
-      line: sym_expr[:line],
-      column: sym_expr[:column],
-      expr: expr }
-  end
-
-  def self.assignment(sym, line, c, expr)
-    { node_type: :assign,
-      sym: sym,
-      line: line,
-      column: c,
-      expr: expr }
-  end
-
-  def self.property_lookup(line, c, lhs_expr, property)
-    # just convert to string for now... TODO: idk
-    { node_type: :property_lookup,
-      lhs_expr: lhs_expr,
-      line: line,
-      column: c,
-      property: property }
-  end
-
-  def self.dot(line, c, lhs_expr, id)
-    lit_c, sym = id
-    property = AST::literal line, lit_c, :str_lit, sym
-    AST::property_lookup line, c, lhs_expr, property
-  end
-
-  def self.index_on(lhs, index)
-    AST::property_lookup lhs[:line], lhs[:column], lhs, index
-  end
-
-  def self.throw(line, c, expr)
-    { node_type: :throw,
-      line: line,
-      column: c,
-      expr: expr }
   end
 end

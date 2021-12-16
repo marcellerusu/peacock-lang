@@ -28,9 +28,7 @@ describe Lexer, "#tokenize" do
 
     it "should ignore comments" do
       res = Lexer::tokenize("# something-ok = ")
-      expect(res).to eq([
-        [],
-      ])
+      expect(res).to eq([])
     end
 
     it "identifier 'a'" do
