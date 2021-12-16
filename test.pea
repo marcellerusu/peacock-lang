@@ -3,6 +3,3 @@
 {a, b: [b], c} := {a: 2, b: [1], c: 2}
 
 print(a, b, c)
-
-# Ex: this doesn't throw match error right now
-{a, b: [10], c} := {a: 2, b: [1], c: 2}

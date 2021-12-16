@@ -40,7 +40,7 @@ class Parser
     # Add implicit return
     unless @indentation == 0 || ast.last[:node_type] == :return
       node = ast.pop
-      ast.push AST::return(node[:line], node[:column], node)
+      ast.push AST::return(node, node[:line], node[:column])
     end
     return @line, @token_index, ast
   end
@@ -177,7 +177,7 @@ class Parser
     c, _ = consume! :return unless implicit_return
     expr = parse_expr!
     c = expr[:column] if implicit_return
-    AST::return @line, c, expr
+    AST::return expr, @line, c
   end
 
   def parse_assignment!
@@ -185,7 +185,7 @@ class Parser
     consume! :assign
     line = @line
     expr = parse_expr!
-    AST::assignment sym, line, c, expr
+    AST::assignment sym, expr, line, c
   end
 
   def parse_lit!(type)
@@ -195,7 +195,7 @@ class Parser
 
   def parse_bool!(type)
     c, _ = consume! type
-    AST::bool @line, c, type == :true
+    AST::bool type == :true, @line, c
   end
 
   def parse_record!
@@ -215,7 +215,7 @@ class Parser
       consume! :comma unless peek_type == :close_brace
     end
     consume! :close_brace
-    node = AST::record line, c, record
+    node = AST::record record, line, c
     return parse_match_assignment_without_schema!(node) if peek_type == :assign
     # TODO: make more specific to records
     parse_id_modifier_if_exists!(node)
@@ -230,7 +230,7 @@ class Parser
       consume! :comma unless peek_type == :close_square_bracket
     end
     consume! :close_square_bracket
-    node = AST::array line, c, elements
+    node = AST::array elements, line, c
     return parse_match_assignment_without_schema!(node) if peek_type == :assign
     # TODO: make more specific to records
     parse_id_modifier_if_exists!(node)
@@ -240,15 +240,15 @@ class Parser
     line, c = @line, @column
     consume! :anon_short_fn_start
     expr = parse_expr!
-    expr = AST::return(line, c, expr) unless expr[:node_type] == :return
+    expr = AST::return(expr, line, c) unless expr[:node_type] == :return
     consume! :close_brace
-    args = [AST::function_argument(line, c, ANON_SHORTHAND_ID)]
-    AST::function line, c, [expr], args
+    args = [AST::function_argument(ANON_SHORTHAND_ID, line, c)]
+    AST::function args, [expr], line, c
   end
 
   def parse_anon_short_id!
     consume! :anon_short_id
-    sym_expr = AST::identifier_lookup(@line, @column, ANON_SHORTHAND_ID)
+    sym_expr = AST::identifier_lookup(ANON_SHORTHAND_ID, @line, @column)
     parse_id_modifier_if_exists!(sym_expr)
   end
 
@@ -256,7 +256,7 @@ class Parser
     args = []
     while peek_type != end_type
       c1, sym = consume! :identifier
-      args.push AST::function_argument(@line, c1, sym)
+      args.push AST::function_argument(sym, @line, c1)
     end
     args
   end
@@ -271,10 +271,10 @@ class Parser
     else
       return_c = column
       expr = parse_expr!
-      body = [AST::return(@line, return_c, expr)]
+      body = [AST::return(expr, @line, return_c)]
     end
 
-    function = AST::function(fn_line, sym_expr[:column], body, args)
+    function = AST::function(args, body, fn_line, sym_expr[:column])
     AST::declare(sym_expr, function)
   end
 
@@ -284,10 +284,10 @@ class Parser
     consume! :arrow
     fn_line = @line
     expr = parse_expr!
-    body = [AST::return(@line, expr[:column], expr)]
+    body = [AST::return(expr, @line, expr[:column])]
     # TODO: none 1-liners
     # @line, @token_index, body = Parser.new(@statements, @line, @token_index).parse_with_position!
-    AST::function fn_line, c, body, args
+    AST::function args, body, fn_line, c
   end
 
   def parse_operator_call!(lhs)
@@ -299,7 +299,7 @@ class Parser
       else
         dot(peacock, [c1, op.to_s])
       end
-    AST::function_call @line, c1, [lhs, rhs_expr], operator
+    AST::function_call [lhs, rhs_expr], operator, @line, c1
   end
 
   def parse_function_call!(fn_expr)
@@ -313,7 +313,7 @@ class Parser
 
     return parse_match_assignment!(fn_expr, args[0]) if args.size == 1 && peek_type == :assign
 
-    AST::function_call fn_expr[:line], fn_expr[:column], args, fn_expr
+    AST::function_call args, fn_expr, fn_expr[:line], fn_expr[:column]
   end
 
   # Parsing pattern matching START
@@ -359,12 +359,12 @@ class Parser
 
     pass_body = find_bound_variables(match_expr).map do |path_and_sym|
       sym, path = path_and_sym.last, path_and_sym[0...-1]
-      AST::assignment(sym, @line, @column, eval_path_on_expr(path, expr))
+      AST::assignment(sym, eval_path_on_expr(path, expr), @line, @column)
     end
     fail_body = [
-      AST::throw(@line, @column, AST::str(@line, @column, "Match error")),
+      AST::throw(@line, @column, AST::str("Match error", @line, @column)),
     ]
-    AST::if line, c, if_expr, pass_body, fail_body
+    AST::if if_expr, pass_body, fail_body, line, c
   end
 
   def eval_path_on_expr(paths, expr)
@@ -436,18 +436,18 @@ class Parser
     consume! :then if peek_type == :then
     unless peek_type == :else
       consume! :end
-      return AST::if if_line, c, check, pass_body, []
+      return AST::if check, pass_body, [], if_line, c
     end
     consume! :else
-    return AST::if(if_line, c, check, pass_body, [parse_if_expression!]) if peek_type == :if
+    return AST::if(check, pass_body, [parse_if_expression!], if_line, c) if peek_type == :if
     @line, @token_index, fail_body = Parser.new(@statements, @line, @token_index, @indentation).parse_with_position! end_tokens
     consume! :end
-    AST::if if_line, c, check, pass_body, fail_body
+    AST::if check, pass_body, fail_body, if_line, c
   end
 
   def parse_sym!
     c, sym = consume! :identifier
-    AST::identifier_lookup @line, c, sym
+    AST::identifier_lookup sym, @line, c
   end
 
   def parse_dot_expression!(lhs)
@@ -469,7 +469,7 @@ class Parser
   # Schema parsing
 
   def peacock
-    AST::identifier_lookup @line, @column, "Peacock"
+    AST::identifier_lookup "Peacock", @line, @column
   end
 
   def schema
@@ -504,7 +504,7 @@ class Parser
   end
 
   def function_call(args, expr)
-    AST::function_call(@line, @column, args, expr)
+    AST::function_call(args, expr, @line, @column)
   end
 
   def parse_schema!
@@ -517,6 +517,6 @@ class Parser
     while OPERATORS.include?(peek_type)
       schema = parse_operator_call!(schema)
     end
-    AST::assignment(sym, line, c, schema)
+    AST::assignment(sym, schema, line, c)
   end
 end
