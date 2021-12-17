@@ -1,4 +1,8 @@
+require "pry"
+
 module Schemas
+  LITERALS = [:int_lit, :float_lit, :str_lit, :bool_lit, :symbol]
+
   def parse_match_assignment_without_schema!(pattern)
     pattern = replace_identifier_lookups_with_schema_any(pattern) if pattern[:node_type] == :array_lit
     pattern = replace_literal_values_with_literal_schema(pattern)
@@ -20,9 +24,11 @@ module Schemas
   end
 
   def replace_literal_values_with_literal_schema(pattern)
-    return call_schema_literal(pattern) if [:int_lit, :float_lit, :str_lit, :bool_lit].include?(pattern[:node_type])
+    return call_schema_literal(pattern) if LITERALS.include?(pattern[:node_type])
     pattern[:value] = pattern[:value].map do |node|
-      if [:int_lit, :float_lit, :str_lit, :bool_lit].include?(node[:node_type])
+      if schema_any?(node)
+        node
+      elsif LITERALS.include?(node[:node_type])
         call_schema_literal(node)
       else
         replace_literal_values_with_literal_schema(node)
@@ -43,7 +49,7 @@ module Schemas
       AST::assignment(sym, eval_path_on_expr(path, expr), @line, @column)
     end
     fail_body = [
-      AST::throw(@line, @column, AST::str("Match error", @line, @column)),
+      AST::throw(AST::str("Match error", @line, @column), @line, @column),
     ]
     AST::if if_expr, pass_body, fail_body, line, c
   end
@@ -94,12 +100,26 @@ module Schemas
     end
   end
 
+  def parse_schema!
+    line = @line
+    consume! :schema
+    c, sym = consume! :identifier
+    consume! :declare
+    expr = parse_expr!
+    schema = function_call([expr], schema_for)
+    while OPERATORS.include?(peek_type)
+      schema = parse_operator_call!(schema)
+    end
+    AST::assignment(sym, schema, line, c)
+  end
+
   def get_schema_any_name(node)
     node[:args][0][:value]
   end
 
   def schema_any?(node)
-    node[:node_type] == :function_call &&
+    node.is_a?(Hash) &&
+      node[:node_type] == :function_call &&
       node[:expr][:node_type] == :property_lookup &&
       node[:expr][:lhs_expr][:lhs_expr][:sym] == "Peacock" &&
       node[:expr][:lhs_expr][:property][:value] == "Schema" &&

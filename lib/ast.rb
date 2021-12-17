@@ -150,7 +150,7 @@ module AST
       property: property }
   end
 
-  def self.dot(line, c, lhs_expr, id)
+  def self.dot(lhs_expr, id, line = nil, c = nil)
     lit_c, sym = id
     property = AST::literal line, lit_c, :str_lit, sym
     AST::property_lookup line, c, lhs_expr, property
@@ -160,7 +160,7 @@ module AST
     AST::property_lookup lhs[:line], lhs[:column], lhs, index
   end
 
-  def self.throw(line, c, expr)
+  def self.throw(expr, line = nil, c = nil)
     { node_type: :throw,
       line: line,
       column: c,

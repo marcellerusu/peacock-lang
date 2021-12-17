@@ -20,6 +20,41 @@ def add(line = nil, column = nil)
   } }
 end
 
+def peacock
+  AST::identifier_lookup "Peacock"
+end
+
+def dot(lhs, name)
+  AST::dot(lhs, [0, name])
+end
+
+def index_on(lhs, index)
+  AST::index_on(lhs, AST::int(index))
+end
+
+def schema
+  dot(peacock, "Schema")
+end
+
+def schema_valid(schema, expr)
+  AST::function_call(
+    [expr],
+    dot(schema, "valid")
+  )
+end
+
+def schema_for(expr)
+  AST::function_call [expr], dot(schema, "for")
+end
+
+def schema_any(name)
+  AST::function_call [AST::str(name)], dot(schema, "any")
+end
+
+def throw_match_error
+  AST::throw(AST::str("Match error"))
+end
+
 def parse(str)
   tokens = Lexer::tokenize(str.strip)
   ast = Parser.new(tokens).parse!
@@ -199,6 +234,53 @@ describe Parser do
           ),
         ]
       )
+    end
+  end
+
+  context "schema", :f do
+    it "[a] := [1]" do
+      ast = parse("[a] := [1]")
+      arr = AST::array([AST::int(1)])
+      expect(ast).to ast_eq([
+        AST::if(
+          schema_valid(schema_for(
+            AST::array([schema_any("a")])
+          ), arr),
+          [AST::assignment("a", index_on(arr, 0))],
+          [throw_match_error]
+        ),
+      ])
+    end
+    it "[a, b] := [1, :two]" do
+      ast = parse("[a, b] := [1, :two]")
+      arr = AST::array([AST::int(1), AST::sym("two")])
+      expect(ast).to ast_eq([
+        AST::if(
+          schema_valid(schema_for(
+            AST::array([schema_any("a"), schema_any("b")])
+          ), arr),
+          [
+            AST::assignment("a", index_on(arr, 0)),
+            AST::assignment("b", index_on(arr, 1)),
+          ],
+          [throw_match_error]
+        ),
+      ])
+    end
+    it "[[a]] := [[1]]" do
+      ast = parse("[[a]] := [[1]]")
+      arr = AST::array([AST::array([AST::int(1)])])
+      expect(ast).to ast_eq([
+        AST::if(
+          schema_valid(schema_for(
+            AST::array([AST::array([schema_any("a")])])
+          ), arr),
+          [
+            AST::assignment("a", index_on(index_on(arr, 0), 0)),
+          ],
+          [throw_match_error]
+        ),
+      ])
     end
   end
 

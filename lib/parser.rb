@@ -158,7 +158,7 @@ class Parser
   def parse_dot_expression!(lhs)
     c, line = @column, @line
     consume! :dot
-    AST::dot line, c, lhs, consume!(:identifier)
+    AST::dot lhs, consume!(:identifier), line, c
   end
 
   def parse_dynamic_lookup!(lhs)
@@ -175,7 +175,7 @@ class Parser
 
   def dot(lhs, id)
     id = [@column, id] unless id.is_a?(Array)
-    AST::dot @line, @column, lhs, id
+    AST::dot lhs, id, @line, @column
   end
 
   def index_on(lhs, index)

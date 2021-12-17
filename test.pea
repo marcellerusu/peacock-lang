@@ -1,5 +1,1 @@
-
-# TODO: make literal values in schemas here into LiteralSchemas
-{a, b: [b], c} := {a: 2, b: [1], c: 2}
-
-print(a, b, c)
+[a] := [1]
