@@ -171,7 +171,7 @@ describe Parser do
         ),
       ])
     end
-    it "add a b = return a + b" do
+    it "add a b =\n  return a + b" do
       ast = parse("
         add a b =
           return a + b")
