@@ -31,7 +31,7 @@ module Literals
         record[sym] = parse_expr!
       else
         # We can't always do this
-        record[sym] = call_schema_any
+        record[sym] = call_schema_any(sym)
       end
       consume! :comma unless peek_type == :close_brace
     end

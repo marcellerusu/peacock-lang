@@ -237,7 +237,7 @@ describe Parser do
     end
   end
 
-  context "schema", :f do
+  context "schema" do
     it "[a] := [1]" do
       ast = parse("[a] := [1]")
       arr = AST::array([AST::int(1)])
@@ -278,6 +278,20 @@ describe Parser do
           [
             AST::assignment("a", index_on(index_on(arr, 0), 0)),
           ],
+          [throw_match_error]
+        ),
+      ])
+    end
+
+    it "{a} := {a: 3}" do
+      ast = parse("{a} := {a: 3}")
+      obj = AST::record({ "a" => AST::int(3) })
+      expect(ast).to ast_eq([
+        AST::if(
+          schema_valid(schema_for(
+            AST::record({ "a" => schema_any("a") })
+          ), obj),
+          [AST::assignment("a", dot(obj, "a"))],
           [throw_match_error]
         ),
       ])

@@ -4,36 +4,88 @@ module Schemas
   LITERALS = [:int_lit, :float_lit, :str_lit, :bool_lit, :symbol]
 
   def parse_match_assignment_without_schema!(pattern)
-    pattern = replace_identifier_lookups_with_schema_any(pattern) if pattern[:node_type] == :array_lit
+    pattern = replace_identifier_lookups_with_schema_any(pattern)
     pattern = replace_literal_values_with_literal_schema(pattern)
     fn_expr = function_call([pattern], schema_for)
     parse_match_assignment!(fn_expr, pattern)
   end
 
   def replace_identifier_lookups_with_schema_any(pattern)
-    pattern[:value] = pattern[:value].map do |node|
-      if node[:node_type] == :identifier_lookup
-        call_schema_any(node[:sym])
-      elsif node[:node_type] == :array_lit
-        replace_identifier_lookups_with_schema_any(node)
-      else
-        node
+    def transform_array(array)
+      array.map do |node|
+        if schema_any?(node)
+          node
+        elsif node[:node_type] == :identifier_lookup
+          call_schema_any(node[:sym])
+        elsif node[:node_type] == :array_lit
+          replace_identifier_lookups_with_schema_any(node)
+        else
+          node
+        end
       end
     end
+
+    def transform_record(record)
+      record.map do |key, node|
+        node = if schema_any?(node)
+            node
+          elsif node[:node_type] == :identifier_lookup
+            call_schema_any(node[:sym])
+          elsif node[:node_type] == :array_lit
+            replace_identifier_lookups_with_schema_any(node)
+          else
+            node
+          end
+        [key, node]
+      end.to_h
+    end
+
+    pattern[:value] = if pattern[:node_type] == :record_lit
+        transform_record(pattern[:value])
+      elsif pattern[:node_type] == :array_lit
+        transform_array(pattern[:value])
+      else
+        assert { false }
+      end
     pattern
   end
 
   def replace_literal_values_with_literal_schema(pattern)
     return call_schema_literal(pattern) if LITERALS.include?(pattern[:node_type])
-    pattern[:value] = pattern[:value].map do |node|
-      if schema_any?(node)
-        node
-      elsif LITERALS.include?(node[:node_type])
-        call_schema_literal(node)
-      else
-        replace_literal_values_with_literal_schema(node)
+
+    def transform_array(array)
+      array.map do |node|
+        if schema_any?(node)
+          node
+        elsif LITERALS.include?(node[:node_type])
+          call_schema_literal(node)
+        else
+          replace_literal_values_with_literal_schema(node)
+        end
       end
     end
+
+    def transform_record(record)
+      record.map do |key, node|
+        node = if schema_any?(node)
+            node
+          elsif LITERALS.include?(node[:node_type])
+            call_schema_literal(node)
+          else
+            replace_literal_values_with_literal_schema(node)
+          end
+        [key, node]
+      end.to_h
+    end
+
+    pattern[:value] = if pattern[:node_type] == :record_lit
+        transform_record(pattern[:value])
+      elsif pattern[:node_type] == :array_lit
+        transform_array(pattern[:value])
+      else
+        assert { false }
+      end
+
     pattern
   end
 
@@ -142,7 +194,7 @@ module Schemas
     function_call([literal], dot(schema, "literal"))
   end
 
-  def call_schema_any(name = nil)
+  def call_schema_any(name)
     args = if name then [AST::literal(@line, @column, :str_lit, name)] else [] end
     function_call(args, dot(schema, "any"))
   end
