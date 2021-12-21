@@ -6,7 +6,7 @@ require "parser/functions"
 require "parser/schemas"
 # require "pry"
 
-OPERATORS = [:plus, :minus, :mult, :div, :and, :or, :schema_and, :schema_or, :eq, :not_eq, :gt, :ls, :gt_eq, :ls_eq]
+OPERATORS = [:plus, :minus, :mult, :div, :and, :or, :schema_and, :schema_or, :eq, :not_eq, :gt, :lt, :gt_eq, :lt_eq]
 
 ANON_SHORTHAND_ID = "__ANON_SHORT_ID"
 
@@ -128,13 +128,13 @@ class Parser
   def parse_operator_call!(lhs)
     c1, _, op = consume!
     rhs_expr = parse_expr!
-    operator = case op
-      when :schema_and, :schema_or
-        dot(schema, [c1, op.to_s.split("schema_")[1]])
-      else
-        dot(peacock, [c1, op.to_s])
-      end
-    AST::function_call [lhs, rhs_expr], operator, @line, c1
+    if [:schema_and, :schema_or].include?(op)
+      operator = dot(schema, [c1, op.to_s.split("schema_")[1]])
+      AST::function_call [lhs, rhs_expr], operator, @line, c1
+    else
+      function = dot(lhs, [c1, "__#{op.to_s}__"])
+      AST::function_call [rhs_expr], function, @line, c1
+    end
   end
 
   def parse_if_expression!

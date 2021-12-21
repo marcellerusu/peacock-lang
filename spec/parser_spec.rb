@@ -2,24 +2,6 @@ require "lexer"
 require "parser"
 require "ast"
 
-def add(line = nil, column = nil)
-  { node_type: :property_lookup,
-   line: line,
-   column: nil, # TODO
-   lhs_expr: {
-    column: nil, # TODO
-    line: line,
-    node_type: :identifier_lookup,
-    sym: "Peacock",
-  },
-   property: {
-    column: column,
-    line: line,
-    node_type: :str_lit,
-    value: "plus",
-  } }
-end
-
 def peacock
   AST::identifier_lookup "Peacock"
 end
@@ -175,8 +157,8 @@ describe Parser do
       ast = parse("a + b")
       expect(ast).to ast_eq([
         AST::function_call(
-          [AST::identifier_lookup("a"), AST::identifier_lookup("b")],
-          add(0, 2),
+          [AST::identifier_lookup("b")],
+          AST::dot(AST::identifier_lookup("a"), "__plus__"),
         ),
       ])
     end
@@ -185,8 +167,8 @@ describe Parser do
       ast = parse("1.5 + 2.4")
       expect(ast).to ast_eq([
         AST::function_call(
-          [AST::float(1.5), AST::float(2.4)],
-          add,
+          [AST::float(2.4)],
+          AST::dot(AST::float(1.5), "__plus__"),
         ),
       ])
     end
@@ -199,8 +181,8 @@ describe Parser do
           AST::function(
             [AST::function_argument("a"), AST::function_argument("b")],
             [AST::return(AST::function_call(
-              [AST::identifier_lookup("a"), AST::identifier_lookup("b")],
-              add
+              [AST::identifier_lookup("b")],
+              AST::dot(AST::identifier_lookup("a"), "__plus__"),
             ))]
           )
         ),
@@ -216,8 +198,8 @@ describe Parser do
           AST::function(
             [AST::function_argument("a"), AST::function_argument("b")],
             [AST::return(AST::function_call(
-              [AST::identifier_lookup("a"), AST::identifier_lookup("b")],
-              add
+              [AST::identifier_lookup("b")],
+              AST::dot(AST::identifier_lookup("a"), "__plus__"),
             ))]
           )
         ),
@@ -237,7 +219,7 @@ describe Parser do
     end
   end
 
-  context "schema" do
+  context "schemas:" do
     it "[a] := [1]" do
       ast = parse("[a] := [1]")
       arr = AST::array([AST::int(1)])

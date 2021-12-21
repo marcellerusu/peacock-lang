@@ -1,3 +1,10 @@
+AST_LIT_TO_CONSTRUCTOR = {
+  int_lit: "Int",
+  str_lit: "Str",
+  float_lit: "Float",
+  symbol: "Sym",
+}
+
 module AST
   def self.remove_numbers_single(node)
     node.delete(:line)
@@ -24,59 +31,83 @@ module AST
   end
 
   def self.int(value, line = nil, column = nil)
-    { node_type: :int_lit,
-      value: value,
-      line: line,
-      column: column }
+    AST::literal_constructor(
+      { node_type: :int_lit,
+        line: line,
+        column: column,
+        value: value },
+      "Int"
+    )
   end
 
   def self.literal(line, c, type, value)
-    { node_type: type,
-      line: line,
-      column: c,
-      value: value }
+    AST::literal_constructor(
+      { node_type: type,
+        line: line,
+        column: c,
+        value: value },
+      AST_LIT_TO_CONSTRUCTOR[type]
+    )
   end
 
   def self.array(value, line = nil, c = nil)
-    { node_type: :array_lit,
-      line: line,
-      column: c,
-      value: value }
+    AST::literal_constructor(
+      { node_type: :array_lit,
+        line: line,
+        column: c,
+        value: value },
+      "List"
+    )
   end
 
   def self.record(value, line = nil, c = nil)
-    { node_type: :record_lit,
-      line: line,
-      column: c,
-      value: value }
+    AST::literal_constructor(
+      { node_type: :record_lit,
+        line: line,
+        column: c,
+        value: value },
+      "Record"
+    )
   end
 
   def self.sym(value, line = nil, c = nil)
-    { node_type: :symbol,
-      line: line,
-      column: c,
-      value: value }
+    AST::literal_constructor(
+      { node_type: :symbol,
+        line: line,
+        column: c,
+        value: value },
+      "Sym"
+    )
   end
 
   def self.bool(value, line = nil, c = nil)
-    { node_type: :bool_lit,
-      line: line,
-      column: c,
-      value: value }
+    AST::literal_constructor(
+      { node_type: :bool_lit,
+        line: line,
+        column: c,
+        value: value },
+      "Bool"
+    )
   end
 
   def self.float(value, line = nil, c = nil)
-    { node_type: :float_lit,
-      line: line,
-      column: c,
-      value: value }
+    AST::literal_constructor(
+      { node_type: :float_lit,
+        line: line,
+        column: c,
+        value: value },
+      "Float"
+    )
   end
 
   def self.str(value, line = nil, c = nil)
-    { node_type: :str_lit,
-      line: line,
-      column: c,
-      value: value }
+    AST::literal_constructor(
+      { node_type: :str_lit,
+        line: line,
+        column: c,
+        value: value },
+      "Str"
+    )
   end
 
   def self.return(expr, line = nil, c = nil)
@@ -151,8 +182,9 @@ module AST
   end
 
   def self.dot(lhs_expr, id, line = nil, c = nil)
+    id = [nil, id] unless id.is_a?(Array)
     lit_c, sym = id
-    property = AST::literal line, lit_c, :str_lit, sym
+    property = { line: line, column: lit_c, node_type: :str_lit, value: sym }
     AST::property_lookup line, c, lhs_expr, property
   end
 
@@ -165,5 +197,19 @@ module AST
       line: line,
       column: c,
       expr: expr }
+  end
+
+  def self.literal_constructor(value_expr, type_name, line = nil, c = nil)
+    AST::function_call(
+      [value_expr],
+      AST::dot(
+        AST::identifier_lookup(type_name, line, c),
+        [c, "create"],
+        line,
+        c
+      ),
+      line,
+      c
+    )
   end
 end

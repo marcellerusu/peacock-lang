@@ -2,7 +2,7 @@ require "type_evaluator"
 require "lexer"
 require "parser"
 
-describe TypeEvaluator do
+describe TypeEvaluator, :i do
   context "literals" do
     it "3" do
       tokens = Lexer::tokenize("3")

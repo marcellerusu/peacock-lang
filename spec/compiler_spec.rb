@@ -11,47 +11,47 @@ describe Compiler do
       tokens = Lexer::tokenize("1")
       ast = Parser.new(tokens).parse!
       js = Compiler.new(ast).eval.strip
-      expect(js).to eq("1;")
+      expect(js).to eq("Int.create(1);")
     end
     it "234.234" do
       tokens = Lexer::tokenize("234.234")
       ast = Parser.new(tokens).parse!
       js = Compiler.new(ast).eval.strip
-      expect(js).to eq("234.234;")
+      expect(js).to eq("Float.create(234.234);")
     end
     it "\"string\"" do
       tokens = Lexer::tokenize("\"string\"")
       ast = Parser.new(tokens).parse!
       js = Compiler.new(ast).eval.strip
-      expect(js).to eq("\"string\";")
+      expect(js).to eq("Str.create(\"string\");")
     end
     it "[1, 2.3]" do
       tokens = Lexer::tokenize("[1, 2.3]")
       ast = Parser.new(tokens).parse!
       js = Compiler.new(ast).eval.strip
-      expect(js).to eq("[1, 2.3];")
+      expect(js).to eq("List.create([Int.create(1), Float.create(2.3)]);")
     end
     it "{a: 3, b: [1, 2.3, \"s\"]}" do
       tokens = Lexer::tokenize("{a: 3, b: [1, 2.3, \"s\"]}")
       ast = Parser.new(tokens).parse!
       js = Compiler.new(ast).eval.strip
-      expect(js).to eq("{
-  \"a\": 3,
-  \"b\": [1, 2.3, \"s\"]
-};")
+      expect(js).to eq("Record.create({
+  \"a\": Int.create(3),
+  \"b\": List.create([Int.create(1), Float.create(2.3), Str.create(\"s\")])
+});")
     end
     it "{a: 3, b: [1, 2.3, \"s\"], c: { d: 3 }}" do
       # TODO: fix indent on object
       tokens = Lexer::tokenize("{a: 3, b: [1, 2.3, \"s\"], c: { d: 3 }}")
       ast = Parser.new(tokens).parse!
       js = Compiler.new(ast).eval.strip
-      expect(js).to eq("{
-  \"a\": 3,
-  \"b\": [1, 2.3, \"s\"],
-  \"c\": {
-    \"d\": 3
-  }
-};")
+      expect(js).to eq("Record.create({
+  \"a\": Int.create(3),
+  \"b\": List.create([Int.create(1), Float.create(2.3), Str.create(\"s\")]),
+  \"c\": Record.create({
+    \"d\": Int.create(3)
+  })
+});")
     end
   end
 end

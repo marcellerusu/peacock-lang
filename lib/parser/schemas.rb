@@ -4,10 +4,15 @@ module Schemas
   LITERALS = [:int_lit, :float_lit, :str_lit, :bool_lit, :symbol]
 
   def parse_match_assignment_without_schema!(pattern)
+    pattern = extract_data_from_constructor(pattern)
     pattern = replace_identifier_lookups_with_schema_any(pattern)
     pattern = replace_literal_values_with_literal_schema(pattern)
     fn_expr = function_call([pattern], schema_for)
     parse_match_assignment!(fn_expr, pattern)
+  end
+
+  def extract_data_from_constructor(pattern)
+    pattern[:args][0]
   end
 
   def replace_identifier_lookups_with_schema_any(pattern)
@@ -166,7 +171,7 @@ module Schemas
   end
 
   def get_schema_any_name(node)
-    node[:args][0][:value]
+    node[:args][0][:args][0][:value]
   end
 
   def schema_any?(node)

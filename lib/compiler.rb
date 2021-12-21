@@ -47,146 +47,22 @@ class Compiler
   def std_lib
     code = "const __Symbols = {}\n"
     code += schema_lib
+    code += literals
     code += "const Peacock = {\n"
     indent!
-    code += padding + "plus: (a, b) => a + b,\n"
-    code += padding + "minus: (a, b) => a - b,\n"
-    code += padding + "mult: (a, b) => a * b,\n"
-    code += padding + "div: (a, b) => a / b,\n"
-    code += padding + "gt: (a, b) => a > b,\n"
-    code += padding + "ls: (a, b) => a < b,\n"
-    code += padding + "gt_eq: (a, b) => a >= b,\n"
-    code += padding + "ls_eq: (a, b) => a <= b,\n"
     code += padding + "symbol: symName => __Symbols[symName] || (__Symbols[symName] = Symbol(symName)),\n"
-    code += padding + "eq: (a, b) => a === b,\n"
     code += padding + "Schema,\n"
     dedent!
     code += "};\n"
-    code += "const print = (...params) => console.log(...params);\n"
+    code += "const print = (...params) => console.log(...params.map(p => p.to_s().__val__()));\n"
+  end
+
+  def literals
+    File.read(File.dirname(__FILE__) + "/pea_std_lib/literals.js")
   end
 
   def schema_lib
-    <<-EOS
-class Schema {
-  static for(schema) {
-    if (schema instanceof Schema) return schema;
-    if (schema instanceof Array) return new ArraySchema(schema);
-    if (schema instanceof Function) return new FnSchema(schema);
-    if (schema === undefined) return new AnySchema();
-    // TODO: this should be more specific
-    if (typeof schema === "object") return new RecordSchema(schema);
-    const literals = ["boolean", "number", "string", "symbol"];
-    if (literals.includes(typeof schema)) return new LiteralSchema(schema);
-  }
-
-  static or(...schema) {
-    return new OrSchema(...schema);
-  }
-
-  static and(a, b) {
-    [a, b] = [Schema.for(a), Schema.for(b)];
-    if (a instanceof RecordSchema && b instanceof RecordSchema) {
-      return a.combine(b);
-    }
-    return new AndSchema(a, b);
-  }
-
-  static any(name) {
-    return new AnySchema(name);
-  }
-
-  static literal(value) {
-    return new LiteralSchema(value);
-  }
-
-
-  constructor(schema) {
-    this.schema = schema;
-  }
-
-  valid(other) {
-    throw null;
-  }
-
-  verify$(value, path) {
-    if (this.valid(value)) {
-      return evalPath(path, value);
-    } else {
-      throw "Match error";
-    };
-  }
-
-  #evalPath(path, value) {
-    for (let prop of path) {
-      value = value[prop];
-    }
-    return value;
-  }
-}
-
-class OrSchema extends Schema {
-  constructor(...schema) {
-    super(schema.map(Schema.for));
-  }
-  valid(other) {
-    return this.schema.some((s) => s.valid(other));
-  }
-}
-
-class AndSchema extends Schema {
-  constructor(...schema) {
-    super(schema.map(Schema.for));
-  }
-  valid(other) {
-    return this.schema.every((s) => s.valid(other));
-  }
-}
-
-class RecordSchema extends Schema {
-  constructor(schema) {
-    super(Object.entries(schema).map(([k, v]) => [k, Schema.for(v)]));
-  }
-
-  combine(other) {
-    let newSchema = Object.fromEntries(this.schema);
-    for (let [k, v] of other.schema) {
-      newSchema[k] = v;
-    }
-    return new RecordSchema(newSchema);
-  }
-
-  valid(other) {
-    return this.schema.every(
-      ([k, v]) => typeof other[k] !== "undefined" && v.valid(other[k])
-    );
-  }
-}
-
-class ArraySchema extends Schema {
-  valid(other) {
-    if (!(other instanceof Array)) return false;
-    return other.length === this.schema.length;
-  }
-}
-
-class FnSchema extends Schema {
-  valid(other) {
-    return this.schema(other);
-  }
-}
-
-class AnySchema extends Schema {
-  valid(other) {
-    return true;
-  }
-}
-
-class LiteralSchema extends Schema {
-  valid(other) {
-    return this.schema === other;
-  }
-}
-    EOS
+    File.read(File.dirname(__FILE__) + "/pea_std_lib/schema.js")
   end
 
   def indent!
@@ -347,7 +223,11 @@ class LiteralSchema extends Schema {
 
   def eval_property_lookup(node)
     lhs, key = eval_expr(node[:lhs_expr]), eval_expr(node[:property])
-    "#{lhs}[#{key}]"
+    if key =~ /"[a-zA-Z\_][a-zA-Z1-9\_]*"/
+      "#{lhs}.#{key[1...-1]}"
+    else
+      "#{lhs}[#{key}]"
+    end
   end
 
   def eval_declaration(node)
