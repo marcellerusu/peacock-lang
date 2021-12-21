@@ -166,8 +166,8 @@ class Parser
     consume! :open_square_bracket
     expr = parse_expr!
     consume! :close_square_bracket
-    assert { [:str_lit, :symbol, :int_lit, :float_lit].include? expr[:node_type] }
-    node = AST::property_lookup(line, c, lhs, expr)
+    assert { [:str_lit, :symbol, :int_lit, :float_lit].include? expr[:args][0][:node_type] }
+    node = AST::lookup(lhs, expr)
     parse_id_modifier_if_exists!(node)
   end
 
@@ -176,11 +176,6 @@ class Parser
   def dot(lhs, id)
     id = [@column, id] unless id.is_a?(Array)
     AST::dot lhs, id, @line, @column
-  end
-
-  def index_on(lhs, index)
-    index = AST::literal(lhs[:line], lhs[:column], :int_lit, index)
-    AST::index_on(lhs, index)
   end
 
   def function_call(args, expr)

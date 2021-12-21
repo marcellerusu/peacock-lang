@@ -113,13 +113,14 @@ module Schemas
 
   def eval_path_on_expr(paths, expr)
     for path in paths
-      if path.is_a?(String)
-        expr = dot(expr, path)
-      elsif path.is_a?(Integer)
-        expr = index_on(expr, path)
-      else
-        assert { false }
-      end
+      property = if path.is_a?(String)
+          AST::str(path)
+        elsif path.is_a?(Integer)
+          AST::int(path)
+        else
+          assert { false }
+        end
+      expr = AST::lookup(expr, property)
     end
     return expr
   end
@@ -178,17 +179,12 @@ module Schemas
     node.is_a?(Hash) &&
       node[:node_type] == :function_call &&
       node[:expr][:node_type] == :property_lookup &&
-      node[:expr][:lhs_expr][:lhs_expr][:sym] == "Peacock" &&
-      node[:expr][:lhs_expr][:property][:value] == "Schema" &&
+      node[:expr][:lhs_expr][:sym] == "Schema" &&
       node[:expr][:property][:value] == "any"
   end
 
-  def peacock
-    AST::identifier_lookup "Peacock", @line, @column
-  end
-
   def schema
-    dot(peacock, "Schema")
+    AST::identifier_lookup("Schema", @line, @column)
   end
 
   def call_schema_valid(schema_fn, expr)
@@ -200,11 +196,13 @@ module Schemas
   end
 
   def call_schema_any(name)
-    args = if name then [AST::literal(@line, @column, :str_lit, name)] else [] end
-    function_call(args, dot(schema, "any"))
+    function_call(
+      [AST::str(name, @line, @column)],
+      dot(schema, "any")
+    )
   end
 
   def schema_for
-    dot(dot(peacock, "Schema"), "for")
+    dot(schema, "for")
   end
 end
