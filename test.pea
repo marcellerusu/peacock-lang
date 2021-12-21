@@ -1,5 +1,4 @@
+add a b = a + b
+add a = add(a, 1)
 
-schema GT3 = #{ % > 3 }
-
-GT3(f) := 3
-print(f)
+print(add(10), add(10, 11))

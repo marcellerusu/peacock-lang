@@ -2,10 +2,12 @@ module Functions
   def is_function?
     # skip params
     i = 0
-    while peek_type(i) == :identifier
+    t, line = peek_token(i)
+    while t && t[1] == :identifier
       i += 1
+      t, line = peek_token(i)
     end
-    peek_type(i) == :declare
+    @line == line && peek_type(i) == :declare
   end
 
   def is_function_call?
