@@ -2,20 +2,12 @@ require "lexer"
 require "parser"
 require "ast"
 
-def peacock
-  AST::identifier_lookup "Peacock"
-end
-
 def dot(lhs, name)
   AST::dot(lhs, [0, name])
 end
 
-def index_on(lhs, index)
-  AST::index_on(lhs, AST::int(index))
-end
-
 def schema
-  dot(peacock, "Schema")
+  AST::identifier_lookup "Schema"
 end
 
 def schema_valid(schema, expr)
@@ -220,7 +212,7 @@ describe Parser do
   end
 
   context "schemas:" do
-    it "[a] := [1]" do
+    it "[a] := [1]", :f do
       ast = parse("[a] := [1]")
       arr = AST::array([AST::int(1)])
       expect(ast).to ast_eq([
@@ -228,7 +220,7 @@ describe Parser do
           schema_valid(schema_for(
             AST::array([schema_any("a")])
           ), arr),
-          [AST::assignment("a", index_on(arr, 0))],
+          [AST::assignment("a", AST::lookup(arr, AST::int(0)))],
           [throw_match_error]
         ),
       ])
@@ -242,8 +234,8 @@ describe Parser do
             AST::array([schema_any("a"), schema_any("b")])
           ), arr),
           [
-            AST::assignment("a", index_on(arr, 0)),
-            AST::assignment("b", index_on(arr, 1)),
+            AST::assignment("a", AST::lookup(arr, AST::int(0))),
+            AST::assignment("b", AST::lookup(arr, AST::int(1))),
           ],
           [throw_match_error]
         ),
@@ -258,7 +250,7 @@ describe Parser do
             AST::array([AST::array([schema_any("a")])])
           ), arr),
           [
-            AST::assignment("a", index_on(index_on(arr, 0), 0)),
+            AST::assignment("a", AST::lookup(AST::lookup(arr, AST::int(0)), AST::int(0))),
           ],
           [throw_match_error]
         ),

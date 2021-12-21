@@ -97,11 +97,13 @@ class Parser
     when type == :open_square_bracket
       parse_dynamic_lookup! sym_expr
     when type == :dot
-      parse_dot_expression! sym_expr
+      node = parse_dot_expression! sym_expr
+      parse_id_modifier_if_exists! node
     when OPERATORS.include?(type)
       parse_operator_call! sym_expr
     when is_function_call?
-      parse_function_call! sym_expr
+      node = parse_function_call! sym_expr
+      parse_id_modifier_if_exists! node
     when is_function?
       parse_function_def! sym_expr
     else sym_expr
