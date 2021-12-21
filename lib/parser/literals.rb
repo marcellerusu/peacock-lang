@@ -9,6 +9,12 @@ module Literals
     parse_id_modifier_if_exists!(sym_expr)
   end
 
+  def parse_property!
+    c, name = consume! :property
+    node = AST::instance_lookup name, @line, c
+    parse_id_modifier_if_exists!(node)
+  end
+
   def parse_lit!(type)
     c, lit = consume! type
     AST::literal @line, c, type, lit

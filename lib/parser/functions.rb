@@ -43,7 +43,7 @@ module Functions
     fn_line = @line
     if new_line?
       next_line!
-      @line, @token_index, body = Parser.new(@statements, @line, @token_index, @indentation + 2).parse_with_position!
+      @line, @token_index, body = Parser.new(@statements, @line, @token_index, @indentation + 2, :declare).parse_with_position!
     else
       return_c = column
       expr = parse_expr!

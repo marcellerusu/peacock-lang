@@ -4,6 +4,7 @@ require "parser/literals"
 require "parser/helpers"
 require "parser/functions"
 require "parser/schemas"
+require "parser/classes"
 # require "pry"
 
 OPERATORS = [:plus, :minus, :mult, :div, :and, :or, :schema_and, :schema_or, :eq, :not_eq, :gt, :lt, :gt_eq, :lt_eq]
@@ -15,43 +16,43 @@ class Parser
   include Helpers
   include Functions
   include Schemas
+  include Classes
 
-  def initialize(statements, line = 0, token_index = 0, indentation = 0)
+  def initialize(statements, line = 0, token_index = 0, indentation = 0, context = nil)
     @statements = statements
     @line = line
     @token_index = token_index
     @indentation = indentation
+    @context = context
   end
 
   def parse!
-    _, _, ast = parse_with_position!
-    return ast
+    _, _, @ast = parse_with_position!
+    return @ast
   end
 
   def parse_with_position!(end_tokens = [])
-    ast = []
+    @ast = []
     next_line! unless token
     while @line < @statements.size && (column.nil? || column >= @indentation)
       break if end_tokens.include? peek_type
       if peek_type == :schema
-        ast.push parse_schema!
+        @ast.push parse_schema!
       elsif peek_type == :identifier && peek_type(1) == :assign
-        ast.push parse_assignment!
+        @ast.push parse_assignment!
       elsif peek_type == :return
-        ast.push parse_return!
+        @ast.push parse_return!
         break
       else
-        ast.push parse_expr!
+        @ast.push parse_expr!
       end
       next_line!
     end
-    # TODO: find a better way to know if we're in a function
-    # Add implicit return
-    unless @indentation == 0 || ast.last[:node_type] == :return
-      node = ast.pop
-      ast.push AST::return(node, node[:line], node[:column])
+    if @context == :declare && @ast.last[:node_type] != :return
+      node = @ast.pop
+      @ast.push AST::return(node, node[:line], node[:column])
     end
-    return @line, @token_index, ast
+    return @line, @token_index, @ast
   end
 
   private
@@ -71,6 +72,8 @@ class Parser
       end
     when [:true, :false].include?(type)
       parse_bool! type
+    when type == :property
+      parse_property!
     when type == :open_square_bracket
       parse_array!
     when type == :open_brace
@@ -85,6 +88,8 @@ class Parser
       parse_anon_function_shorthand!
     when type == :anon_short_id
       parse_anon_short_id!
+    when type == :class
+      parse_class_definition!
     else
       puts "no match [parse_expr!] :#{type}"
       assert { false }
@@ -98,6 +103,9 @@ class Parser
       parse_dynamic_lookup! sym_expr
     when type == :dot
       node = parse_dot_expression! sym_expr
+      parse_id_modifier_if_exists! node
+    when type == :class_property
+      node = parse_class_properity_expression! sym_expr
       parse_id_modifier_if_exists! node
     when OPERATORS.include?(type)
       parse_operator_call! sym_expr
@@ -144,7 +152,7 @@ class Parser
     c, _ = consume! :if
     if_line = @line
     check = parse_expr!
-    @line, @token_index, pass_body = Parser.new(@statements, @line, @token_index, @indentation).parse_with_position! end_tokens
+    @line, @token_index, pass_body = Parser.new(@statements, @line, @token_index, @indentation, :if).parse_with_position! end_tokens
     consume! :then if peek_type == :then
     unless peek_type == :else
       consume! :end
@@ -152,7 +160,7 @@ class Parser
     end
     consume! :else
     return AST::if(check, pass_body, [parse_if_expression!], if_line, c) if peek_type == :if
-    @line, @token_index, fail_body = Parser.new(@statements, @line, @token_index, @indentation).parse_with_position! end_tokens
+    @line, @token_index, fail_body = Parser.new(@statements, @line, @token_index, @indentation, :if).parse_with_position! end_tokens
     consume! :end
     AST::if check, pass_body, fail_body, if_line, c
   end
@@ -161,6 +169,11 @@ class Parser
     c, line = @column, @line
     consume! :dot
     AST::dot lhs, consume!(:identifier), line, c
+  end
+
+  def parse_class_properity_expression!(lhs)
+    c, line = @column, @line
+    AST::dot lhs, consume!(:class_property), line, c
   end
 
   def parse_dynamic_lookup!(lhs)

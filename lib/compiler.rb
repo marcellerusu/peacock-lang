@@ -157,12 +157,16 @@ class Compiler
       eval_function_call node
     when :identifier_lookup
       eval_identifier_lookup node
+    when :instance_lookup
+      eval_instance_lookup node
     when :if
       eval_if_expression node
     when :symbol
       eval_symbol node
     when :throw
       eval_throw node
+    when :class
+      eval_class_definition node
     else
       puts "no case matched node_type: #{node[:node_type]}"
       assert { false }
@@ -243,6 +247,10 @@ class Compiler
     "(#{args}) => {\n#{body}\n#{padding}}"
   end
 
+  def eval_instance_lookup(node)
+    "this.#{node[:sym]}"
+  end
+
   def eval_return(node)
     "return #{eval_expr node[:expr]}"
   end
@@ -255,5 +263,38 @@ class Compiler
 
   def eval_identifier_lookup(node)
     node[:sym]
+  end
+
+  def eval_class_definition(node)
+    class_name, args, methods = node[:sym], node[:args].map { |arg| arg[:sym] }, node[:methods]
+
+    def method_args(node)
+      node[:args].map { |arg| arg[:sym] }.join(", ")
+    end
+
+    def method_body(node)
+      body = Compiler.new(node[:body], @indent + 2).eval
+    end
+
+    class_def = <<-EOF
+class #{class_name} {
+  constructor(#{args.join(", ")}) {
+    #{args.map { |arg|
+      "this.#{arg} = #{arg};"
+    }.join("\n").strip()}
+  }
+  static create(#{args.join(", ")}) {
+    return new #{class_name}(#{args.join(", ")});
+  }
+  #{methods.map { |method|
+      <<-EOM
+#{method[:sym]}(#{method_args(method[:expr])}) {
+    #{method_body(method[:expr])}
+  }
+EOM
+    }.join("\n").strip()}
+}
+EOF
+    class_def.strip()
   end
 end

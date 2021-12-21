@@ -212,7 +212,7 @@ describe Parser do
   end
 
   context "schemas:" do
-    it "[a] := [1]", :f do
+    it "[a] := [1]" do
       ast = parse("[a] := [1]")
       arr = AST::array([AST::int(1)])
       expect(ast).to ast_eq([
@@ -292,6 +292,36 @@ describe Parser do
           AST::bool(true),
           [],
           [AST::if(AST::bool(false), [], [])]
+        ),
+      ])
+    end
+  end
+
+  context "class" do
+    it "Num" do
+      ast = parse("
+class Num val =
+  add other = @val + other
+")
+      expect(ast).to ast_eq([
+        AST::class(
+          "Num",
+          [AST::function_argument("val")],
+          [AST::declare(
+            { sym: "add" },
+            AST::function(
+              [AST::function_argument("other")],
+              [AST::return(
+                AST::function_call(
+                  [AST::identifier_lookup("other")],
+                  AST::dot(
+                    AST::instance_lookup("val"),
+                    "__plus__"
+                  )
+                )
+              )]
+            )
+          )]
         ),
       ])
     end

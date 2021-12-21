@@ -16,6 +16,7 @@ module AST
     node[:value] = AST::remove_numbers_from_hash(node[:value]) if node[:value].is_a?(Hash)
     node[:args] = AST::remove_numbers(node[:args]) if node[:args]
     node[:body] = AST::remove_numbers(node[:body]) if node[:body]
+    node[:methods] = AST::remove_numbers(node[:methods]) if node[:methods]
     node[:pass] = AST::remove_numbers(node[:pass]) if node[:pass]
     node[:fail] = AST::remove_numbers(node[:fail]) if node[:fail]
 
@@ -188,6 +189,13 @@ module AST
     AST::property_lookup line, c, lhs_expr, property
   end
 
+  def self.instance_lookup(name, line = nil, c = nil)
+    { node_type: :instance_lookup,
+      sym: name,
+      line: line,
+      column: c }
+  end
+
   def self.lookup(lhs, expr)
     AST::function_call(
       [expr],
@@ -214,5 +222,14 @@ module AST
       line,
       c
     )
+  end
+
+  def self.class(name, args, methods, line = nil, column = nil)
+    { node_type: :class,
+      sym: name,
+      args: args,
+      methods: methods,
+      line: line,
+      column: column }
   end
 end

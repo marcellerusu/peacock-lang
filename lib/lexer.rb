@@ -102,6 +102,10 @@ module Lexer
         tokens.push [column, :return]
       when scanner.scan(/schema\b/)
         tokens.push [column, :schema]
+      when scanner.scan(/::[a-zA-Z][a-zA-Z1-9\_!?]*/)
+        tokens.push [column, :class_property, scanner.matched[2..]]
+      when scanner.scan(/@[a-zA-Z][a-zA-Z1-9\_!?]*/)
+        tokens.push [column, :property, scanner.matched[1..]]
       when scanner.scan(/:[a-zA-Z][a-zA-Z1-9\_!?]*/)
         tokens.push [column, :symbol, scanner.matched[1..]]
       when scanner.scan(/:/)

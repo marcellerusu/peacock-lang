@@ -1,2 +1,5 @@
-[a] := [[1]]
-print(a[0].to_s().to_i())
+
+schema GT3 = #{ % > 3 }
+
+GT3(f) := 3
+print(f)
