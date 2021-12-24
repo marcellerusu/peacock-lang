@@ -1,5 +1,6 @@
-b := case [1] of
-  [a] => a
-end
+schema OneTwo = [1, 2]
 
-print(b)
+OneTwo(other) := [1, 2]
+# OneTwo(other) := [2, 1] -> MatchError
+
+print(other)

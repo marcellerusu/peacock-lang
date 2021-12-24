@@ -87,7 +87,7 @@ class Compiler
     function = ""
     functions.each do |sym, function_group|
       indent!
-      function += "const " + sym + " = "
+      function += "const " + sub_q(sym) + " = "
       function += "(...params)" + " => "
       function += "{" << "\n" + padding
       function += "const functions = ["
@@ -110,7 +110,7 @@ class Compiler
     if nodes.any?
       vars = padding
       vars += "let "
-      vars += nodes.map { |node| node[:sym] }.join(", ")
+      vars += nodes.map { |node| sub_q(node[:sym]) }.join(", ")
       vars += ";" << "\n"
     end
     vars || ""
@@ -228,19 +228,25 @@ class Compiler
 
   def eval_property_lookup(node)
     lhs, key = eval_expr(node[:lhs_expr]), eval_expr(node[:property])
-    if key =~ /"[a-zA-Z\_][a-zA-Z1-9\_]*"/
-      "#{lhs}.#{key[1...-1]}"
+    if key =~ /"[a-zA-Z\_][a-zA-Z1-9\_?]*"/
+      "#{lhs}.#{sub_q(key[1...-1])}"
     else
-      "#{lhs}[#{key}]"
+      "#{lhs}[#{sub_q(key)}]"
     end
   end
 
+  def sub_q(sym)
+    sym
+      .sub("?", "_q")
+      .sub("!", "_b")
+  end
+
   def eval_declaration(node)
-    "const #{node[:sym]} = #{eval_expr(node[:expr])}"
+    "const #{sub_q(node[:sym])} = #{eval_expr(node[:expr])}"
   end
 
   def eval_assignment(node)
-    "#{node[:sym]} = #{eval_expr(node[:expr])}"
+    "#{sub_q(node[:sym])} = #{eval_expr(node[:expr])}"
   end
 
   def eval_function(node)
@@ -264,7 +270,7 @@ class Compiler
   end
 
   def eval_identifier_lookup(node)
-    node[:sym]
+    sub_q(node[:sym])
   end
 
   def eval_class_definition(node)

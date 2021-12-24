@@ -14,7 +14,7 @@ end
 def schema_valid(schema, expr)
   AST::function_call(
     [expr],
-    dot(schema, "valid")
+    dot(schema, "valid_q")
   )
 end
 

@@ -228,7 +228,7 @@ module Schemas
   end
 
   def call_schema_valid(schema_fn, expr)
-    function_call([expr], dot(schema_fn, "valid"))
+    function_call([expr], dot(schema_fn, "valid_q"))
   end
 
   def call_schema_literal(literal)

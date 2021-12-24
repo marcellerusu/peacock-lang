@@ -4,8 +4,8 @@ A small fun dynamic FP language
 
 # TODO:
 
-[ ] records should default to symbols as keys instead of strings
-[x] case statements
+- [ ] records should default to symbols as keys instead of strings
+- [x] case statements
 
 # Working Things
 
@@ -44,11 +44,13 @@ schema NewUser = User & { created_at: #{ % > Date::start_of_month() }}
 
 # proper value equality (will implement via operator overloading)
 # wrap primitive values in classes
-# classes
+# case expressions (via schemas)
 
 ```
 
 # Broken Things
+
+classes
 
 # Not Implemented (Yet) Things
 
@@ -60,7 +62,6 @@ write File({ user_id: user_id }) User({ id: user_id }) = true
 
 # import & export
 # modules (ts style namespaces)
-# case expressions (via schemas)
 # ifs as expressions
 # operator overloading (via classes)
 # immutable data structures
