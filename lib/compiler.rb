@@ -167,6 +167,8 @@ class Compiler
       eval_throw node
     when :class
       eval_class_definition node
+    when :case
+      eval_case_expression node
     else
       puts "no case matched node_type: #{node[:node_type]}"
       assert { false }
@@ -296,5 +298,9 @@ EOM
 }
 EOF
     class_def.strip()
+  end
+
+  def eval_case_expression(node)
+    "Schema.case(#{eval_expr(node[:expr])}, #{eval_expr(node[:cases])})"
   end
 end

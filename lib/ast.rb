@@ -19,7 +19,7 @@ module AST
     node[:methods] = AST::remove_numbers(node[:methods]) if node[:methods]
     node[:pass] = AST::remove_numbers(node[:pass]) if node[:pass]
     node[:fail] = AST::remove_numbers(node[:fail]) if node[:fail]
-
+    node[:cases] = AST::remove_numbers_single(node[:cases]) if node[:cases]
     return node
   end
 
@@ -229,6 +229,14 @@ module AST
       sym: name,
       args: args,
       methods: methods,
+      line: line,
+      column: column }
+  end
+
+  def self.case(expr, cases, line = nil, column = nil)
+    { node_type: :case,
+      expr: expr,
+      cases: cases,
       line: line,
       column: column }
   end

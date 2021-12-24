@@ -3,6 +3,16 @@ module Helpers
     @statements[@line]
   end
 
+  def more_statements?
+    assert { @line <= @statements.size }
+    @line < @statements.size
+  end
+
+  def still_indented?
+    assert { !column.nil? }
+    column >= @indentation
+  end
+
   def token
     statement[@token_index]
   end
@@ -10,8 +20,6 @@ module Helpers
   def column
     token[0] if token
   end
-
-  # Parsing helpers
 
   def next_line!
     @line += 1

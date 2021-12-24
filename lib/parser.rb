@@ -34,9 +34,11 @@ class Parser
   def parse_with_position!(end_tokens = [])
     @ast = []
     next_line! unless token
-    while @line < @statements.size && (column.nil? || column >= @indentation)
+    while more_statements? && still_indented?
       break if end_tokens.include? peek_type
-      if peek_type == :schema
+      if peek_type == :class
+        @ast.push parse_class_definition!
+      elsif peek_type == :schema
         @ast.push parse_schema!
       elsif peek_type == :identifier && peek_type(1) == :assign
         @ast.push parse_assignment!
@@ -48,7 +50,7 @@ class Parser
       end
       next_line!
     end
-    if @context == :declare && @ast.last[:node_type] != :return
+    if [:declare, :function].include?(@context) && @ast.last[:node_type] != :return
       node = @ast.pop
       @ast.push AST::return(node, node[:line], node[:column])
     end
@@ -84,12 +86,12 @@ class Parser
       parse_if_expression!
     when type == :identifier
       parse_identifier!
+    when type == :case
+      parse_case_expression!
     when type == :anon_short_fn_start
       parse_anon_function_shorthand!
     when type == :anon_short_id
       parse_anon_short_id!
-    when type == :class
-      parse_class_definition!
     else
       puts "no match [parse_expr!] :#{type}"
       assert { false }
@@ -154,7 +156,7 @@ class Parser
     check = parse_expr!
     @line, @token_index, pass_body = Parser.new(@statements, @line, @token_index, @indentation, :if).parse_with_position! end_tokens
     consume! :then if peek_type == :then
-    unless peek_type == :else
+    if peek_type != :else
       consume! :end
       return AST::if check, pass_body, [], if_line, c
     end

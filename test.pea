@@ -1,4 +1,5 @@
-add a b = a + b
-add a = add(a, 1)
+b := case [1] of
+  [a] => a
+end
 
-print(add(10), add(10, 11))
+print(b)

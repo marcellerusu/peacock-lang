@@ -2,6 +2,11 @@
 
 A small fun dynamic FP language
 
+# TODO:
+
+[ ] records should default to symbols as keys instead of strings
+[x] case statements
+
 # Working Things
 
 ```

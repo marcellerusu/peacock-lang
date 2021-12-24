@@ -30,6 +30,10 @@ module Lexer
         tokens.push [column, :self]
       when scanner.scan(/fn\b/)
         tokens.push [column, :fn]
+      when scanner.scan(/case\b/)
+        tokens.push [column, :case]
+      when scanner.scan(/of\b/)
+        tokens.push [column, :of]
       when scanner.scan(/if\b/)
         tokens.push [column, :if]
       when scanner.scan(/unless\b/)

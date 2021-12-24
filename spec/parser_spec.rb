@@ -1,6 +1,7 @@
 require "lexer"
 require "parser"
 require "ast"
+require "compiler"
 
 def dot(lhs, name)
   AST::dot(lhs, [0, name])
@@ -324,6 +325,34 @@ class Num val =
           )]
         ),
       ])
+    end
+  end
+  context "case" do
+    it "array single element" do
+      ast = parse("
+case [1] of
+  [a] => a
+end")
+      value =
+        expect(ast).to ast_eq(
+          [
+            AST::case(
+              AST::array([AST::int(1)]),
+              AST::array([
+                AST::array([
+                  schema_for(AST::array([schema_any("a")])),
+                  AST::function(
+                    [AST::function_argument("match_expr")],
+                    [
+                      AST::assignment("a", AST::lookup(AST::identifier_lookup("match_expr"), AST::int(0))),
+                      AST::return(AST::identifier_lookup("a")),
+                    ]
+                  ),
+                ]),
+              ]),
+            ),
+          ]
+        )
     end
   end
 end

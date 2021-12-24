@@ -3,6 +3,46 @@ require "pry"
 module Schemas
   LITERALS = [:int_lit, :float_lit, :str_lit, :bool_lit, :symbol]
 
+  def parse_case_expression!
+    consume! :case
+    value = parse_expr!
+    consume! :of
+    cases = []
+    match_arg_name = "match_expr"
+    while peek_type != :end
+      schema, matches = parse_schema_literal!
+      consume! :arrow
+      @line, @token_index, body = Parser.new(@statements, @line, @token_index, @indentation + 2, :function).parse_with_position!
+      fn = AST::function(
+        [AST::function_argument(match_arg_name)],
+        matches.map do |path_and_sym|
+          sym, path = path_and_sym.last, path_and_sym[0...-1]
+          # binding.pry
+          AST::assignment(
+            sym,
+            eval_path_on_expr(path, AST::identifier_lookup(match_arg_name))
+          )
+        end + body
+      )
+      cases.push AST::array([schema, fn])
+    end
+    consume! :end
+    AST::case value, AST::array(cases)
+  end
+
+  def parse_schema_literal!
+    expr = parse_expr!
+    expr = extract_data_from_constructor(expr)
+    expr = replace_identifier_lookups_with_schema_any(expr)
+    expr = replace_literal_values_with_literal_schema(expr)
+    schema = function_call([expr], schema_for)
+    while OPERATORS.include?(peek_type)
+      schema = parse_operator_call!(schema)
+    end
+    # binding.pry
+    return schema, find_bound_variables(expr)
+  end
+
   def parse_match_assignment_without_schema!(pattern)
     pattern = extract_data_from_constructor(pattern)
     pattern = replace_identifier_lookups_with_schema_any(pattern)

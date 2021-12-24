@@ -9,9 +9,12 @@ module Classes
       args.push(AST::function_argument(arg_name, @line, c1))
     end
     consume! :declare
+    next_line!
     @line, @token_index, methods = Parser.new(@statements, @line, @token_index, @indentation + 2, :class).parse_with_position!
-    # binding.pry
     assert { methods.all? { |node| node[:node_type] == :declare } }
+    # TODO: wtf
+    # @line -= 1
+    # @token_index = statement.size - 1
     AST::class(
       class_name,
       args,
