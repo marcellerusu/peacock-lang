@@ -220,7 +220,7 @@ class Compiler
     indent!
     record = "{\n"
     record += node[:value].map do |key, value|
-      "#{padding}\"#{key}\": #{eval_expr(value)}"
+      "#{padding}[#{eval_symbol({ value: key })}]: #{eval_expr(value)}"
     end.join(",\n")
     dedent!
     record += "\n#{padding}}"

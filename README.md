@@ -4,7 +4,7 @@ A small fun dynamic FP language
 
 # TODO:
 
-- [ ] records should default to symbols as keys instead of strings
+- [x] records should default to symbols as keys instead of strings
 - [x] case statements
 
 # Working Things
@@ -26,7 +26,7 @@ print(arr, arr.a)
 # on arrays
 [1, 2, 3][0]
 # on objects
-{string: 3}["string"]
+{key: 3}[:key]
 
 # Schemas
 schema GT3 = #{ % > 3 }

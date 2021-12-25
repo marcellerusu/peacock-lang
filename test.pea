@@ -1,6 +1,2 @@
-schema OneTwo = [1, 2]
-
-OneTwo(other) := [1, 2]
-# OneTwo(other) := [2, 1] -> MatchError
-
-print(other)
+o := { a: 3 }
+print(o[:a])
