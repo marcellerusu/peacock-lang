@@ -60,6 +60,7 @@ classes
 # capture bound variables & create constraints across rules
 write File({ user_id: user_id }) User({ id: user_id }) = true
 
+# reduce expressions
 # import & export
 # modules (ts style namespaces)
 # ifs as expressions
