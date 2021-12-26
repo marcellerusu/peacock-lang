@@ -1,2 +1,6 @@
-o := { a: 3 }
-print(o[:a])
+schema Bread = { toasted, type: :whole_wheat | :white }
+# schema UntoastedBread = Bread & { toasted: true }
+# schema ToastedBreak = Bread & { toasted }
+
+Bread(b) := { toasted: true, type: :white }
+print(b)

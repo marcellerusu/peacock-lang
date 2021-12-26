@@ -1,0 +1,74 @@
+# schemas have
+# 1 - arguments (which themselves are schemas)
+# 2 - operators & and |
+# 3 - from clause
+# 4 - with clause
+
+schema Parser Symbol(type) = { column, line, value }
+  from [column, line, type, value]
+schema As node_type = Node with { node_type }
+
+schema NoneOrMore parser = {  }
+  # from 
+# schema Parser List() =
+
+schema CaptureAs key = { [key]: value } from value
+
+schema Int = Parser<:int_lit> & As<:int_lit>
+schema Str = Parser<:str_lit> & As<:str_lit>
+schema Float = Parser<:float_lit> & As<:float_lit>
+schema ExprNode =
+  Int
+  | Str
+  | Float
+  | Record
+  | List
+  | AnonFn
+  | AnonFnShort
+  | IdenifierLookup
+  | AnonShortHandId
+
+schema IdenifierLookup = Parser<:identifier> & As<:identifier_lookup>
+schema AnonShortHandId = Parser<:anon_short_id> & AsLiteral<{ node_type: :identifier_lookup, sym: "ANON_SHORT_ID" }>
+
+schema Body = NoneOrMore<
+    AnyOf<[ExprNode, Return, FnDeclaration]>
+  >
+
+schema WithNext token_type = {  }
+
+schema Record = Parser<[
+    :open_brace,
+    NoneOrMore<
+      OneOf<
+        [:identifier, :colon, ExprNode, :comma | WithNext<:close_brace>],
+        [:identifier]
+      >
+    > & CaptureAs<:value>,
+    :close_brace
+  ]> & As<:record_lit>
+schema List = Parser<[
+    :open_sq_brace,
+    NoneOrMore<
+      [ExprNode, :comma | WithNext<:close_sq_brace>]
+    > & CaptureAs<:value>,
+    :close_sq_brace
+  ]>
+schema AnonFn = Parser<[
+    :fn,
+    NoneOrMore<[ExprNode]> & CaptureAs<:args>,
+    :arrow,
+    Body & CaptureAs<:body>,
+    :end
+  ]>
+schema AnonFnShort = Parser<[
+    :hash_pound,
+    Body & CaptureAs<:body>,
+    :end
+  ]>
+schema FnDeclaration = Parser<[
+    :identifier,
+    NoneOrMore<[ExprNode]> & CaptureAs<:args>,
+    :eq_sign,
+    Body & WithIndentation & CaptureAs<:body>
+  ]>

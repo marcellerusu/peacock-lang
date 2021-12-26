@@ -237,7 +237,7 @@ module Schemas
 
   def call_schema_any(name)
     function_call(
-      [AST::str(name, @line, @column)],
+      [AST::sym(name, @line, @column)],
       dot(schema, "any")
     )
   end
