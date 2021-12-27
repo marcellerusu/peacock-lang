@@ -209,6 +209,7 @@ module Schemas
     while OPERATORS.include?(peek_type)
       schema = parse_operator_call!(schema)
     end
+    @expr_context = nil
     AST::assignment(sym, schema, line, c)
   end
 
