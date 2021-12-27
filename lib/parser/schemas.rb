@@ -199,6 +199,7 @@ module Schemas
   end
 
   def parse_schema!
+    @expr_context = :schema
     line = @line
     consume! :schema
     c, sym = consume! :identifier

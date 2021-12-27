@@ -31,13 +31,14 @@ module Literals
     line = @line
     while peek_type != :close_brace
       # TODO: will have to allow more than strings as keys at some point
-      _, sym = consume! :identifier
+      c1, sym = consume! :identifier
       if peek_type == :colon
         consume! :colon
         record[sym] = parse_expr!
-      else
-        # We can't always do this
+      elsif @expr_context == :schema
         record[sym] = call_schema_any(sym)
+      else
+        record[sym] = AST::identifier_lookup(sym, line, c1)
       end
       consume! :comma unless peek_type == :close_brace
     end
