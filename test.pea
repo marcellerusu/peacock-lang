@@ -1,13 +1,2 @@
-# value := 3
-
-# print({ value })
-
-schema Bread = { toasted, type: :white | :whole_wheat }
-#   from [toasted, type] as { toasted, type }
-
-
-# # schema UntoastedBread = Bread & { toasted: true }
-# # schema ToastedBreak = Bread & { toasted }
-
-Bread(b) := { toasted: true, type: :white }
-print(b)
+[x, y] := [1, 2]
+print(x, y)

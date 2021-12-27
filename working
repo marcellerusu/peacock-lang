@@ -1,8 +1,0 @@
-# numbers
-test := 3
-
-# strings
-test := "string test with things"
-
-#symbol
-test := :symbol
