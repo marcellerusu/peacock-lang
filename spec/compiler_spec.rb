@@ -36,8 +36,8 @@ describe Compiler do
       ast = Parser.new(tokens).parse!
       js = Compiler.new(ast).eval.strip
       expect(js).to eq("Record.create({
-  \"a\": Int.create(3),
-  \"b\": List.create([Int.create(1), Float.create(2.3), Str.create(\"s\")])
+  [Peacock.symbol('a')]: Int.create(3),
+  [Peacock.symbol('b')]: List.create([Int.create(1), Float.create(2.3), Str.create(\"s\")])
 });")
     end
     it "{a: 3, b: [1, 2.3, \"s\"], c: { d: 3 }}" do
@@ -46,10 +46,10 @@ describe Compiler do
       ast = Parser.new(tokens).parse!
       js = Compiler.new(ast).eval.strip
       expect(js).to eq("Record.create({
-  \"a\": Int.create(3),
-  \"b\": List.create([Int.create(1), Float.create(2.3), Str.create(\"s\")]),
-  \"c\": Record.create({
-    \"d\": Int.create(3)
+  [Peacock.symbol('a')]: Int.create(3),
+  [Peacock.symbol('b')]: List.create([Int.create(1), Float.create(2.3), Str.create(\"s\")]),
+  [Peacock.symbol('c')]: Record.create({
+    [Peacock.symbol('d')]: Int.create(3)
   })
 });")
     end
