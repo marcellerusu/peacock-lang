@@ -6,6 +6,10 @@ def parse(str)
   AST::remove_numbers(ast)
 end
 
+def ast_eq(ast)
+  eq(AST::remove_numbers(ast))
+end
+
 context "snapshot" do
   it "2021-12-27 21:47:15 -0500" do
     ast = parse("schema Bread = { toasted, type: :white | :whole_wheat }

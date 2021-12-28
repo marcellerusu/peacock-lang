@@ -1,8 +1,22 @@
+# this is just an playground for ideas of 
+# how I would implement peacock within itself
+
 # schemas have
 # 1 - arguments (which themselves are schemas)
 # 2 - operators & and |
 # 3 - from clause
 # 4 - with clause
+
+schema Int = { node_type: :int, value, line, column }
+  from [line, column, :int_lit, value]
+  to { node_type: :int, value, line, column }
+
+schema CaptureMany Type Key = { [Key] }
+  from ListOf<Type>(list) to { [Key]: list }
+
+schema List = { node_type: :list, value, line, column }
+  from CaptureMany<Int, :value>
+  to { node_type: :list, value, line, column }
 
 schema Parser Symbol(type) = { column, line, value }
   from [column, line, type, value]
