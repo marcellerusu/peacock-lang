@@ -1,6 +1,7 @@
 module Literals
   def parse_sym!
     c, sym = consume! :identifier
+    return call_schema_any(sym) if expr_context.is_a?(:schema) && !schema?(sym)
     AST::identifier_lookup sym, @line, c
   end
 
@@ -35,7 +36,7 @@ module Literals
       if peek_type == :colon
         consume! :colon
         record[sym] = parse_expr!
-      elsif @expr_context == :schema
+      elsif expr_context.is_a?(:schema)
         record[sym] = call_schema_any(sym)
       else
         record[sym] = AST::identifier_lookup(sym, line, c1)

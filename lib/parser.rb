@@ -24,7 +24,10 @@ class Parser
     @token_index = token_index
     @indentation = indentation
     @context = context
-    @expr_context = nil
+  end
+
+  def expr_context
+    @expr_context ||= Context.new
   end
 
   def parse!

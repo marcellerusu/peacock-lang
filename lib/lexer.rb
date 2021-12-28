@@ -92,6 +92,10 @@ module Lexer
         tokens.push [column, :anon_short_id]
       when scanner.scan(/-/)
         tokens.push [column, :minus]
+      when scanner.scan(/from\b/)
+        tokens.push [column, :from]
+      when scanner.scan(/to\b/)
+        tokens.push [column, :to]
       when scanner.scan(/reduce\b/)
         tokens.push [column, :reduce]
       when scanner.scan(/next\b/)

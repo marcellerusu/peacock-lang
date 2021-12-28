@@ -1,6 +1,30 @@
 module Helpers
+  class Context
+    def initialize(context = nil)
+      @context = context
+    end
+
+    def set!(context)
+      @context = context
+    end
+
+    def unset!(context)
+      assert { @context == context }
+      @context = nil
+    end
+
+    def is_a?(context)
+      @context == context
+    end
+  end
+
   def statement
     @statements[@line]
+  end
+
+  def schema?(identifier)
+    # identifiers starting w uppercase are interpreted as schemas
+    identifier[0].upcase == identifier[0]
   end
 
   def more_statements?

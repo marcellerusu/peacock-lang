@@ -7,6 +7,7 @@ AST_LIT_TO_CONSTRUCTOR = {
 
 module AST
   def self.remove_numbers_single(node)
+    assert { node.is_a? Hash }
     node.delete(:line)
     node.delete(:column)
     node[:expr] = AST::remove_numbers_single(node[:expr]) if node[:expr]
@@ -24,6 +25,7 @@ module AST
   end
 
   def self.remove_numbers(nodes)
+    assert { nodes.is_a? Array }
     nodes.map { |n| AST::remove_numbers_single(n) }
   end
 
