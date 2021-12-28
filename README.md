@@ -52,7 +52,7 @@ The core data structures are `List` `Record` `Int` `Float` `Str` `Sym`, all of w
 
 classes are the only way you can have mutation in Peacock. This is important, because although we avoid mutation at large, there are times where it is extremely convenient to have, Ex. local component state.
 
-all values (even primitives) are objects, this is very much inspired by the joy I experienced in ruby.
+all values (even primitives) are records, this is very much inspired by the joy I experienced in ruby.
 
 # Working Things
 
@@ -65,14 +65,14 @@ print(add(20, 20))
 arr := [1, "2", :three]
 print(arr)
 
-# Objects
+# records
 arr := { a: [1, 2, 3 ] }
 print(arr, arr.a)
 
 # Dynamic property lookup
 # on arrays
 [1, 2, 3][0]
-# on objects
+# on records
 {key: 3}[:key]
 
 # Schemas
