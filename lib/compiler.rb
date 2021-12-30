@@ -166,6 +166,8 @@ class Compiler
       eval_throw node
     when :class
       eval_class_definition node
+    when :html_tag
+      eval_html_tag node
     when :case
       eval_case_expression node
     else
@@ -202,6 +204,10 @@ class Compiler
     "#{node[:value]}"
   end
 
+  def eval_html_tag(node)
+    "document.createElement(\"#{node[:name]}\")"
+  end
+
   def eval_float(node)
     "#{node[:value]}"
   end
@@ -225,6 +231,15 @@ class Compiler
     record += "\n#{padding}}"
   end
 
+  # Figure this out :/
+  # the idea is that num.to_i will turn into num.to_i()
+  # Maybe a more reasonable approach is that objects only
+  # have methods, you can never directly access properties on objects...
+  # need more time to think about if I want to go down this path
+  def try_call_function(expr)
+    "(typeof #{expr} === 'function' ? #{expr}() : #{expr})"
+  end
+
   def eval_property_lookup(node)
     lhs, key = eval_expr(node[:lhs_expr]), eval_expr(node[:property])
     if key =~ /"[a-zA-Z\_][a-zA-Z1-9\_?]*"/
@@ -232,6 +247,7 @@ class Compiler
     else
       "#{lhs}[#{sub_q(key)}]"
     end
+    # try_call_function expr
   end
 
   def sub_q(sym)

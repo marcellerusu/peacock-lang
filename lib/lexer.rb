@@ -1,4 +1,5 @@
 require "strscan"
+require "utils"
 
 module Lexer
   def self.tokenize(program)
@@ -24,8 +25,18 @@ module Lexer
         break
       when scanner.scan(/".*"/)
         tokens.push [column, :str_lit, scanner.matched[1...-1]]
+      when scanner.scan(/\d+\.\d+/)
+        tokens.push [column, :float_lit, scanner.matched.to_f]
+      when scanner.scan(/\d+/)
+        tokens.push [column, :int_lit, scanner.matched.to_i]
       when scanner.scan(/(true|false)\b/)
         tokens.push [column, (scanner.matched == "true").to_s.to_sym]
+      when scanner.scan(/<([a-z][a-z1-9_]*)>/)
+        assert { scanner.captures.size == 1 }
+        tokens.push [column, :open_html_tag, scanner.captures.first]
+      when scanner.scan(/<\/([a-z][a-z1-9_]*)>/)
+        assert { scanner.captures.size == 1 }
+        tokens.push [column, :close_html_tag, scanner.captures.first]
       when scanner.scan(/self\b/)
         tokens.push [column, :self]
       when scanner.scan(/fn\b/)
@@ -120,10 +131,6 @@ module Lexer
         tokens.push [column, :colon]
       when scanner.scan(/[a-zA-Z][a-zA-Z1-9\_!?]*/)
         tokens.push [column, :identifier, scanner.matched]
-      when scanner.scan(/\d+\.\d+/)
-        tokens.push [column, :float_lit, scanner.matched.to_f]
-      when scanner.scan(/\d+/)
-        tokens.push [column, :int_lit, scanner.matched.to_i]
       else
         raise AssertionError
       end

@@ -1,10 +1,1 @@
-schema Bread = { toasted, type: :white | :whole_wheat }
-schema UntoastedBread = Bread & { toasted: false }
-schema ToastedBread = Bread & { toasted: true }
-  from UntoastedBread({ type }) to { toasted: true, type }
-
-UntoastedBread(untoasted_bread) := { toasted: false, type: :whole_wheat }
-ToastedBread(toasted_bread) := untoasted_bread
-
-print(untoasted_bread)
-print(toasted_bread)
+d := <h1></h1>

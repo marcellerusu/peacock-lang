@@ -226,6 +226,14 @@ module AST
     )
   end
 
+  def self.html_tag(name, properties = [], line = nil, column = nil)
+    { node_type: :html_tag,
+      name: name,
+      properties: properties,
+      line: line,
+      column: column }
+  end
+
   def self.class(name, args, methods, line = nil, column = nil)
     { node_type: :class,
       sym: name,

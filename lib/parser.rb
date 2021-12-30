@@ -5,6 +5,7 @@ require "parser/helpers"
 require "parser/functions"
 require "parser/schemas"
 require "parser/classes"
+require "parser/html"
 # require "pry"
 
 OPERATORS = [:plus, :minus, :mult, :div, :and, :or, :schema_and, :schema_or, :eq, :not_eq, :gt, :lt, :gt_eq, :lt_eq]
@@ -17,6 +18,7 @@ class Parser
   include Functions
   include Schemas
   include Classes
+  include HTML
 
   def initialize(statements, line = 0, token_index = 0, indentation = 0, context = nil)
     @statements = statements
@@ -82,6 +84,8 @@ class Parser
       parse_property!
     when type == :open_square_bracket
       parse_array!
+    when type == :open_html_tag
+      parse_html_tag!
     when type == :open_brace
       parse_record!
     when type == :fn
