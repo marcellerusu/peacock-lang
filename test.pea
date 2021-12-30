@@ -1,16 +1,10 @@
-# value := 3
-
-# print({ value })
-
-# schema Point = [x, y]
-# Point([x, y]) := [1, 2]
-# print(x, y)
-
 schema Bread = { toasted, type: :white | :whole_wheat }
-  from [toasted, type] to { toasted, type }
-# schema UntoastedBread = Bread & { toasted: false }
-# schema ToastedBread = Bread & { toasted: true }
-#   from UntoastedBread({ type }) to { type, toasted: true }
+schema UntoastedBread = Bread & { toasted: false }
+schema ToastedBread = Bread & { toasted: true }
+  from UntoastedBread({ type }) to { toasted: true, type }
 
-Bread(b) := [true, :white]
-print(b)
+UntoastedBread(untoasted_bread) := { toasted: false, type: :whole_wheat }
+ToastedBread(toasted_bread) := untoasted_bread
+
+print(untoasted_bread)
+print(toasted_bread)

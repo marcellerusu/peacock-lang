@@ -1,0 +1,24 @@
+{
+  "name": "peacock",
+  "version": "0.0.1",
+  "description": "A joyful language aimed towards writing front end applications",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/marcellerusu/peacock-lang.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/marcellerusu/peacock-lang/issues"
+  },
+  "homepage": "https://github.com/marcellerusu/peacock-lang#readme",
+  "dependencies": {
+    "colors": "1.4.0"
+  }
+}

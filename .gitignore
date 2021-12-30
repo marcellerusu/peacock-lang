@@ -3,3 +3,5 @@ alltogether.rb
 alltogether.rb.js
 .vscode
 .bundle
+node_modules
+yarn.lock

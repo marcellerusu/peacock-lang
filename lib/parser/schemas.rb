@@ -17,7 +17,6 @@ module Schemas
         [AST::function_argument(match_arg_name)],
         matches.map do |path_and_sym|
           sym, path = path_and_sym.last, path_and_sym[0...-1]
-          # binding.pry
           AST::assignment(
             sym,
             eval_path_on_expr(path, AST::identifier_lookup(match_arg_name))
@@ -39,7 +38,6 @@ module Schemas
     while OPERATORS.include?(peek_type)
       schema = parse_operator_call!(schema)
     end
-    # binding.pry
     return schema, find_bound_variables(expr)
   end
 
@@ -156,7 +154,7 @@ module Schemas
   def eval_path_on_expr(paths, expr)
     for path in paths
       property = if path.is_a?(String)
-          AST::str(path)
+          AST::sym(path)
         elsif path.is_a?(Integer)
           AST::int(path)
         else
@@ -227,8 +225,18 @@ module Schemas
   def parse_custom_constructor!(schema)
     expr_context.set! :schema
     consume! :from
-    from_expr = parse_expr!
-    from_schema = function_call([from_expr], schema_for)
+    from_schema, from_expr = if peek_type == :identifier
+        fn_expr = parse_sym!
+        assert { schema?(fn_expr[:sym]) }
+        consume! :open_parenthesis
+        arg = parse_expr!
+        consume! :close_parenthesis
+        [fn_expr, arg]
+      else
+        expr = parse_expr!
+        schema_ = function_call([expr], schema_for)
+        [schema_, expr]
+      end
     expr_context.unset! :schema
     consume! :to
     as_expr = parse_expr!

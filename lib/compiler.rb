@@ -53,7 +53,6 @@ class Compiler
     code += padding + "symbol: symName => __Symbols[symName] || (__Symbols[symName] = Symbol(symName)),\n"
     dedent!
     code += "};\n"
-    code += "const print = (...params) => console.log(...params.map(p => p.to_s().__val__()));\n"
   end
 
   def literals

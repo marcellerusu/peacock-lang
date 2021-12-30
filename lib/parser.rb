@@ -12,8 +12,8 @@ OPERATORS = [:plus, :minus, :mult, :div, :and, :or, :schema_and, :schema_or, :eq
 ANON_SHORTHAND_ID = "__ANON_SHORT_ID"
 
 class Parser
-  include Literals
   include Helpers
+  include Literals
   include Functions
   include Schemas
   include Classes
