@@ -147,6 +147,8 @@ class Compiler
       eval_float node
     when :str_lit
       eval_str node
+    when :nil_lit
+      eval_nil node
     when :function
       eval_function node
     when :return
@@ -215,6 +217,10 @@ class Compiler
 
   def eval_float(node)
     "#{node[:value]}"
+  end
+
+  def eval_nil(node)
+    "null"
   end
 
   def eval_bool(node)

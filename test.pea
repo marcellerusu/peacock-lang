@@ -1,5 +1,2 @@
-d := <h1 name="hehe">
-  testing
-  <div> okkhmmmm...</div>
-</h1>
-document.body.append(d.to_dom())
+val := nil
+print(val.nil?())

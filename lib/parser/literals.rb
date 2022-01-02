@@ -21,6 +21,11 @@ module Literals
     AST::literal @line, c, type, lit
   end
 
+  def parse_nil!
+    c, _ = consume! :nil
+    AST::nil @line, c
+  end
+
   def parse_bool!(type)
     c, _ = consume! type
     AST::bool type == :true, @line, c

@@ -80,6 +80,8 @@ class Parser
       end
     when [:true, :false].include?(type)
       parse_bool! type
+    when type == :nil
+      parse_nil!
     when type == :property
       parse_property!
     when type == :open_square_bracket

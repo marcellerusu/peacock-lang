@@ -53,6 +53,15 @@ module AST
     )
   end
 
+  def self.nil(line = nil, c = nil)
+    AST::literal_constructor(
+      { node_type: :nil_lit,
+        line: line,
+        column: c },
+      "Nil"
+    )
+  end
+
   def self.array(value, line = nil, c = nil)
     AST::literal_constructor(
       { node_type: :array_lit,
