@@ -1,2 +1,2 @@
-val := nil
-print(val.nil?)
+num := 5.3
+inspect.print num.to_i

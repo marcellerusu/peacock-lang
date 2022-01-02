@@ -88,7 +88,10 @@ module Helpers
 
   def end_of_expr?
     closing_tags = [:close_parenthesis, :close_brace, :close_square_bracket]
-    new_line? || closing_tags.include?(peek_type)
+
+    new_line? ||
+    closing_tags.include?(peek_type) ||
+    peek_type == :dot
   end
 
   def end_of_file?
