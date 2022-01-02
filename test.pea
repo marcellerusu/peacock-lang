@@ -1,2 +1,2 @@
 val := nil
-print(val.nil?())
+print(val.nil?)

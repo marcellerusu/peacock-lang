@@ -20,12 +20,26 @@ class Parser
   include Classes
   include HTML
 
-  def initialize(statements, line = 0, token_index = 0, indentation = 0, context = nil)
+  attr_reader :line
+
+  def initialize(statements, line = 0, token_index = 0, indentation = 0, context = nil, expr_context = nil)
     @statements = statements
     @line = line
     @token_index = token_index
     @indentation = indentation
     @context = context
+    @expr_context = expr_context
+  end
+
+  def clone
+    Parser.new(
+      @statements,
+      @line,
+      @token_index,
+      @indentation,
+      @context,
+      @expr_context,
+    )
   end
 
   def expr_context
@@ -62,8 +76,6 @@ class Parser
     end
     return @line, @token_index, @ast
   end
-
-  private
 
   # Parsing begins!
 
@@ -121,7 +133,7 @@ class Parser
       parse_id_modifier_if_exists! node
     when OPERATORS.include?(type)
       parse_operator_call! sym_expr
-    when is_function_call?
+    when is_function_call?(sym_expr)
       node = parse_function_call! sym_expr
       parse_id_modifier_if_exists! node
     when is_function?

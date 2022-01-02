@@ -58,6 +58,16 @@ document.body.append(d.to_dom())')
   it "2022-01-02 13:41:55 -0500" do
     ast = parse("val := nil
 print(val.nil?())")
-    expect(ast).to ast_eq([{:node_type=>:assign, :sym=>"val", :expr=>{:node_type=>:function_call, :args=>[{:node_type=>:nil_lit}], :expr=>{:node_type=>:property_lookup, :lhs_expr=>{:node_type=>:identifier_lookup, :sym=>"Nil"}, :property=>{:node_type=>:str_lit, :value=>"create"}}}}, {:node_type=>:function_call, :args=>[{:node_type=>:function_call, :args=>[], :expr=>{:node_type=>:property_lookup, :lhs_expr=>{:node_type=>:identifier_lookup, :sym=>"val"}, :property=>{:node_type=>:str_lit, :value=>"nil?"}}}], :expr=>{:node_type=>:identifier_lookup, :sym=>"print"}}])
+    expect(ast).to ast_eq([{ :node_type => :assign, :sym => "val", :expr => { :node_type => :function_call, :args => [{ :node_type => :nil_lit }], :expr => { :node_type => :property_lookup, :lhs_expr => { :node_type => :identifier_lookup, :sym => "Nil" }, :property => { :node_type => :str_lit, :value => "create" } } } }, { :node_type => :function_call, :args => [{ :node_type => :function_call, :args => [], :expr => { :node_type => :property_lookup, :lhs_expr => { :node_type => :identifier_lookup, :sym => "val" }, :property => { :node_type => :str_lit, :value => "nil?" } } }], :expr => { :node_type => :identifier_lookup, :sym => "print" } }])
+  end
+  it "2022-01-02 17:07:04 -0500" do
+    ast = parse("obj.add
+obj.add()")
+    expect(ast).to ast_eq([{ :node_type => :function_call, :args => [], :expr => { :node_type => :property_lookup, :lhs_expr => { :node_type => :identifier_lookup, :sym => "obj" }, :property => { :node_type => :str_lit, :value => "add" } } }, { :node_type => :function_call, :args => [], :expr => { :node_type => :property_lookup, :lhs_expr => { :node_type => :identifier_lookup, :sym => "obj" }, :property => { :node_type => :str_lit, :value => "add" } } }])
+  end
+  it "2022-01-02 17:08:01 -0500" do
+    ast = parse("obj.add 1, 3
+")
+    expect(ast).to ast_eq([{ :node_type => :function_call, :args => [{ :node_type => :function_call, :args => [{ :node_type => :int_lit, :value => 1 }], :expr => { :node_type => :property_lookup, :lhs_expr => { :node_type => :identifier_lookup, :sym => "Int" }, :property => { :node_type => :str_lit, :value => "create" } } }, { :node_type => :function_call, :args => [{ :node_type => :int_lit, :value => 3 }], :expr => { :node_type => :property_lookup, :lhs_expr => { :node_type => :identifier_lookup, :sym => "Int" }, :property => { :node_type => :str_lit, :value => "create" } } }], :expr => { :node_type => :property_lookup, :lhs_expr => { :node_type => :identifier_lookup, :sym => "obj" }, :property => { :node_type => :str_lit, :value => "add" } } }])
   end
 end

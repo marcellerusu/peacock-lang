@@ -10,8 +10,23 @@ module Functions
     @line == line && peek_type(i) == :declare
   end
 
-  def is_function_call?
-    peek_type == :open_parenthesis
+  def is_function_call?(sym_expr)
+    return true if peek_type == :open_parenthesis
+    is_dot_expr = sym_expr[:node_type] == :property_lookup
+    return false if !is_dot_expr
+    return true if is_dot_expr && end_of_expr?
+    cloned = clone
+    begin
+      while cloned.line == line
+        cloned.parse_expr!
+        break if cloned.end_of_expr?
+        cloned.consume! :comma
+      end
+    rescue AssertionError
+      return false
+    else
+      return true
+    end
   end
 
   def parse_anon_function_shorthand!
@@ -68,7 +83,7 @@ module Functions
     AST::function args, body, fn_line, c
   end
 
-  def parse_function_call!(fn_expr)
+  def parse_function_call_args_with_paren!
     consume! :open_parenthesis
     args = []
     while peek_type != :close_parenthesis
@@ -76,9 +91,26 @@ module Functions
       consume! :comma unless peek_type == :close_parenthesis
     end
     consume! :close_parenthesis
+    args
+  end
 
+  def parse_function_call_args_without_paren!
+    args = []
+    until end_of_expr?
+      args.push parse_expr!
+      break if end_of_expr?
+      consume! :comma
+    end
+    args
+  end
+
+  def parse_function_call!(fn_expr)
+    args = if peek_type == :open_parenthesis
+        parse_function_call_args_with_paren!
+      else
+        parse_function_call_args_without_paren!
+      end
     return parse_match_assignment!(fn_expr, args[0]) if args.size == 1 && peek_type == :assign
-
     AST::function_call args, fn_expr, fn_expr[:line], fn_expr[:column]
   end
 end

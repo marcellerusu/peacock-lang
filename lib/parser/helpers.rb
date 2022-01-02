@@ -59,6 +59,13 @@ module Helpers
     return column_number, value, type
   end
 
+  def peek_expr(by = 0)
+    parser = clone
+    expr = nil
+    (by + 1).times { expr = parser.parse_expr }
+    expr
+  end
+
   def peek_next_line
     return @line + 1, 0
   end
@@ -77,6 +84,11 @@ module Helpers
   def new_line?(by = 0)
     _, line = peek_token(by)
     line != @line
+  end
+
+  def end_of_expr?
+    closing_tags = [:close_parenthesis, :close_brace, :close_square_bracket]
+    new_line? || closing_tags.include?(peek_type)
   end
 
   def end_of_file?
