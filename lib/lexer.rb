@@ -31,7 +31,7 @@ module Lexer
         tokens.push [column, :int_lit, scanner.matched.to_i]
       when scanner.scan(/(true|false)\b/)
         tokens.push [column, (scanner.matched == "true").to_s.to_sym]
-      when scanner.scan(/<([a-z][a-z1-9_]*)>/)
+      when scanner.scan(/<([a-z][a-z1-9_]*)/)
         assert { scanner.captures.size == 1 }
         tokens.push [column, :open_html_tag, scanner.captures.first]
       when scanner.scan(/<\/([a-z][a-z1-9_]*)>/)

@@ -82,7 +82,6 @@ class Compiler
       .group_by { |node| node[:sym] }
       .filter { |group| group.length > 1 }
 
-    # binding.pry
     function = ""
     functions.each do |sym, function_group|
       indent!
@@ -168,6 +167,8 @@ class Compiler
       eval_class_definition node
     when :html_tag
       eval_html_tag node
+    when :html_text_node
+      eval_html_text_node node
     when :case
       eval_case_expression node
     else
@@ -205,7 +206,11 @@ class Compiler
   end
 
   def eval_html_tag(node)
-    "document.createElement(\"#{node[:name]}\")"
+    "DomNode.create(#{eval_expr(node[:name])}, #{eval_expr(node[:attributes])}, #{eval_expr(node[:children])})"
+  end
+
+  def eval_html_text_node(node)
+    "DomTextNode.create(#{eval_expr(node[:value])})"
   end
 
   def eval_float(node)

@@ -226,10 +226,18 @@ module AST
     )
   end
 
-  def self.html_tag(name, properties = [], line = nil, column = nil)
+  def self.html_tag(name, attributes, children, line = nil, column = nil)
     { node_type: :html_tag,
       name: name,
-      properties: properties,
+      attributes: attributes,
+      children: children,
+      line: line,
+      column: column }
+  end
+
+  def self.html_text_node(value, line = nil, column = nil)
+    { node_type: :html_text_node,
+      value: value,
       line: line,
       column: column }
   end
