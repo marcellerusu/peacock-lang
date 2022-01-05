@@ -1,1 +1,1 @@
-print({a: 3, b: 5}.to_a[0])
+print([[:a, 1]].to_r.to_l == [[:a, 1]])
