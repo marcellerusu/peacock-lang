@@ -12,7 +12,7 @@ module Schemas
     while peek_type != :end
       schema, matches = parse_schema_literal!
       consume! :arrow
-      @line, @token_index, body = Parser.new(@statements, @line, @token_index, @indentation + 2, :function).parse_with_position!
+      @token_index, body = Parser.new(@tokens, @token_index, @indentation + 2, :function).parse_with_position!
       fn = AST::function(
         [AST::function_argument(match_arg_name)],
         matches.map do |path_and_sym|
@@ -134,19 +134,18 @@ module Schemas
 
   def parse_match_assignment!(fn_expr, match_expr)
     # TODO: line & column #s are off
-    line, c = @line, @column
-    consume! :assign
+    line, c = consume! :assign
     expr = parse_expr!
     if_expr = call_schema_valid(fn_expr, expr)
     constructed_value = AST::assignment("__VALUE", function_call([expr], dot(fn_expr, "construct")))
-    constructed_value_lookup = AST::identifier_lookup("__VALUE", @line, @column)
+    constructed_value_lookup = AST::identifier_lookup("__VALUE", self.line, self.column)
 
     pass_body = [constructed_value] + find_bound_variables(match_expr).map do |path_and_sym|
       sym, path = path_and_sym.last, path_and_sym[0...-1]
-      AST::assignment(sym, eval_path_on_expr(path, constructed_value_lookup), @line, @column)
+      AST::assignment(sym, eval_path_on_expr(path, constructed_value_lookup), self.line, self.column)
     end
     fail_body = [
-      AST::throw(AST::str("Match error", @line, @column), @line, @column),
+      AST::throw(AST::str("Match error", self.line, self.column), self.line, self.column),
     ]
     AST::if if_expr, pass_body, fail_body, line, c
   end
@@ -208,9 +207,9 @@ module Schemas
 
   def parse_schema!
     expr_context.set! :schema
-    line = @line
+    line = self.line
     consume! :schema
-    c, sym = consume! :identifier
+    _, c, sym = consume! :identifier
     consume! :declare
     expr = parse_expr!
     schema = function_call([expr], schema_for)
@@ -247,16 +246,16 @@ module Schemas
     if_cond_expr = call_schema_valid(from_schema, arg)
     pass_body = find_bound_variables(from_expr).map do |path_and_sym|
       sym, path = path_and_sym.last, path_and_sym[0...-1]
-      AST::assignment(sym, eval_path_on_expr(path, arg), @line, @column)
-    end + [AST::return(as_expr, @line, @column)]
+      AST::assignment(sym, eval_path_on_expr(path, arg), line, column)
+    end + [AST::return(as_expr, line, column)]
 
     fail_body = [
-      AST::throw(AST::str("Match error", @line, @column), @line, @column),
+      AST::throw(AST::str("Match error", line, column), line, column),
     ]
 
     constructor = AST::function(
-      [AST::function_argument(arg_name, @line, @column)],
-      [AST::if(if_cond_expr, pass_body, fail_body, @line, @column)]
+      [AST::function_argument(arg_name, line, column)],
+      [AST::if(if_cond_expr, pass_body, fail_body, line, column)]
     )
 
     AST::function_call([schema, constructor], schema_create_with_constructor)
@@ -275,7 +274,7 @@ module Schemas
   end
 
   def schema
-    AST::identifier_lookup("Schema", @line, @column)
+    AST::identifier_lookup("Schema", line, column)
   end
 
   def call_schema_valid(schema_fn, expr)
@@ -288,7 +287,7 @@ module Schemas
 
   def call_schema_any(name)
     function_call(
-      [AST::sym(name, @line, @column)],
+      [AST::sym(name, line, column)],
       dot(schema, "any")
     )
   end

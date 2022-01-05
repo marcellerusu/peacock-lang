@@ -18,18 +18,14 @@ module Helpers
     end
   end
 
-  def statement
-    @statements[@line]
-  end
-
   def schema?(identifier)
     # identifiers starting w uppercase are interpreted as schemas
     identifier[0].upcase == identifier[0]
   end
 
-  def more_statements?
-    assert { @line <= @statements.size }
-    @line < @statements.size
+  def more_tokens?
+    assert { @token_index <= @tokens.size }
+    @token_index < @tokens.size
   end
 
   def still_indented?
@@ -38,25 +34,28 @@ module Helpers
   end
 
   def token
-    statement[@token_index]
+    @tokens[@token_index]
   end
 
-  def column
+  def prev_token_line
+    assert { @token_index > 0 }
+    peek_token(-1)[0]
+  end
+
+  def line
     token[0] if token
   end
 
-  def next_line!
-    @line += 1
-    @token_index = 0
+  def column
+    token[1] if token
   end
 
   def consume!(token_type = nil)
-    next_line! if @token_index == statement.size
     # puts "#{token_type} #{token}"
-    assert { token_type == token[1] } unless token_type.nil?
-    column_number, type, value = token
+    assert { token_type == token[2] } unless token_type.nil?
+    line_number, column_number, type, value = token
     @token_index += 1
-    return column_number, value, type
+    return line_number, column_number, value, type
   end
 
   def peek_expr(by = 0)
@@ -66,35 +65,28 @@ module Helpers
     expr
   end
 
-  def peek_next_line
-    return @line + 1, 0
-  end
-
   def peek_token(by = 0)
-    line, token_index = @line, @token_index
-    line, token_index = peek_next_line if (token_index + by) >= statement.size
-    return @statements[line][token_index + by], line, token_index unless @statements[line].nil? || @statements[line][token_index + by].nil?
+    return @tokens[@token_index + by]
   end
 
   def peek_type(by = 0)
-    t, line = peek_token(by)
-    t[1] if t
+    return nil if @token_index + by > @tokens.size
+    line, column, type = peek_token(by)
+    type
   end
 
-  def new_line?(by = 0)
-    _, line = peek_token(by)
-    line != @line
+  def new_line?
+    prev_token_line != line
   end
 
   def end_of_expr?
     closing_tags = [:close_parenthesis, :close_brace, :close_square_bracket]
-
     new_line? ||
     closing_tags.include?(peek_type) ||
     peek_type == :dot
   end
 
   def end_of_file?
-    @statements.size == @line + 1 && @statements[@line].size == @token_index + 1
+    @token_index >= @tokens.size
   end
 end

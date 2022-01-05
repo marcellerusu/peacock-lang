@@ -20,11 +20,8 @@ class Parser
   include Classes
   include HTML
 
-  attr_reader :line
-
-  def initialize(statements, line = 0, token_index = 0, indentation = 0, context = nil, expr_context = nil)
-    @statements = statements
-    @line = line
+  def initialize(tokens, token_index = 0, indentation = 0, context = nil, expr_context = nil)
+    @tokens = tokens
     @token_index = token_index
     @indentation = indentation
     @context = context
@@ -33,8 +30,7 @@ class Parser
 
   def clone
     Parser.new(
-      @statements,
-      @line,
+      @tokens,
       @token_index,
       @indentation,
       @context,
@@ -47,14 +43,13 @@ class Parser
   end
 
   def parse!
-    _, _, @ast = parse_with_position!
+    _, @ast = parse_with_position!
     return @ast
   end
 
   def parse_with_position!(end_tokens = [])
     @ast = []
-    next_line! unless token
-    while more_statements? && still_indented?
+    while more_tokens? && still_indented?
       break if end_tokens.include? peek_type
       if peek_type == :class
         @ast.push parse_class_definition!
@@ -63,18 +58,18 @@ class Parser
       elsif peek_type == :identifier && peek_type(1) == :assign
         @ast.push parse_assignment!
       elsif peek_type == :return
+        assert { @context == :declare }
         @ast.push parse_return!
         break
       else
         @ast.push parse_expr!
       end
-      next_line!
     end
     if [:declare, :function].include?(@context) && @ast.last[:node_type] != :return
       node = @ast.pop
       @ast.push AST::return(node, node[:line], node[:column])
     end
-    return @line, @token_index, @ast
+    return @token_index, @ast
   end
 
   # Parsing begins!
@@ -126,6 +121,8 @@ class Parser
     when is_function_call?(sym_expr)
       node = parse_function_call! sym_expr
       parse_id_modifier_if_exists! node
+    when end_of_file?
+      sym_expr
     when type == :open_square_bracket
       parse_dynamic_lookup! sym_expr
     when type == :dot
@@ -145,38 +142,36 @@ class Parser
   # Individual parsers
 
   def parse_return!(implicit_return = false)
-    c, _ = consume! :return unless implicit_return
+    line, c, _ = consume! :return unless implicit_return
     expr = parse_expr!
     c = expr[:column] if implicit_return
-    AST::return expr, @line, c
+    AST::return expr, line, c
   end
 
   def parse_assignment!
-    c, sym = consume! :identifier
+    line, c, sym = consume! :identifier
     consume! :assign
-    line = @line
     expr = parse_expr!
     AST::assignment sym, expr, line, c
   end
 
   def parse_operator_call!(lhs)
-    c1, _, op = consume!
+    line, c1, _, op = consume!
     rhs_expr = parse_expr!
     if [:schema_and, :schema_or].include?(op)
-      operator = dot(schema, [c1, op.to_s.split("schema_")[1]])
-      AST::function_call [lhs, rhs_expr], operator, @line, c1
+      operator = dot(schema, [line, c1, op.to_s.split("schema_")[1]])
+      AST::function_call [lhs, rhs_expr], operator, line, c1
     else
-      function = dot(lhs, [c1, "__#{op.to_s}__"])
-      AST::function_call [rhs_expr], function, @line, c1
+      function = dot(lhs, [line, c1, "__#{op.to_s}__"])
+      AST::function_call [rhs_expr], function, line, c1
     end
   end
 
   def parse_if_expression!
     end_tokens = [:end, :else]
-    c, _ = consume! :if
-    if_line = @line
+    if_line, c, _ = consume! :if
     check = parse_expr!
-    @line, @token_index, pass_body = Parser.new(@statements, @line, @token_index, @indentation, :if).parse_with_position! end_tokens
+    @token_index, pass_body = Parser.new(@tokens, @token_index, @indentation, :if).parse_with_position! end_tokens
     consume! :then if peek_type == :then
     if peek_type != :else
       consume! :end
@@ -184,24 +179,22 @@ class Parser
     end
     consume! :else
     return AST::if(check, pass_body, [parse_if_expression!], if_line, c) if peek_type == :if
-    @line, @token_index, fail_body = Parser.new(@statements, @line, @token_index, @indentation, :if).parse_with_position! end_tokens
+    @token_index, fail_body = Parser.new(@tokens, @token_index, @indentation, :if).parse_with_position! end_tokens
     consume! :end
     AST::if check, pass_body, fail_body, if_line, c
   end
 
   def parse_dot_expression!(lhs)
-    c, line = @column, @line
-    consume! :dot
+    line, c = consume! :dot
     AST::dot lhs, consume!(:identifier), line, c
   end
 
   def parse_class_properity_expression!(lhs)
-    c, line = @column, @line
-    AST::dot lhs, consume!(:class_property), line, c
+    c, l = column, line
+    AST::dot lhs, consume!(:class_property), l, c
   end
 
   def parse_dynamic_lookup!(lhs)
-    c, line = @column, @line
     consume! :open_square_bracket
     expr = parse_expr!
     consume! :close_square_bracket
@@ -213,11 +206,11 @@ class Parser
   # Schema parsing
 
   def dot(lhs, id)
-    id = [@column, id] unless id.is_a?(Array)
-    AST::dot lhs, id, @line, @column
+    id = [line, column, id] unless id.is_a?(Array)
+    AST::dot lhs, id, line, column
   end
 
   def function_call(args, expr)
-    AST::function_call(args, expr, @line, @column)
+    AST::function_call(args, expr, line, column)
   end
 end

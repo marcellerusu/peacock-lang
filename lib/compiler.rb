@@ -200,7 +200,7 @@ class Compiler
   end
 
   def eval_str(node)
-    "\"#{node[:value]}\""
+    "`#{node[:value]}`"
   end
 
   def eval_int(node)

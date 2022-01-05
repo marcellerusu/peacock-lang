@@ -1,2 +1,6 @@
-num := 5.3
-inspect.print num.to_i
+str := "
+wow
+
+multi-line strings
+"
+print(str.trim)

@@ -194,9 +194,9 @@ module AST
   end
 
   def self.dot(lhs_expr, id, line = nil, c = nil)
-    id = [lhs_expr[:column], id] unless id.is_a?(Array)
-    lit_c, sym = id
-    property = { line: line, column: lit_c, node_type: :str_lit, value: sym }
+    id = [lhs_expr[:line], lhs_expr[:column], id] unless id.is_a?(Array)
+    lit_line, lit_c, sym = id
+    property = { line: lit_line, column: lit_c, node_type: :str_lit, value: sym }
     AST::property_lookup line, c, lhs_expr, property
   end
 
@@ -226,7 +226,7 @@ module AST
       [value_expr],
       AST::dot(
         AST::identifier_lookup(type_name, line, c),
-        [c, "create"],
+        [line, c, "create"],
         line,
         c
       ),

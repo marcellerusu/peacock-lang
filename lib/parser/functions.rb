@@ -2,12 +2,13 @@ module Functions
   def is_function?
     # skip params
     i = 0
-    t, line = peek_token(i)
-    while t && t[1] == :identifier
+    t = peek_token(i)
+
+    while t && t[2] == :identifier
       i += 1
-      t, line = peek_token(i)
+      t = peek_token(i)
     end
-    @line == line && peek_type(i) == :declare
+    self.line == t[0] && peek_type(i) == :declare
   end
 
   def is_function_call?(sym_expr)
@@ -30,7 +31,7 @@ module Functions
   end
 
   def parse_anon_function_shorthand!
-    line, c = @line, @column
+    line, c = slef.line, column
     consume! :anon_short_fn_start
     expr = parse_expr!
     expr = AST::return(expr, line, c) unless expr[:node_type] == :return
@@ -40,16 +41,16 @@ module Functions
   end
 
   def parse_anon_short_id!
-    consume! :anon_short_id
-    sym_expr = AST::identifier_lookup(ANON_SHORTHAND_ID, @line, @column)
+    line, c = consume! :anon_short_id
+    sym_expr = AST::identifier_lookup(ANON_SHORTHAND_ID, line, c)
     parse_id_modifier_if_exists!(sym_expr)
   end
 
   def parse_function_arguments!(end_type)
     args = []
     while peek_type != end_type
-      c1, sym = consume! :identifier
-      args.push AST::function_argument(sym, @line, c1)
+      line, c1, sym = consume! :identifier
+      args.push AST::function_argument(sym, line, c1)
     end
     args
   end
@@ -57,14 +58,13 @@ module Functions
   def parse_function_def!(sym_expr)
     args = parse_function_arguments! :declare
     consume! :declare
-    fn_line = @line
+    fn_line = line
     if new_line?
-      next_line!
-      @line, @token_index, body = Parser.new(@statements, @line, @token_index, @indentation + 2, :declare).parse_with_position!
+      @token_index, body = Parser.new(@tokens, @token_index, @indentation + 2, :declare).parse_with_position!
     else
       return_c = column
       expr = parse_expr!
-      body = [AST::return(expr, @line, return_c)]
+      body = [AST::return(expr, self.line, return_c)]
     end
 
     function = AST::function(args, body, fn_line, sym_expr[:column])
@@ -72,14 +72,13 @@ module Functions
   end
 
   def parse_anon_function_def!
-    c, _ = consume! :fn
+    _, c, _ = consume! :fn
     args = parse_function_arguments! :arrow
     consume! :arrow
-    fn_line = @line
+    fn_line = self.line
     expr = parse_expr!
-    body = [AST::return(expr, @line, expr[:column])]
+    body = [AST::return(expr, self.line, expr[:column])]
     # TODO: none 1-liners
-    # @line, @token_index, body = Parser.new(@statements, @line, @token_index).parse_with_position!
     AST::function args, body, fn_line, c
   end
 
