@@ -26,7 +26,9 @@ module HTML
       _, _, sym = consume! :identifier
       consume! :declare
       assert { peek_type == :str_lit }
+      expr_context.set! :html_tag
       value = parse_lit! :str_lit
+      expr_context.unset! :html_tag
       attributes[sym] = value
     end
     consume! :gt

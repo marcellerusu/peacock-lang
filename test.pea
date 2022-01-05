@@ -1,6 +1,1 @@
-str := "
-wow
-
-multi-line strings
-"
-print(str.trim)
+print({a: 3, b: 5}.to_a[0])

@@ -18,7 +18,8 @@ module Literals
 
   def parse_lit!(type)
     line, c, lit = consume! type
-    AST::literal line, c, type, lit
+    node = AST::literal line, c, type, lit
+    parse_id_modifier_if_exists!(node)
   end
 
   def parse_nil!

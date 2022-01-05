@@ -116,6 +116,10 @@ class Parser
   end
 
   def parse_id_modifier_if_exists!(sym_expr)
+    # kinda hacky.. :/
+    # binding.pry
+    # binding.pry if sym_expr.dig(:property, :value) == "to_a"
+    return sym_expr if expr_context.is_a? :html_tag
     type = peek_type
     case
     when is_function_call?(sym_expr)

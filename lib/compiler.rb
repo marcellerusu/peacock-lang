@@ -88,14 +88,13 @@ class Compiler
       function += "const " + sub_q(sym) + " = "
       function += "(...params)" + " => "
       function += "{" << "\n" + padding
+      # TODO: replace with Schema.case..
+      # const [name] = (...params) => Schema.case(List.create(params), [...function_cases])
       function += "const functions = ["
       function += function_group.map { |f| eval_function(f[:expr]) }.join(", ")
       function += "];" << "\n" + padding
       function += "const f_by_length = functions.find(f => f.length === params.length);\n" << padding
       function += "if (f_by_length) return f_by_length(...params);\n"
-      # TODO: function by shape -- schemas will take care of this
-      # function << "const f_by_shape = functions.find(([_, shape]) => shape_eq(shape_of(params), shape));\n" << padding
-      # function << "assert("
       function += "};\n"
       dedent!
       @ast = @ast.filter { |node| node[:sym] != sym }
@@ -242,23 +241,13 @@ class Compiler
     record += "\n#{padding}}"
   end
 
-  # Figure this out :/
-  # the idea is that num.to_i will turn into num.to_i()
-  # Maybe a more reasonable approach is that objects only
-  # have methods, you can never directly access properties on objects...
-  # need more time to think about if I want to go down this path
-  def try_call_function(expr)
-    "(typeof #{expr} === 'function' ? #{expr}() : #{expr})"
-  end
-
   def eval_property_lookup(node)
     lhs, key = eval_expr(node[:lhs_expr]), eval_expr(node[:property])
-    if key =~ /"[a-zA-Z\_][a-zA-Z1-9\_?]*"/
+    if key =~ /`[a-zA-Z\_][a-zA-Z1-9\_?]*`/
       "#{lhs}.#{sub_q(key[1...-1])}"
     else
       "#{lhs}[#{sub_q(key)}]"
     end
-    # try_call_function expr
   end
 
   def sub_q(sym)

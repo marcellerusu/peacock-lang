@@ -11,6 +11,11 @@ module Functions
     self.line == t[0] && peek_type(i) == :declare
   end
 
+  def property_accessor?
+    peek_type == :open_square_bracket &&
+    end_of_last_token == column
+  end
+
   def is_function_call?(sym_expr)
     return true if peek_type == :open_parenthesis
     is_dot_expr = sym_expr[:node_type] == :property_lookup

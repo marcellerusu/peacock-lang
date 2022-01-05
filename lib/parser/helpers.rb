@@ -37,6 +37,12 @@ module Helpers
     @tokens[@token_index]
   end
 
+  def end_of_last_token
+    _, column, type, val = peek_token(-1)
+    assert { type == :identifier }
+    column + val.size
+  end
+
   def prev_token_line
     assert { @token_index > 0 }
     peek_token(-1)[0]
@@ -83,6 +89,7 @@ module Helpers
     closing_tags = [:close_parenthesis, :close_brace, :close_square_bracket]
     new_line? ||
     closing_tags.include?(peek_type) ||
+    property_accessor? ||
     peek_type == :dot
   end
 
