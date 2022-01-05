@@ -1,1 +1,1 @@
-print([[:a, 1]].to_r.to_l == [[:a, 1]])
+print([].is_a? List)
