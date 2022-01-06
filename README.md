@@ -2,7 +2,7 @@
 
 A joyful language aimed towards writing front end applications
 
-inspired by ruby, clojure, elixir, ML family & javascript
+Inspired by the power of clojure spec, the joy of ruby, & the beautiful syntax of elm.
 
 ## Core Features
 

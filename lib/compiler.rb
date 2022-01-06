@@ -195,7 +195,7 @@ class Compiler
   end
 
   def eval_symbol(node)
-    "Peacock.symbol('#{node[:value]}')"
+    "Peacock.symbol(\"#{node[:value]}\")"
   end
 
   def eval_str(node)
