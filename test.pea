@@ -1,1 +1,7 @@
-print([].is_a? List)
+class BaseNum val =
+  to_s = @val.to_s
+
+class Num < BaseNum =
+  to_s_2 = @to_s() + " oh wow"
+
+print(Num::create(3).to_s_2)

@@ -299,16 +299,30 @@ class Compiler
       body = Compiler.new(node[:body], @indent + 2).eval
     end
 
-    class_def = <<-EOF
-class #{class_name} {
+    def constructor(node, args, class_name)
+      if !node[:super_class].nil?
+        ""
+      else
+        "
   constructor(#{args.join(", ")}) {
     #{args.map { |arg|
-      "this.#{arg} = #{arg};"
-    }.join("\n").strip()}
+          "this.#{arg} = #{arg};"
+        }.join("\n").strip()}
   }
   static create(#{args.join(", ")}) {
-    return new #{class_name}(#{args.join(", ")});
-  }
+    return new this(#{args.join(", ")});
+  }".strip
+      end
+    end
+
+    def extends(node)
+      return "" if node[:super_class].nil?
+      "extends #{node[:super_class]}"
+    end
+
+    class_def = <<-EOF
+class #{class_name} #{extends node} {
+  #{constructor node, args, class_name}
   #{methods.map { |method|
       <<-EOM
 #{method[:sym]}(#{method_args(method[:expr])}) {

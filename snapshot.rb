@@ -10,7 +10,7 @@ tokens = Lexer::tokenize(content)
 ast = AST::remove_numbers(Parser.new(tokens).parse!)
 spec = <<-EOS
   it "#{Time::now}" do
-    ast = parse("#{content}")
+    ast = parse('#{content}')
     expect(ast).to ast_eq(#{ast})
   end
 EOS

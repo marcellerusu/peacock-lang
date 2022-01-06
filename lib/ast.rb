@@ -251,9 +251,10 @@ module AST
       column: column }
   end
 
-  def self.class(name, args, methods, line = nil, column = nil)
+  def self.class(name, super_class, args, methods, line = nil, column = nil)
     { node_type: :class,
       sym: name,
+      super_class: super_class,
       args: args,
       methods: methods,
       line: line,

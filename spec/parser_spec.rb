@@ -307,6 +307,7 @@ class Num val =
       expect(ast).to ast_eq([
         AST::class(
           "Num",
+          nil,
           [AST::function_argument("val")],
           [AST::declare(
             { sym: "add" },
