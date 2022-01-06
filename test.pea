@@ -1,7 +1,5 @@
-class BaseNum val =
-  to_s = @val.to_s
+val := case [1] of
+  [a] => a
+end
 
-class Num < BaseNum =
-  to_s_2 = @to_s() + " oh wow"
-
-print(Num::create(3).to_s_2)
+print(val)

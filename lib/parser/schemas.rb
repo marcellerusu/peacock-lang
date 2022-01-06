@@ -50,7 +50,31 @@ module Schemas
   end
 
   def extract_data_from_constructor(pattern)
-    pattern[:args][0]
+    assert { constructor? pattern }
+    pattern = pattern[:args][0]
+    if pattern[:node_type] == :array_lit
+      pattern[:value] = pattern[:value].map do |node|
+        if constructor?(node)
+          extract_data_from_constructor(node)
+        else
+          node
+        end
+      end
+    elsif pattern[:node_type] == :record_lit
+      pattern[:value] = pattern[:value].map do |key, node|
+        node = if constructor?(node)
+            extract_data_from_constructor(node)
+          else
+            node
+          end
+        [key, node]
+      end.to_h
+    end
+    pattern
+  end
+
+  def collection_lit?(node)
+    [:record_lit, :array_lit].include? node[:node_type]
   end
 
   def replace_identifier_lookups_with_schema_any(pattern)
@@ -60,7 +84,7 @@ module Schemas
           node
         elsif node[:node_type] == :identifier_lookup
           call_schema_any(node[:sym])
-        elsif node[:node_type] == :array_lit
+        elsif collection_lit?(node)
           replace_identifier_lookups_with_schema_any(node)
         else
           node
@@ -74,7 +98,7 @@ module Schemas
             node
           elsif node[:node_type] == :identifier_lookup
             call_schema_any(node[:sym])
-          elsif node[:node_type] == :array_lit
+          elsif collection_lit?(node)
             replace_identifier_lookups_with_schema_any(node)
           else
             node

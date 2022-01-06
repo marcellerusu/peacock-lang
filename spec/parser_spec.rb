@@ -212,7 +212,7 @@ describe Parser do
     end
   end
 
-  context "schemas:" do
+  context "schemas:", :i do
     it "[a] := [1]" do
       ast = parse("[a] := [1]")
       arr = AST::array([AST::int(1)])
@@ -328,7 +328,7 @@ class Num val =
       ])
     end
   end
-  context "case" do
+  context "case", :i do
     it "array single element" do
       ast = parse("
 case [1] of
