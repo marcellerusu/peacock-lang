@@ -7,41 +7,90 @@ ID_TO_STR = {
 module HTML
   def parse_html_tag!
     line, c, tag_name = consume! :open_html_tag
-    attributes = parse_html_attributes!
-    children = parse_html_children!
-    _, _, close_tag_name = consume! :close_html_tag
-    assert { tag_name == close_tag_name }
+    self_closed, attributes = parse_html_attributes!
+
+    if peek_type == :self_close_html_tag
+      consume! :self_close_html_tag
+    else
+      children = parse_html_children!
+      _, _, close_tag_name = consume! :close_html_tag
+      assert { tag_name == close_tag_name }
+    end
     AST::html_tag(
       AST::str(tag_name),
       AST::record(attributes),
-      AST::array(children),
+      AST::array(children || []),
+      line,
+      c
+    )
+  end
+
+  def parse_custom_element!
+    line, c, element_name = consume! :open_custom_element_tag
+    self_closed, attributes = parse_html_attributes!
+    if !self_closed
+      children = parse_html_children!
+      _, _, close_element_name = consume! :close_html_tag
+      assert { element_name == close_element_name }
+    end
+    AST::function_call(
+      [],
+      AST::dot(
+        AST::identifier_lookup(element_name, line, c),
+        "create"
+      ),
       line,
       c
     )
   end
 
   def parse_html_attributes!
+    return !!consume!(:self_close_html_tag), {} if peek_type == :self_close_html_tag
     attributes = {}
     while peek_type != :gt # `>` as in capture <div [name="3">] part
       _, _, sym = consume! :identifier
       consume! :declare
-      assert { peek_type == :str_lit }
       expr_context.set! :html_tag
-      value = parse_lit! :str_lit
+      value = if peek_type == :str_lit
+          parse_lit! :str_lit
+        elsif peek_type == :open_double_brace
+          consume! :open_double_brace
+          val = parse_expr!
+          consume! :close_double_brace
+          val
+        else
+          assert { false }
+        end
       expr_context.unset! :html_tag
       attributes[sym] = value
     end
     consume! :gt
-    attributes
+    return false, attributes
   end
 
   def parse_html_children!
     children = []
     while peek_type != :close_html_tag
-      children.push(parse_text_node!) if peek_type == :identifier
-      children.push(parse_html_tag!) if peek_type == :open_html_tag
+      if peek_type == :identifier
+        children.push parse_text_node!
+      elsif peek_type == :open_custom_element_tag
+        children.push parse_custom_element!
+      elsif peek_type == :open_html_tag
+        children.push parse_html_tag!
+      elsif peek_type == :open_double_brace
+        children.push parse_html_expr_node!
+      else
+        assert { false }
+      end
     end
     children
+  end
+
+  def parse_html_expr_node!
+    consume! :open_double_brace
+    expr = parse_expr!
+    consume! :close_double_brace
+    expr
   end
 
   def parse_text_node!

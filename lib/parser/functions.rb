@@ -1,5 +1,6 @@
 module Functions
   def is_function?
+    return false if peek_type(-1) != :identifier
     # skip params
     i = 0
     t = peek_token(i)

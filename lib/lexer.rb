@@ -27,11 +27,15 @@ module Lexer
         break
       when scanner.scan(/\s+/)
         next
+      when scanner.scan(/\{\{/)
+        tokens.push [line, column, :open_double_brace]
+      when scanner.scan(/\}\}/)
+        tokens.push [line, column, :close_double_brace]
       when scanner.scan(/#\{/)
         tokens.push [line, column, :anon_short_fn_start]
       when scanner.scan(/#.*/)
         break
-      when scanner.scan(/"(.|\n)*"/)
+      when scanner.scan(/"((.|\n)+?)"/)
         tokens.push [line, column, :str_lit, scanner.matched[1...-1]]
       when scanner.scan(/\d+\.\d+/)
         tokens.push [line, column, :float_lit, scanner.matched.to_f]
@@ -41,9 +45,14 @@ module Lexer
         tokens.push [line, column, (scanner.matched == "true").to_s.to_sym]
       when scanner.scan(/nil(?!\?)\b/)
         tokens.push [line, column, :nil]
+      when scanner.scan(/<([A-Z][a-z1-9_]*)/)
+        assert { scanner.captures.size == 1 }
+        tokens.push [line, column, :open_custom_element_tag, scanner.captures.first]
       when scanner.scan(/<([a-z][a-z1-9_]*)/)
         assert { scanner.captures.size == 1 }
         tokens.push [line, column, :open_html_tag, scanner.captures.first]
+      when scanner.scan(/\/>/)
+        tokens.push [line, column, :self_close_html_tag]
       when scanner.scan(/<\/([a-z][a-z1-9_]*)>/)
         assert { scanner.captures.size == 1 }
         tokens.push [line, column, :close_html_tag, scanner.captures.first]

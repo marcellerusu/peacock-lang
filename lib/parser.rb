@@ -95,6 +95,8 @@ class Parser
       parse_array!
     when type == :open_html_tag
       parse_html_tag!
+    when type == :open_custom_element_tag
+      parse_custom_element!
     when type == :open_brace
       parse_record!
     when type == :fn

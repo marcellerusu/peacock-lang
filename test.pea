@@ -1,5 +1,20 @@
-val := case [1] of
-  [a] => a
-end
+class Container < Element =
+  style = "padding: 5% 20% 0 20%"
+  view = 
+    <div>
+      Marcel Rusu
+    </div>
 
-print(val)
+class Main < Element =
+  style = "
+    background: rgb(248, 248, 255);
+    width: 100%;
+    height: 100%;
+    font-family: 'Zen Kaku Gothic Antique', sans-serif;
+  "
+  view =
+    <div>
+      <Container />
+    </div>
+
+mount_element(Main, documentBody)
