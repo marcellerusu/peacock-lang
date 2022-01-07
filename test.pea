@@ -1,11 +1,11 @@
-class Container < Element =
+class Container < Component =
   style = "padding: 5% 20% 0 20%"
   view = 
     <div>
       Marcel Rusu
     </div>
 
-class Main < Element =
+class Main < Component =
   style = "
     background: rgb(248, 248, 255);
     width: 100%;
