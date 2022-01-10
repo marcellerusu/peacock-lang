@@ -5,4 +5,4 @@ alltogether.rb.js
 .bundle
 node_modules
 yarn.lock
-output.html
+index.html
