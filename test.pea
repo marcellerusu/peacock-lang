@@ -1,20 +1,15 @@
-class Container < Component =
-  style = "padding: 5% 20% 0 20%"
-  view = 
-    <div>
-      Marcel Rusu
-    </div>
+
 
 class Main < Component =
   style = "
-    background: rgb(248, 248, 255);
-    width: 100%;
-    height: 100%;
-    font-family: 'Zen Kaku Gothic Antique', sans-serif;
+    background: black;
+    h1 {
+      color: yellow;
+    }
   "
   view =
     <div>
-      <Container />
+      <h1>YELLOW</h1>
     </div>
 
 mount_element(Main, documentBody)

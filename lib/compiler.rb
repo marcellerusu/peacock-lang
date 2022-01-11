@@ -47,6 +47,7 @@ class Compiler
   def std_lib
     code = "const __Symbols = {}\n"
     code += schema_lib
+    code += css_preprocessor
     code += literals
     code += "const Peacock = {\n"
     indent!
@@ -61,6 +62,10 @@ class Compiler
 
   def schema_lib
     File.read(File.dirname(__FILE__) + "/pea_std_lib/schema.js")
+  end
+
+  def css_preprocessor
+    File.read(File.dirname(__FILE__) + "/pea_std_lib/css_preprocessor.js")
   end
 
   def indent!
