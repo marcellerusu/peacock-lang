@@ -75,7 +75,6 @@ module Literals
     consume! :close_brace
     node = AST::record record, line, c
     return parse_match_assignment_without_schema!(node) if peek_type == :assign
-    # TODO: make more specific to records
     parse_id_modifier_if_exists!(node)
   end
 
@@ -89,7 +88,6 @@ module Literals
     consume! :close_square_bracket
     node = AST::array elements, line, c
     return parse_match_assignment_without_schema!(node) if peek_type == :assign
-    # TODO: make more specific to records
     parse_id_modifier_if_exists!(node)
   end
 end

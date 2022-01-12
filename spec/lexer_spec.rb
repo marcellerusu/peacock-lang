@@ -86,7 +86,6 @@ describe Lexer, "#tokenize" do
       ])
     end
 
-    # TODO: fix
     it "string with no space at start" do
       res = Lexer::tokenize("\"some string\"")
       expect(res).to eq([

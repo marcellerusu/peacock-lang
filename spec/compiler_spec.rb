@@ -41,7 +41,6 @@ describe Compiler do
 });")
     end
     it "{a: 3, b: [1, 2.3, \"s\"], c: { d: 3 }}" do
-      # TODO: fix indent on record
       tokens = Lexer::tokenize("{a: 3, b: [1, 2.3, \"s\"], c: { d: 3 }}")
       ast = Parser.new(tokens).parse!
       js = Compiler.new(ast).eval.strip
