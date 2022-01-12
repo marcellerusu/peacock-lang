@@ -53,10 +53,10 @@ module HTML
       expr_context.set! :html_tag
       value = if peek_type == :str_lit
           parse_lit! :str_lit
-        elsif peek_type == :open_double_brace
-          consume! :open_double_brace
+        elsif peek_type == :open_brace
+          consume! :open_brace
           val = parse_expr!
-          consume! :close_double_brace
+          consume! :close_brace
           val
         else
           assert { false }
@@ -77,7 +77,7 @@ module HTML
         children.push parse_custom_element!
       elsif peek_type == :open_html_tag
         children.push parse_html_tag!
-      elsif peek_type == :open_double_brace
+      elsif peek_type == :open_brace
         children.push parse_html_expr_node!
       else
         assert { false }
@@ -87,10 +87,11 @@ module HTML
   end
 
   def parse_html_expr_node!
-    consume! :open_double_brace
+    consume! :open_brace
     expr = parse_expr!
-    consume! :close_double_brace
-    expr
+    consume! :close_brace
+    str = AST::function_call([], AST::dot(expr, "to_s"))
+    AST::html_text_node(str)
   end
 
   def parse_text_node!

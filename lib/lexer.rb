@@ -27,10 +27,6 @@ module Lexer
         break
       when scanner.scan(/\s+/)
         next
-      when scanner.scan(/\{\{/)
-        tokens.push [line, column, :open_double_brace]
-      when scanner.scan(/\}\}/)
-        tokens.push [line, column, :close_double_brace]
       when scanner.scan(/#\{/)
         tokens.push [line, column, :anon_short_fn_start]
       when scanner.scan(/#.*/)

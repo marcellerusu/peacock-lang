@@ -1,8 +1,8 @@
 # Peacock
 
-A joyful language aimed towards writing front end applications
+A dynamic functional language aimed at bringing joy to the front-end
 
-Inspired by the power of clojure spec, the joy of ruby, & the beautiful syntax of elm.
+Inspired by the power of clojure spec & the joy of ruby
 
 ## Core Features
 

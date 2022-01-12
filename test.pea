@@ -7,7 +7,8 @@ class Main < Component =
     }
   "
   view =
-    <div>
+    <div name={"ok"}>
+      {"interp"}
       oh
       <h1>YELLOW</h1>
     </div>
