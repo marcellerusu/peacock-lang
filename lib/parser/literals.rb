@@ -32,6 +32,30 @@ module Literals
     AST::bool type == :true, line, c
   end
 
+  def parse_str!
+    line, c, value, _, escaped = consume! :str_lit
+    str_expr = if escaped.size == 0
+        AST::str value, line, c
+      else
+        strings = []
+        strings.push AST::str(value[0...escaped.first[:start] - 2], line, c)
+        escaped.each_with_index do |group, i|
+          ast = Parser.new(group[:tokens]).parse!
+          assert { ast.size == 1 }
+          strings.push AST::to_s(ast.first)
+          if i + 1 < escaped.size
+            strings.push AST::str(value[group[:end] + 1...escaped[i + 1][:start] - 2])
+          end
+        end
+        strings.push AST::str(value[escaped.last[:end] + 1..])
+
+        strings.reduce do |str, cur|
+          AST::plus str, cur
+        end
+      end
+    parse_id_modifier_if_exists! str_expr
+  end
+
   def parse_record!
     line, c, _ = consume! :open_brace
     record = {}

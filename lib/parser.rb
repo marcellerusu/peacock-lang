@@ -77,7 +77,7 @@ class Parser
   def parse_expr!
     type = peek_type
     case
-    when [:int_lit, :str_lit, :float_lit, :symbol].include?(type)
+    when [:int_lit, :float_lit, :symbol].include?(type)
       lit_expr = parse_lit! type
       peek = peek_type
       case
@@ -87,6 +87,8 @@ class Parser
       end
     when [:true, :false].include?(type)
       parse_bool! type
+    when type == :str_lit
+      parse_str!
     when type == :nil
       parse_nil!
     when type == :property

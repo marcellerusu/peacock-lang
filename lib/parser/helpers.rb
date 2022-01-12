@@ -59,9 +59,9 @@ module Helpers
   def consume!(token_type = nil)
     # puts "#{token_type} #{token}"
     assert { token_type == token[2] } unless token_type.nil?
-    line_number, column_number, type, value = token
+    line_number, column_number, type, value, tokens = token
     @token_index += 1
-    return line_number, column_number, value, type
+    return line_number, column_number, value, type, tokens
   end
 
   def peek_expr(by = 0)

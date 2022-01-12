@@ -1,16 +1,3 @@
-class Main < Component =
-  style = "
-    background: black;
-    color: white;
-    h1 {
-      color: yellow;
-    }
-  "
-  view =
-    <div name={"ok"}>
-      {"interp"}
-      oh
-      <h1>YELLOW</h1>
-    </div>
+a := 1
 
-mount_element(Main, documentBody)
+print("oh #{a} #{a + 1}")

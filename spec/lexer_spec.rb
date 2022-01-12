@@ -74,7 +74,7 @@ describe Lexer, "#tokenize" do
     it "\"string 3.0\"" do
       res = Lexer::tokenize("\"string 3.0\"")
       expect(res).to eq([
-        [0, 0, :str_lit, "string 3.0"],
+        [0, 0, :str_lit, "string 3.0", []],
       ])
     end
 
@@ -82,7 +82,7 @@ describe Lexer, "#tokenize" do
       res = Lexer::tokenize(" \"some string\"")
 
       expect(res).to eq([
-        [0, 1, :str_lit, "some string"],
+        [0, 1, :str_lit, "some string", []],
       ])
     end
 
@@ -90,7 +90,7 @@ describe Lexer, "#tokenize" do
     it "string with no space at start" do
       res = Lexer::tokenize("\"some string\"")
       expect(res).to eq([
-        [0, 0, :str_lit, "some string"],
+        [0, 0, :str_lit, "some string", []],
       ])
     end
 
@@ -119,7 +119,7 @@ describe Lexer, "#tokenize" do
     it "a := 3 == \"4\"" do
       res = Lexer::tokenize("a := 3 == \"4\"")
       expect(res).to eq([
-        [0, 0, :identifier, "a"], [0, 2, :assign], [0, 5, :int_lit, 3], [0, 7, :eq], [0, 10, :str_lit, "4"],
+        [0, 0, :identifier, "a"], [0, 2, :assign], [0, 5, :int_lit, 3], [0, 7, :eq], [0, 10, :str_lit, "4", []],
       ])
     end
     describe "array" do

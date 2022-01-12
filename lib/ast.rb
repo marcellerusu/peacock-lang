@@ -214,6 +214,14 @@ module AST
     )
   end
 
+  def self.plus(expr_a, expr_b)
+    AST::function_call([expr_b], AST::dot(expr_a, "__plus__"))
+  end
+
+  def self.to_s(expr)
+    AST::function_call([], AST::dot(expr, "to_s"))
+  end
+
   def self.throw(expr, line = nil, c = nil)
     { node_type: :throw,
       line: line,

@@ -2,6 +2,42 @@ require "strscan"
 require "utils"
 
 module Lexer
+  def self.str_find_escaped_sections(str)
+    return [] if str.index('#{').nil?
+    capture_start = i = str.index('#{') + 2
+
+    last_index = str.size - str.reverse.index("}") - 1
+    num_open_braces = 0
+    captures = []
+    while i <= last_index
+      case str[i]
+      when "#"
+        if str[i + 1] == "{"
+          assert { capture_start.nil? }
+          num_open_braces = 0
+          i += 1
+          capture_start = i + 1
+        end
+      when "{"
+        num_open_braces += 1
+      when "}"
+        if num_open_braces == 0 && !capture_start.nil?
+          captures.push({
+            start: capture_start,
+            end: i,
+            value: str[capture_start...i],
+          })
+          capture_start = nil
+        else
+          num_open_braces -= 1
+        end
+      end
+      i += 1
+    end
+
+    captures
+  end
+
   def self.pos_to_line_and_column(pos, program)
     i = 0
     line = 0
@@ -32,7 +68,13 @@ module Lexer
       when scanner.scan(/#.*/)
         break
       when scanner.scan(/"((.|\n)+?)"/)
-        tokens.push [line, column, :str_lit, scanner.matched[1...-1]]
+        str = scanner.captures[0]
+        escaped = Lexer::str_find_escaped_sections(str)
+        escaped = escaped.map do |capture|
+          # TODO: the line & column numbers of :tokens will be off - always 0, 0
+          { **capture, tokens: Lexer::tokenize(capture[:value]) }
+        end
+        tokens.push [line, column, :str_lit, str, escaped]
       when scanner.scan(/\d+\.\d+/)
         tokens.push [line, column, :float_lit, scanner.matched.to_f]
       when scanner.scan(/\d+/)
