@@ -1,2 +1,9 @@
+class Child < Element =
+  view props =
+    <div>
+      {props[:children]}
+    </div>
+  
 class Main < Element =
-  view = <h1>Hello World!</h1>
+  view =
+    <Child children={[<div>CHILD!</div>]}/>

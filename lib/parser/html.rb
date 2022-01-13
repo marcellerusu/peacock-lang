@@ -90,8 +90,7 @@ module HTML
     consume! :open_brace
     expr = parse_expr!
     consume! :close_brace
-    str = AST::function_call([], AST::dot(expr, "to_s"))
-    AST::html_text_node(str)
+    expr
   end
 
   def parse_text_node!
