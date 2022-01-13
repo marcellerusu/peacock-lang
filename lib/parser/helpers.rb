@@ -90,7 +90,7 @@ module Helpers
   end
 
   def end_of_expr?
-    closing_tags = [:close_parenthesis, :close_brace, :close_square_bracket]
+    closing_tags = [:close_parenthesis, :close_brace, :close_square_bracket, :of]
     new_line? ||
     closing_tags.include?(peek_type) ||
     property_accessor? ||

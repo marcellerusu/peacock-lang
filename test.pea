@@ -1,11 +1,6 @@
-class User < Element =
-  view props =
-    <div>
-      {props[:name]}
-    </div>
+class Test =
+  f a = case a of
+    {b} => b
+  end
 
-class Main < Element =
-  view =
-    <User name="marcelle" />
-
-mount_element(Main, document.getElementById "main".to_js)
+print(Test.new.f {b: 3})
