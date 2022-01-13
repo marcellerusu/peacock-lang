@@ -1,18 +1,7 @@
-class Test =
-  a = 3
-  get_arg a = a
+class Main < Element =
+  style = ""
+  view =
+    <div>
+    </div>
 
-class TestB =
-  a = 3
-  get_method = a
-
-# classes / function bodies still need some work,
-# so we're using 2 separate classes to show
-# that symbols inside methods will lookup locally
-# then in the object effectively `a || this.a`
-# but its more more complex to make sure 
-# the program doesn't crash when `a` isn't defined in scope
-print(
-  Test.new.get_arg(3),
-  TestB.new.get_method
-)
+mount_element(Main, document.getElementById("main".to_js))

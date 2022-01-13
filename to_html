@@ -25,6 +25,7 @@ while true
       <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+Antique:wght@300&amp;display=swap" rel="stylesheet">
     </head>
     <body style="margin: 0">
+      <div id="main"></div>
     </body>
     <script>#{output}</script>
   </html>
