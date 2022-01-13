@@ -1,13 +1,2 @@
-class User < Element =
-  view props = case props of
-    { name } =>
-      <div>
-        {name}
-      </div>
-  end
-
 class Main < Element =
-  view =
-    <User name="marcelle rusu" />
-
-mount_element(Main, document.getElementById "main".to_js)
+  view = <h1>Hello World!</h1>

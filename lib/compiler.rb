@@ -23,7 +23,12 @@ class Compiler
       program += eval_expr(statement)
       program += ";" << "\n"
     end
+    program += start_program if first_run?
     program.rstrip
+  end
+
+  def start_program
+    "Main && mount_element(Main, document.getElementById('main'))"
   end
 
   def eval_without_variable_declarations
