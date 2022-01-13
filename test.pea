@@ -1,9 +1,11 @@
-class Test =
-  a = 3
-  get_arg a = a
-  get_method = a
+class User < Element =
+  view props =
+    <div>
+      {props[:name]}
+    </div>
 
-print(
-  Test.new.get_arg(50),
-  Test.new.get_method
-)
+class Main < Element =
+  view =
+    <User name="marcelle" />
+
+mount_element(Main, document.getElementById "main".to_js)

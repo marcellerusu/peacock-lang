@@ -34,7 +34,7 @@ module HTML
       assert { element_name == close_element_name }
     end
     AST::function_call(
-      [],
+      [AST::record(attributes)],
       AST::dot(
         AST::identifier_lookup(element_name, line, c),
         "new"
@@ -47,7 +47,7 @@ module HTML
   def parse_html_attributes!
     return !!consume!(:self_close_html_tag), {} if peek_type == :self_close_html_tag
     attributes = {}
-    while peek_type != :gt # `>` as in capture <div [name="3">] part
+    while ![:gt, :self_close_html_tag].include?(peek_type) # `>` as in capture <div [name="3">] part
       _, _, sym = consume! :identifier
       consume! :declare
       expr_context.set! :html_tag
@@ -64,8 +64,8 @@ module HTML
       expr_context.unset! :html_tag
       attributes[sym] = value
     end
-    consume! :gt
-    return false, attributes
+    _, _, _, type = consume!
+    return type == :self_close_html_tag, attributes
   end
 
   def parse_html_children!
