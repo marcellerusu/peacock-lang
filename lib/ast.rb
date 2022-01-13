@@ -21,6 +21,8 @@ module AST
     node[:pass] = AST::remove_numbers(node[:pass]) if node[:pass]
     node[:fail] = AST::remove_numbers(node[:fail]) if node[:fail]
     node[:cases] = AST::remove_numbers_single(node[:cases]) if node[:cases]
+    node[:lhs] = AST::remove_numbers_single(node[:lhs]) if node[:lhs]
+    node[:rhs] = AST::remove_numbers_single(node[:rhs]) if node[:rhs]
     return node
   end
 
@@ -90,6 +92,12 @@ module AST
         value: value },
       "Sym"
     )
+  end
+
+  def self.naked_or(lhs, rhs)
+    { node_type: :naked_or,
+      lhs: lhs,
+      rhs: rhs }
   end
 
   def self.bool(value, line = nil, c = nil)
@@ -200,6 +208,13 @@ module AST
     AST::property_lookup line, c, lhs_expr, property
   end
 
+  def self.instance_method_lookup(name, line = nil, c = nil)
+    { node_type: :instance_method_lookup,
+      sym: name,
+      line: line,
+      column: c }
+  end
+
   def self.instance_lookup(name, line = nil, c = nil)
     { node_type: :instance_lookup,
       sym: name,
@@ -234,7 +249,7 @@ module AST
       [value_expr],
       AST::dot(
         AST::identifier_lookup(type_name, line, c),
-        [line, c, "create"],
+        [line, c, "new"],
         line,
         c
       ),

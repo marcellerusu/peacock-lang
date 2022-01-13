@@ -13,9 +13,9 @@ OPERATORS = [:plus, :minus, :mult, :div, :and, :or, :schema_and, :schema_or, :eq
 ANON_SHORTHAND_ID = "__ANON_SHORT_ID"
 
 class Parser
+  include Functions
   include Helpers
   include Literals
-  include Functions
   include Schemas
   include Classes
   include HTML
@@ -114,7 +114,7 @@ class Parser
     when type == :anon_short_id
       parse_anon_short_id!
     else
-      puts "no match [parse_expr!] :#{type}"
+      # puts "no match [parse_expr!] :#{type}"
       assert { false }
     end
   end

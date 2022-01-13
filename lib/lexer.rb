@@ -66,7 +66,7 @@ module Lexer
       when scanner.scan(/#\{/)
         tokens.push [line, column, :anon_short_fn_start]
       when scanner.scan(/#.*/)
-        break
+        next
       when scanner.scan(/"((.|\n)+?)"/)
         str = scanner.captures[0]
         escaped = Lexer::str_find_escaped_sections(str)

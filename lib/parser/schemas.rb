@@ -192,7 +192,7 @@ module Schemas
     constructors = ["List", "Int", "Float", "Str", "Sym", "Record", "Bool"]
 
     constructors.include?(expr.dig(:expr, :lhs_expr, :sym)) &&
-    expr.dig(:expr, :property, :value) == "create"
+    expr.dig(:expr, :property, :value) == "new"
   end
 
   def find_bound_variables(match_expr)

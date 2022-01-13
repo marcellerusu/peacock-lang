@@ -94,7 +94,7 @@ class Compiler
       function += "(...params)" + " => "
       function += "{" << "\n" + padding
       # TODO: replace with Schema.case..
-      # const [name] = (...params) => Schema.case(List.create(params), [...function_cases])
+      # const [name] = (...params) => Schema.case(List.new(params), [...function_cases])
       function += "const functions = ["
       function += function_group.map { |f| eval_function(f[:expr]) }.join(", ")
       function += "];" << "\n" + padding
@@ -161,7 +161,7 @@ class Compiler
       eval_function_call node
     when :identifier_lookup
       eval_identifier_lookup node
-    when :instance_lookup
+    when :instance_lookup, :instance_method_lookup
       eval_instance_lookup node
     when :if
       eval_if_expression node
@@ -177,6 +177,8 @@ class Compiler
       eval_html_text_node node
     when :case
       eval_case_expression node
+    when :naked_or
+      eval_naked_or node
     else
       puts "no case matched node_type: #{node[:node_type]}"
       assert { false }
@@ -211,12 +213,16 @@ class Compiler
     "#{node[:value]}"
   end
 
+  def eval_naked_or(node)
+    "#{eval_expr node[:lhs]} || #{eval_expr node[:rhs]}"
+  end
+
   def eval_html_tag(node)
-    "DomNode.create(#{eval_expr(node[:name])}, #{eval_expr(node[:attributes])}, #{eval_expr(node[:children])})"
+    "DomNode.new(#{eval_expr(node[:name])}, #{eval_expr(node[:attributes])}, #{eval_expr(node[:children])})"
   end
 
   def eval_html_text_node(node)
-    "DomTextNode.create(#{eval_expr(node[:value])})"
+    "DomTextNode.new(#{eval_expr(node[:value])})"
   end
 
   def eval_float(node)
@@ -314,7 +320,7 @@ class Compiler
           "this.#{arg} = #{arg};"
         }.join("\n").strip()}
   }
-  static create(#{args.join(", ")}) {
+  static [\"new\"](#{args.join(", ")}) {
     return new this(#{args.join(", ")});
   }".strip
       end

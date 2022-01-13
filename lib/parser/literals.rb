@@ -6,8 +6,13 @@ module Literals
   end
 
   def parse_identifier!
-    sym_expr = parse_sym!
-    parse_id_modifier_if_exists!(sym_expr)
+    expr = if @context == :class && !is_function?(1)
+        line, c, sym = consume! :identifier
+        AST::instance_method_lookup sym, line, c
+      else
+        parse_sym!
+      end
+    parse_id_modifier_if_exists!(expr)
   end
 
   def parse_property!

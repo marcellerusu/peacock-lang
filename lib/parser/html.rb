@@ -37,7 +37,7 @@ module HTML
       [],
       AST::dot(
         AST::identifier_lookup(element_name, line, c),
-        "create"
+        "new"
       ),
       line,
       c

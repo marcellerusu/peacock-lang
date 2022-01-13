@@ -7,6 +7,25 @@ def dot(lhs, name)
   AST::dot(lhs, [0, name])
 end
 
+def try_eval(name)
+  AST::function_call(
+    [
+      AST::function(
+        [],
+        [
+          AST::return(
+            AST::function_call(
+              [{ node_type: :str_lit, value: name }],
+              AST::identifier_lookup("eval")
+            )
+          ),
+        ]
+      ),
+    ],
+    AST::identifier_lookup("__try")
+  )
+end
+
 def schema
   AST::identifier_lookup "Schema"
 end
@@ -315,7 +334,11 @@ class Num val =
               [AST::function_argument("other")],
               [AST::return(
                 AST::function_call(
-                  [AST::identifier_lookup("other")],
+                  [AST::naked_or(
+                    try_eval("other"),
+                    AST::function_call([],
+                                       AST::instance_method_lookup("other"))
+                  )],
                   AST::dot(
                     AST::instance_lookup("val"),
                     "__plus__"

@@ -1,15 +1,16 @@
 module Functions
-  def is_function?
-    return false if peek_type(-1) != :identifier
+  def is_function?(skip = 0)
+    return false if peek_type(-1 + skip) != :identifier
     # skip params
     i = 0
-    t = peek_token(i)
+    t = peek_token(i + skip)
+    return false if t.nil?
 
     while t && t[2] == :identifier
       i += 1
-      t = peek_token(i)
+      t = peek_token(i + skip)
     end
-    self.line == t[0] && peek_type(i) == :declare
+    self.line == t[0] && peek_type(i + skip) == :declare
   end
 
   def property_accessor?
@@ -19,7 +20,8 @@ module Functions
 
   def is_function_call?(sym_expr)
     return true if peek_type == :open_parenthesis
-    is_dot_expr = sym_expr[:node_type] == :property_lookup
+    is_dot_expr = sym_expr[:node_type] == :property_lookup ||
+                  sym_expr[:node_type] == :instance_method_lookup
     return false if !is_dot_expr
     return true if is_dot_expr && end_of_expr?
     cloned = clone
@@ -109,12 +111,35 @@ module Functions
     args
   end
 
+  def try_lookup(sym, line, c)
+    raw_str = { node_type: :str_lit,
+                line: line,
+                column: c,
+                value: sym }
+    AST::function_call(
+      [AST::function(
+        [],
+        [AST::return(AST::function_call([raw_str], AST::identifier_lookup("eval")))]
+      )],
+      AST::identifier_lookup("__try")
+    )
+  end
+
+  def or_lookup(node)
+    line, c = node[:line], node[:column]
+    AST::naked_or(
+      try_lookup(node[:sym], line, c),
+      AST::function_call([], node, line, c)
+    )
+  end
+
   def parse_function_call!(fn_expr)
     args = if peek_type == :open_parenthesis
         parse_function_call_args_with_paren!
       else
         parse_function_call_args_without_paren!
       end
+    return or_lookup(fn_expr) if args.size == 0 && fn_expr[:node_type] == :instance_method_lookup
     return parse_match_assignment!(fn_expr, args[0]) if args.size == 1 && peek_type == :assign
     AST::function_call args, fn_expr, fn_expr[:line], fn_expr[:column]
   end
