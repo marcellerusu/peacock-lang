@@ -1,7 +1,9 @@
-class Main < Element =
-  style = ""
-  view =
-    <div>
-    </div>
+class Test =
+  a = 3
+  get_arg a = a
+  get_method = a
 
-mount_element(Main, document.getElementById("main".to_js))
+print(
+  Test.new.get_arg(50),
+  Test.new.get_method
+)

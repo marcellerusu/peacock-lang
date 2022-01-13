@@ -1,5 +1,6 @@
 module Functions
   def is_function?(skip = 0)
+    return false if peek_token(-1 + skip)[0] != self.line
     return false if peek_type(-1 + skip) != :identifier
     # skip params
     i = 0
