@@ -28,7 +28,7 @@ class Compiler
   end
 
   def start_program
-    "Main && mount_element(Main, document.getElementById('main'))"
+    "__try(() => eval('Main')) && mount_element(Main, document.getElementById('main'))"
   end
 
   def eval_without_variable_declarations
@@ -195,7 +195,7 @@ class Compiler
     pass_body = Compiler.new(node[:pass], @indent + 2).eval_without_variable_declarations
     fail_body = Compiler.new(node[:fail], @indent + 2).eval_without_variable_declarations
 
-    "#{padding}if (#{cond}) {\n" \
+    "#{padding}if (#{cond}.to_js()) {\n" \
     "#{pass_body}\n" \
     "#{padding}} else {\n" \
     "#{fail_body}\n" \
@@ -219,7 +219,7 @@ class Compiler
   end
 
   def eval_naked_or(node)
-    "#{eval_expr node[:lhs]} || #{eval_expr node[:rhs]}"
+    "(#{eval_expr node[:lhs]} || #{eval_expr node[:rhs]})"
   end
 
   def eval_html_tag(node)
@@ -287,7 +287,7 @@ class Compiler
   end
 
   def eval_instance_lookup(node)
-    "this.#{node[:sym]}"
+    "this.#{sub_q(node[:sym])}"
   end
 
   def eval_return(node)

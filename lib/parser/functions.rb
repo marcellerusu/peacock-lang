@@ -40,10 +40,11 @@ module Functions
   end
 
   def parse_anon_function_shorthand!
-    line, c = slef.line, column
+    line, c = self.line, column
     consume! :anon_short_fn_start
     expr = parse_expr!
-    expr = AST::return(expr, line, c) unless expr[:node_type] == :return
+    assert { expr[:node_type] != :return }
+    expr = AST::return(expr, line, c)
     consume! :close_brace
     args = [AST::function_argument(ANON_SHORTHAND_ID, line, c)]
     AST::function args, [expr], line, c
@@ -69,7 +70,10 @@ module Functions
     consume! :declare
     fn_line = line
     if new_line?
-      @token_index, body = Parser.new(@tokens, @token_index, @indentation + 2, :declare).parse_with_position!
+      @token_index, body = clone(
+        indentation: @indentation + 2,
+        parser_context: parser_context.clone.push!(:function)
+      ).parse_with_position!
     else
       return_c = column
       expr = parse_expr!
@@ -85,7 +89,9 @@ module Functions
     args = parse_function_arguments! :arrow
     consume! :arrow
     fn_line = self.line
+    expr_context.push! :function
     expr = parse_expr!
+    expr_context.pop! :function
     body = [AST::return(expr, self.line, expr[:column])]
     # TODO: none 1-liners
     AST::function args, body, fn_line, c

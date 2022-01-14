@@ -20,22 +20,26 @@ class Parser
   include Classes
   include HTML
 
-  def initialize(tokens, token_index = 0, indentation = 0, context = nil, expr_context = nil)
+  def initialize(tokens, token_index = 0, indentation = 0, parser_context = nil, expr_context = nil)
     @tokens = tokens
     @token_index = token_index
     @indentation = indentation
-    @context = context
+    @parser_context = parser_context
     @expr_context = expr_context
   end
 
-  def clone
+  def clone(indentation: nil, parser_context: nil, expr_context: nil)
     Parser.new(
       @tokens,
       @token_index,
-      @indentation,
-      @context,
-      @expr_context,
+      indentation || @indentation,
+      parser_context || @parser_context,
+      expr_context || @expr_context,
     )
+  end
+
+  def parser_context
+    @parser_context ||= Context.new
   end
 
   def expr_context
@@ -58,16 +62,20 @@ class Parser
       elsif peek_type == :identifier && peek_type(1) == :assign
         @ast.push parse_assignment!
       elsif peek_type == :return
-        assert { @context == :declare }
+        assert { parser_context.in_a? :function }
         @ast.push parse_return!
         break
       else
         @ast.push parse_expr!
       end
     end
-    if [:declare, :function].include?(@context) && @ast.last[:node_type] != :return
+
+    if parser_context.directly_in_a?(:function) &&
+       # :if is temporary
+       ![:return, :if].include?(@ast.last[:node_type])
       node = @ast.pop
-      @ast.push AST::return(node, node[:line], node[:column])
+      @ast.push AST::return node, node[:line], node[:column]
+    else
     end
     return @token_index, @ast
   end
@@ -114,14 +122,16 @@ class Parser
     when type == :anon_short_id
       parse_anon_short_id!
     else
-      # puts "no match [parse_expr!] :#{type}"
+      puts "no match [parse_expr!] :#{type}"
       assert { false }
     end
   end
 
   def parse_id_modifier_if_exists!(sym_expr)
-    # kinda hacky.. :/
-    return sym_expr if expr_context.is_a? :html_tag
+    # TODO: kinda hacky.. :/
+    # This is because all the tokens (text nodes)
+    # of html child aren't tokenized as raw text
+    return sym_expr if expr_context.directly_in_a? :html_tag
     type = peek_type
     case
     when is_function_call?(sym_expr)
@@ -173,20 +183,29 @@ class Parser
     end
   end
 
-  def parse_if_expression!
+  def parse_if_body!
     end_tokens = [:end, :else]
+    @token_index, body = clone(parser_context: parser_context.clone.push!(:if)).parse_with_position! end_tokens
+    body
+  end
+
+  def parse_if_expression!
     if_line, c, _ = consume! :if
     check = parse_expr!
-    @token_index, pass_body = Parser.new(@tokens, @token_index, @indentation, :if).parse_with_position! end_tokens
+    pass_body = parse_if_body!
     consume! :then if peek_type == :then
     if peek_type != :else
       consume! :end
       return AST::if check, pass_body, [], if_line, c
     end
     consume! :else
-    return AST::if(check, pass_body, [parse_if_expression!], if_line, c) if peek_type == :if
-    @token_index, fail_body = Parser.new(@tokens, @token_index, @indentation, :if).parse_with_position! end_tokens
-    consume! :end
+    fail_body = if peek_type == :if
+        [parse_if_expression!]
+      else
+        body = parse_if_body!
+        consume! :end
+        body
+      end
     AST::if check, pass_body, fail_body, if_line, c
   end
 

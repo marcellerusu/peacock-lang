@@ -1,12 +1,12 @@
 module Literals
   def parse_sym!
     line, c, sym = consume! :identifier
-    return call_schema_any(sym) if expr_context.is_a?(:schema) && !schema?(sym)
+    return call_schema_any(sym) if expr_context.directly_in_a?(:schema) && !schema?(sym)
     AST::identifier_lookup sym, line, c
   end
 
   def parse_identifier!
-    expr = if @context == :class && !is_function?(1)
+    expr = if parser_context.in_a?(:class) && !is_function?(1)
         line, c, sym = consume! :identifier
         AST::instance_method_lookup sym, line, c
       else
@@ -70,7 +70,7 @@ module Literals
       if peek_type == :colon
         consume! :colon
         record[sym] = parse_expr!
-      elsif expr_context.is_a?(:schema)
+      elsif expr_context.directly_in_a? :schema
         record[sym] = call_schema_any(sym)
       else
         record[sym] = AST::identifier_lookup(sym, id_line, c1)

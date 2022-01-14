@@ -52,18 +52,20 @@ module HTML
     while ![:gt, :self_close_html_tag].include?(peek_type) # `>` as in capture <div [name="3">] part
       _, _, sym = consume! :identifier
       consume! :declare
-      expr_context.set! :html_tag
+      expr_context.push! :html_tag
       value = if peek_type == :str_lit
           parse_lit! :str_lit
         elsif peek_type == :open_brace
+          expr_context.pop! :html_tag
           consume! :open_brace
           val = parse_expr!
           consume! :close_brace
+          expr_context.push! :html_tag
           val
         else
           assert { false }
         end
-      expr_context.unset! :html_tag
+      expr_context.pop! :html_tag
       attributes[sym] = value
     end
     _, _, _, type = consume!

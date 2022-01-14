@@ -12,7 +12,10 @@ module Schemas
     while peek_type != :end
       schema, matches = parse_schema_literal!
       consume! :arrow
-      @token_index, body = Parser.new(@tokens, @token_index, @indentation + 2, :function).parse_with_position!
+      @token_index, body = clone(
+        indentation: @indentation + 2,
+        parser_context: parser_context.clone.push!(:function),
+      ).parse_with_position!
       fn = AST::function(
         [AST::function_argument(match_arg_name)],
         matches.map do |path_and_sym|
@@ -230,7 +233,7 @@ module Schemas
   end
 
   def parse_schema!
-    expr_context.set! :schema
+    expr_context.push! :schema
     line = self.line
     consume! :schema
     _, c, sym = consume! :identifier
@@ -240,13 +243,13 @@ module Schemas
     while OPERATORS.include?(peek_type)
       schema = parse_operator_call!(schema)
     end
-    expr_context.unset! :schema
+    expr_context.pop! :schema
     schema = parse_custom_constructor!(schema) if peek_type == :from
     AST::assignment(sym, schema, line, c)
   end
 
   def parse_custom_constructor!(schema)
-    expr_context.set! :schema
+    expr_context.push! :schema
     consume! :from
     from_schema, from_expr = if peek_type == :identifier
         fn_expr = parse_sym!
@@ -260,7 +263,7 @@ module Schemas
         schema_ = function_call([expr], schema_for)
         [schema_, expr]
       end
-    expr_context.unset! :schema
+    expr_context.pop! :schema
     consume! :to
     as_expr = parse_expr!
     arg_name = "__VALUE"
