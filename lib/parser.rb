@@ -99,6 +99,8 @@ class Parser
       parse_str!
     when type == :nil
       parse_nil!
+    when type == :bang
+      parse_bang!
     when type == :property
       parse_property!
     when type == :open_square_bracket

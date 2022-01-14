@@ -14,6 +14,15 @@ module Functions
     self.line == t[0] && peek_type(i + skip) == :declare
   end
 
+  def parse_bang!
+    consume! :bang
+    expr = parse_expr!
+    AST::function_call(
+      [],
+      AST::dot(expr, "bang")
+    )
+  end
+
   def property_accessor?
     peek_type == :open_square_bracket &&
     end_of_last_token == column
@@ -72,7 +81,7 @@ module Functions
     if new_line?
       @token_index, body = clone(
         indentation: @indentation + 2,
-        parser_context: parser_context.clone.push!(:function)
+        parser_context: parser_context.clone.push!(:function),
       ).parse_with_position!
     else
       return_c = column
