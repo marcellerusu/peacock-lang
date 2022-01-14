@@ -1,13 +1,14 @@
-class Child < Element =
-  view props =
-    <div>
-      {props[:children]}
-    </div>
-  
 class Main < Element =
-  view =
-    <Child>
-      <span>
-        child text
-      </span>
-    </Child>
+  style = "cursor: pointer;"
+  init_state = false
+  text val = 
+    if val
+      return "on"
+    else
+      return "off"
+    end
+  view a is_on =
+    f := #{@set_state(true)}
+    <div onclick={f}>
+      {text is_on}
+    </div>

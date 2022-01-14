@@ -1,0 +1,13 @@
+class Main < Element =
+  init_state = false
+  text val = 
+    if val
+      return "on"
+    else
+      return "off"
+    end
+  view a on? =
+    #  set_state isn't treated as a function
+    <div onclick={#{set_state true}}>
+      {text on?}
+    </div>
