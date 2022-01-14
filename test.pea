@@ -1,13 +1,13 @@
 class Main < Element =
   style = "cursor: pointer;"
   init_state = false
-  text val = 
+  text val =
     if val
-      return "this is ON"
+      "this is ON"
     else
-      return "off"
+      "off"
     end
-  view a is_on =
+  view _ is_on =
     <div onclick=#{set_state !is_on}>
       {text is_on}
     </div>

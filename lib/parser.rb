@@ -70,11 +70,20 @@ class Parser
       end
     end
 
-    if parser_context.directly_in_a?(:function) &&
-       # :if is temporary
-       ![:return, :if].include?(@ast.last[:node_type])
-      node = @ast.pop
-      @ast.push AST::return node, node[:line], node[:column]
+    if parser_context.directly_in_a?(:function)
+      last_node = @ast.last[:node_type]
+      case
+      when last_node == :if
+        node = @ast.pop
+        [node[:pass], node[:fail]].each do |body|
+          last = body[-1]
+          body[-1] = AST::return last if last[:node_type] != :return
+        end
+        @ast.push node
+      when last_node != :return
+        node = @ast.pop
+        @ast.push AST::return node
+      end
     else
     end
     return @token_index, @ast

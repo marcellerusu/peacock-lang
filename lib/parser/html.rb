@@ -107,10 +107,10 @@ module HTML
     # TODO: heckin' hack! find a way to consume raw text..
     # maybe I'll have to put this in the lexer somehow..
     # Things to think about..
-    while ![:open_html_tag, :close_html_tag].include?(peek_type)
+    while ![:open_html_tag, :close_html_tag, :open_brace].include?(peek_type)
       _, _, word, type = consume!
       text.push(word || ID_TO_STR[type] || type.to_s)
     end
-    AST::html_text_node(AST::str(text.join(" ")))
+    AST::html_text_node(AST::str(text.join(" ") + " "))
   end
 end

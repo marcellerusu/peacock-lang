@@ -81,6 +81,8 @@ module Lexer
         tokens.push [line, column, :int_lit, scanner.matched.to_i]
       when scanner.scan(/\!/)
         tokens.push [line, column, :bang]
+      when scanner.scan(/_/)
+        tokens.push [line, column, :identifier, "_"]
       when scanner.scan(/(true|false)\b/)
         tokens.push [line, column, (scanner.matched == "true").to_s.to_sym]
       when scanner.scan(/nil(?!\?)\b/)

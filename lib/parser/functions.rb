@@ -17,10 +17,7 @@ module Functions
   def parse_bang!
     consume! :bang
     expr = parse_expr!
-    AST::function_call(
-      [],
-      AST::dot(expr, "bang")
-    )
+    AST::function_call [], AST::dot(expr, "bang")
   end
 
   def property_accessor?

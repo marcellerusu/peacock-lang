@@ -130,7 +130,7 @@ module AST
     )
   end
 
-  def self.return(expr, line = nil, c = nil)
+  def self.return(expr, line = expr[:line], c = expr[:column])
     { node_type: :return,
       line: line,
       column: c,
