@@ -55,6 +55,11 @@ module HTML
       expr_context.push! :html_tag
       value = if peek_type == :str_lit
           parse_lit! :str_lit
+        elsif peek_type == :anon_short_fn_start
+          expr_context.pop! :html_tag
+          fn = parse_anon_function_shorthand!
+          expr_context.push! :html_tag
+          fn
         elsif peek_type == :open_brace
           expr_context.pop! :html_tag
           consume! :open_brace

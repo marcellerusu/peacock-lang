@@ -8,7 +8,6 @@ class Main < Element =
       return "off"
     end
   view a is_on =
-    f := #{set_state !is_on}
-    <div onclick={f}>
+    <div onclick=#{set_state !is_on}>
       {text is_on}
     </div>
