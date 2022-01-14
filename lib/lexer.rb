@@ -94,6 +94,9 @@ module Lexer
       when scanner.scan(/<\/([a-z][a-z1-9_]*)>/)
         assert { scanner.captures.size == 1 }
         tokens.push [line, column, :close_html_tag, scanner.captures.first]
+      when scanner.scan(/<\/([A-Z][a-z1-9_]*)>/)
+        assert { scanner.captures.size == 1 }
+        tokens.push [line, column, :close_custom_element_tag, scanner.captures.first]
       when scanner.scan(/self\b/)
         tokens.push [line, column, :self]
       when scanner.scan(/fn\b/)

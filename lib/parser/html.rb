@@ -30,8 +30,10 @@ module HTML
     self_closed, attributes = parse_html_attributes!
     if !self_closed
       children = parse_html_children!
-      _, _, close_element_name = consume! :close_html_tag
+      _, _, close_element_name = consume! :close_custom_element_tag
       assert { element_name == close_element_name }
+      assert { !attributes.has_key?("children") }
+      attributes["children"] = AST::array(children)
     end
     AST::function_call(
       [AST::record(attributes)],
@@ -70,7 +72,7 @@ module HTML
 
   def parse_html_children!
     children = []
-    while peek_type != :close_html_tag
+    while ![:close_html_tag, :close_custom_element_tag].include?(peek_type)
       if peek_type == :identifier
         children.push parse_text_node!
       elsif peek_type == :open_custom_element_tag

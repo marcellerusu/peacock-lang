@@ -6,4 +6,8 @@ class Child < Element =
   
 class Main < Element =
   view =
-    <Child children={[<div>CHILD!</div>]}/>
+    <Child>
+      <span>
+        child text
+      </span>
+    </Child>
