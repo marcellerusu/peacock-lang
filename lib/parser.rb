@@ -28,10 +28,10 @@ class Parser
     @expr_context = expr_context
   end
 
-  def clone(indentation: nil, parser_context: nil, expr_context: nil)
+  def clone(tokens: nil, token_index: nil, indentation: nil, parser_context: nil, expr_context: nil)
     Parser.new(
-      @tokens,
-      @token_index,
+      tokens || @tokens,
+      token_index || @token_index,
       indentation || @indentation,
       parser_context || @parser_context,
       expr_context || @expr_context,

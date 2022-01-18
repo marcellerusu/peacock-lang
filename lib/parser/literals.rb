@@ -45,7 +45,11 @@ module Literals
         strings = []
         strings.push AST::str(value[0...escaped.first[:start] - 2], line, c)
         escaped.each_with_index do |group, i|
-          ast = Parser.new(group[:tokens]).parse!
+          ast = clone(
+            tokens: group[:tokens],
+            token_index: 0,
+            indentation: 0,
+          ).parse!
           assert { ast.size == 1 }
           strings.push AST::to_s(ast.first)
           if i + 1 < escaped.size

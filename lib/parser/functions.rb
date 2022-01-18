@@ -11,6 +11,7 @@ module Functions
       i += 1
       t = peek_token(i + skip)
     end
+    return false if t.nil?
     self.line == t[0] && peek_type(i + skip) == :declare
   end
 
