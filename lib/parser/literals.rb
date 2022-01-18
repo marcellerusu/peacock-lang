@@ -49,6 +49,7 @@ module Literals
             tokens: group[:tokens],
             token_index: 0,
             indentation: 0,
+            parser_context: parser_context.clone.push!(:str),
           ).parse!
           assert { ast.size == 1 }
           strings.push AST::to_s(ast.first)

@@ -73,14 +73,7 @@ class Parser
     if parser_context.directly_in_a?(:function)
       last_node = @ast.last[:node_type]
       case
-      when last_node == :if
-        node = @ast.pop
-        [node[:pass], node[:fail]].each do |body|
-          last = body[-1]
-          body[-1] = AST::return last if last[:node_type] != :return
-        end
-        @ast.push node
-      when last_node != :return
+      when last_node != :return && last_node != :if
         node = @ast.pop
         @ast.push AST::return node
       end
@@ -123,7 +116,8 @@ class Parser
     when type == :fn
       parse_anon_function_def!
     when type == :if
-      parse_if_expression!
+      node = parse_if_expression!
+      modify_if_statement_for_context node
     when type == :identifier
       parse_identifier!
     when type == :case
@@ -218,6 +212,44 @@ class Parser
         body
       end
     AST::if check, pass_body, fail_body, if_line, c
+  end
+
+  def insert_return(body)
+    return body if body.size == 0
+    last = body.pop
+    new_last = if last[:node_type] == :return
+        last
+      else
+        AST::return last
+      end
+    body.push new_last
+    body
+  end
+
+  def modify_if_statement_for_context(if_expr)
+    def replace_return(if_expr)
+      { **if_expr,
+        pass: insert_return(if_expr[:pass]),
+        fail: insert_return(if_expr[:fail]) }
+    end
+
+    if parser_context.directly_in_a? :str
+      assert {
+        !(if_expr[:pass] + if_expr[:fail])
+          .any? { |node| node[:node_type] == :return }
+      }
+      AST::function_call(
+        [],
+        AST::function(
+          [],
+          [replace_return(if_expr)]
+        )
+      )
+    elsif parser_context.directly_in_a? :function
+      replace_return(if_expr)
+    else
+      if_expr
+    end
   end
 
   def parse_dot_expression!(lhs)

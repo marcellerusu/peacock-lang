@@ -283,7 +283,7 @@ class Compiler
   def eval_function(node)
     body = Compiler.new(node[:body], @indent + 2).eval
     args = node[:args].map { |arg| arg[:sym] }.join(", ")
-    "(#{args}) => {\n#{body}\n#{padding}}"
+    "((#{args}) => {\n#{body}\n#{padding}})"
   end
 
   def eval_instance_lookup(node)

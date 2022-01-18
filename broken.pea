@@ -1,2 +1,1 @@
-a := "#{if true :a end}"
-print(a)
+"string #{"inside"} string"
