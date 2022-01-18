@@ -71,7 +71,7 @@ module HTML
           assert { false }
         end
       expr_context.pop! :html_tag
-      attributes[sym] = value
+      attributes[AST::sym(sym)] = value
     end
     _, _, _, type = consume!
     return type == :self_close_html_tag, attributes
