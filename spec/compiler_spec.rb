@@ -35,22 +35,22 @@ describe Compiler do
       tokens = Lexer::tokenize("{a: 3, b: [1, 2.3, \"s\"]}")
       ast = Parser.new(tokens).parse!
       js = Compiler.new(ast).eval.strip
-      expect(js).to eq("Record.new({
-  [Peacock.symbol(\"a\")]: Int.new(3),
-  [Peacock.symbol(\"b\")]: List.new([Int.new(1), Float.new(2.3), Str.new(`s`)])
-});")
+      expect(js).to eq("Record.new([
+  [Sym.new(Peacock.symbol(\"a\")), Int.new(3)],
+  [Sym.new(Peacock.symbol(\"b\")), List.new([Int.new(1), Float.new(2.3), Str.new(`s`)])]
+]);")
     end
     it "{a: 3, b: [1, 2.3, \"s\"], c: { d: 3 }}" do
       tokens = Lexer::tokenize("{a: 3, b: [1, 2.3, \"s\"], c: { d: 3 }}")
       ast = Parser.new(tokens).parse!
       js = Compiler.new(ast).eval.strip
-      expect(js).to eq("Record.new({
-  [Peacock.symbol(\"a\")]: Int.new(3),
-  [Peacock.symbol(\"b\")]: List.new([Int.new(1), Float.new(2.3), Str.new(`s`)]),
-  [Peacock.symbol(\"c\")]: Record.new({
-    [Peacock.symbol(\"d\")]: Int.new(3)
-  })
-});")
+      expect(js).to eq("Record.new([
+  [Sym.new(Peacock.symbol(\"a\")), Int.new(3)],
+  [Sym.new(Peacock.symbol(\"b\")), List.new([Int.new(1), Float.new(2.3), Str.new(`s`)])],
+  [Sym.new(Peacock.symbol(\"c\")), Record.new([
+    [Sym.new(Peacock.symbol(\"d\")), Int.new(3)]
+  ])]
+]);")
     end
   end
 end

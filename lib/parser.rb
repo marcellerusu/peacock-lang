@@ -234,7 +234,7 @@ class Parser
     consume! :open_square_bracket
     expr = parse_expr!
     consume! :close_square_bracket
-    assert { [:str_lit, :symbol, :int_lit, :float_lit].include? expr[:args][0][:node_type] }
+    assert { [:str_lit, :bool_lit, :symbol, :int_lit, :float_lit].include? expr[:args][0][:node_type] }
     node = AST::lookup(lhs, expr)
     parse_id_modifier_if_exists!(node)
   end

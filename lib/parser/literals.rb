@@ -61,24 +61,43 @@ module Literals
     parse_id_modifier_if_exists! str_expr
   end
 
+  def parse_record_key!
+    if peek_type == :identifier
+      line, c, sym = consume! :identifier
+      AST::sym sym, line, c
+    elsif peek_type == :open_square_bracket
+      assert { !expr_context.directly_in_a?(:schema) }
+      consume! :open_square_bracket
+      val = parse_expr!
+      consume! :close_square_bracket
+      val
+    else
+      assert_not_reached
+    end
+  end
+
   def parse_record!
     line, c, _ = consume! :open_brace
     record = {}
     while peek_type != :close_brace
-      # TODO: will have to allow more than symbols as keys at some point
-      id_line, c1, sym = consume! :identifier
-      if peek_type == :colon
-        consume! :colon
-        record[sym] = parse_expr!
-      elsif expr_context.directly_in_a? :schema
-        record[sym] = call_schema_any(sym)
-      else
-        record[sym] = AST::identifier_lookup(sym, id_line, c1)
-      end
+      key = parse_record_key!
+      value = if peek_type == :colon
+          consume! :colon
+          parse_expr!
+        elsif expr_context.directly_in_a? :schema
+          sym = extract_data_from_constructor(key)
+          call_schema_any sym[:sym]
+        elsif literal_is_a?(key, "Sym")
+          sym = extract_data_from_constructor(key)
+          AST::identifier_lookup sym[:value], sym[:line], sym[:column]
+        else
+          assert_not_reached
+        end
+      record[key] = value
       consume! :comma unless peek_type == :close_brace
     end
     consume! :close_brace
-    node = AST::record record, line, c
+    node = AST::record(record, line, c)
     return parse_match_assignment_without_schema!(node) if peek_type == :assign
     parse_id_modifier_if_exists!(node)
   end

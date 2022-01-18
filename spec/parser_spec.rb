@@ -124,13 +124,14 @@ describe Parser do
     it "{ a: 3.5 }" do
       ast = parse("{ a: 3.5 }")
       expect(ast).to ast_eq([
-        AST::record({ "a" => AST::float(3.5) }),
+        # TODO: shouldn't have to specify line & col #s
+        AST::record({ AST::sym("a", 0, 2) => AST::float(3.5) }),
       ])
     end
     it "{a: [false, 1, \"3\"]}" do
       ast = parse("{a: [false, 1, \"3\"]}")
       expect(ast).to ast_eq([
-        AST::record({ "a" => AST::array([
+        AST::record({ AST::sym("a", 0, 1) => AST::array([
           AST::bool(false),
           AST::int(1),
           AST::str("3"),
@@ -141,7 +142,7 @@ describe Parser do
       ast = parse("[{ a: 3.5 }]")
       expect(ast).to ast_eq([
         AST::array([
-          AST::record({ "a" => AST::float(3.5) }),
+          AST::record({ AST::sym("a", 0, 3) => AST::float(3.5) }),
         ]),
       ])
     end

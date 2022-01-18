@@ -33,47 +33,31 @@ module Schemas
   end
 
   def parse_schema_literal!
+    expr_context.push! :schema
     expr = parse_expr!
-    expr = extract_data_from_constructor(expr)
-    expr = replace_identifier_lookups_with_schema_any(expr)
-    expr = replace_literal_values_with_literal_schema(expr)
+    expr_context.pop! :schema
     schema = function_call([expr], schema_for)
-    while OPERATORS.include?(peek_type)
-      schema = parse_operator_call!(schema)
-    end
+    assert { !OPERATORS.include?(peek_type) }
     return schema, find_bound_variables(expr)
   end
 
   def parse_match_assignment_without_schema!(pattern)
-    pattern = extract_data_from_constructor(pattern)
-    pattern = replace_identifier_lookups_with_schema_any(pattern)
-    pattern = replace_literal_values_with_literal_schema(pattern)
     fn_expr = function_call([pattern], schema_for)
     parse_match_assignment!(fn_expr, pattern)
   end
 
   def extract_data_from_constructor(pattern)
-    assert { constructor? pattern }
-    pattern = pattern[:args][0]
-    if pattern[:node_type] == :array_lit
-      pattern[:value] = pattern[:value].map do |node|
-        if constructor?(node)
-          extract_data_from_constructor(node)
-        else
-          node
-        end
-      end
-    elsif pattern[:node_type] == :record_lit
-      pattern[:value] = pattern[:value].map do |key, node|
-        node = if constructor?(node)
-            extract_data_from_constructor(node)
-          else
-            node
-          end
-        [key, node]
-      end.to_h
+    return pattern unless constructor? pattern
+    raw_value = pattern[:args][0]
+    if raw_value[:node_type] == :array_lit
+      { **raw_value,
+        value: raw_value[:value].map { |node| extract_data_from_constructor(node) } }
+    elsif raw_value[:node_type] == :record_lit
+      { **raw_value,
+        value: raw_value[:value].transform_values { |node| extract_data_from_constructor(node) } }
+    else
+      raw_value
     end
-    pattern
   end
 
   def collection_lit?(node)
@@ -191,6 +175,11 @@ module Schemas
     return expr
   end
 
+  def literal_is_a?(expr, constructor_type)
+    constructor?(expr) &&
+      expr[:expr][:lhs_expr][:sym] == constructor_type
+  end
+
   def constructor?(expr)
     constructors = ["List", "Int", "Float", "Str", "Sym", "Record", "Bool"]
 
@@ -207,6 +196,7 @@ module Schemas
     when :record_lit
       bound_variables = []
       match_expr[:value].each do |key, value|
+        key = extract_data_from_constructor(key)[:value]
         bound_variables += if schema_any?(value)
             [[key, key]]
           else

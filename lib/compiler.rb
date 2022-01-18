@@ -249,12 +249,12 @@ class Compiler
 
   def eval_record(node)
     indent!
-    record = "{\n"
+    record = "[\n"
     record += node[:value].map do |key, value|
-      "#{padding}[#{eval_symbol({ value: key })}]: #{eval_expr(value)}"
+      "#{padding}[#{eval_expr(key)}, #{eval_expr(value)}]"
     end.join(",\n")
     dedent!
-    record += "\n#{padding}}"
+    record += "\n#{padding}]"
   end
 
   def eval_property_lookup(node)
@@ -301,6 +301,7 @@ class Compiler
   end
 
   def eval_identifier_lookup(node)
+    binding.pry if !node[:sym]
     sub_q(node[:sym])
   end
 
