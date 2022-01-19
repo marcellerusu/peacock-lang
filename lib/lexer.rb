@@ -22,8 +22,8 @@ module Lexer
         end
       end
       i += 1
+      assert_not_reached if i >= str.size
     end
-    assert_not_reached
   end
 
   def self.pos_to_line_and_column(pos, program)
