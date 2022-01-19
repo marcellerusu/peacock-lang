@@ -2,40 +2,28 @@ require "strscan"
 require "utils"
 
 module Lexer
-  def self.str_find_escaped_sections(str)
-    return [] if str.index('#{').nil?
-    capture_start = i = str.index('#{') + 2
-
-    last_index = str.size - str.reverse.index("}") - 1
-    num_open_braces = 0
-    captures = []
-    while i <= last_index
+  def self.get_escaped_part_of_str(str, offset)
+    capture_start = i = 0
+    num_open_braces = 1
+    while true
       case str[i]
       when "#"
         if str[i + 1] == "{"
-          assert { capture_start.nil? }
-          num_open_braces = 0
-          i += 1
-          capture_start = i + 1
+          assert { false }
         end
       when "{"
         num_open_braces += 1
       when "}"
-        if num_open_braces == 0 && !capture_start.nil?
-          captures.push({
-            start: capture_start,
-            end: i,
-            value: str[capture_start...i],
-          })
-          capture_start = nil
-        else
-          num_open_braces -= 1
+        num_open_braces -= 1
+        if num_open_braces == 0
+          return { start: offset + capture_start,
+                   end: offset + i,
+                   value: str[capture_start...i] }
         end
       end
       i += 1
     end
-
-    captures
+    assert_not_reached
   end
 
   def self.pos_to_line_and_column(pos, program)
@@ -67,14 +55,28 @@ module Lexer
         tokens.push [line, column, :anon_short_fn_start]
       when scanner.scan(/#.*/)
         next
-      when scanner.scan(/"((.|\n)*?)"/)
-        str = scanner.captures[0]
-        escaped = Lexer::str_find_escaped_sections(str)
-        escaped = escaped.map do |capture|
-          # TODO: the line & column numbers of :tokens will be off - always 0, 0
-          { **capture, tokens: Lexer::tokenize(capture[:value]) }
+      when scanner.scan(/"/)
+        str = ""
+        captures = []
+        i = scanner.pos
+        while i < program.size
+          if program[i..i + 1] == "\#{"
+            captures.push Lexer::get_escaped_part_of_str(program[i + 2..], i + 2 - scanner.pos)
+            str += program[i..scanner.pos + captures.last[:end]]
+            i = scanner.pos + captures.last[:end] + 1
+          end
+          if program[i] == '"'
+            scanner.pos = i + 1
+            break
+          end
+          str += program[i]
+          i += 1
         end
-        tokens.push [line, column, :str_lit, str, escaped]
+        captures = captures.map do |capture|
+          { **capture,
+            tokens: Lexer::tokenize(capture[:value]) }
+        end
+        tokens.push [line, column, :str_lit, str, captures]
       when scanner.scan(/\d+\.\d+/)
         tokens.push [line, column, :float_lit, scanner.matched.to_f]
       when scanner.scan(/\d+/)

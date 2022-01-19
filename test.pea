@@ -1,2 +1,2 @@
-a := "#{if true :result end}"
+a := "string #{"inside"} outside"
 print(a)
