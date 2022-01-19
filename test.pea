@@ -4,11 +4,7 @@ class Main < Element =
     background: #{if is_on then "#f00" else "#fff" end};
   "
   init_state = false
-  text val = {
-    [true]: "this is ON",
-    [false]: "off like off"
-  }[val]
   view _ is_on =
     <div onclick=#{set_state !is_on}>
-      {text is_on}
+      {{ [true]: "this is ON", [false]: "off like off" }[is_on]}
     </div>
