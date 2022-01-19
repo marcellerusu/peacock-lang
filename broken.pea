@@ -1,0 +1,10 @@
+class Main < Element =
+  style _ iss_on = "
+    cursor: pointer;
+    background: #{if iss_on then "#f00" else "#fff" end};
+  "
+  init_state = false
+  view _ is_on =
+    <div onclick=#{set_state !is_on}>
+      {if val then "this is ON" else "off like off" end}
+    </div>

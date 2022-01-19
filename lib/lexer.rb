@@ -117,6 +117,8 @@ module Lexer
         tokens.push [line, column, :unless]
       when scanner.scan(/else\b/)
         tokens.push [line, column, :else]
+      when scanner.scan(/then\b/)
+        tokens.push [line, column, :then]
       when scanner.scan(/end\b/)
         tokens.push [line, column, :end]
       when scanner.scan(/=>/)

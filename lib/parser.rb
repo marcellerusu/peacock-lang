@@ -190,15 +190,17 @@ class Parser
 
   def parse_if_body!
     end_tokens = [:end, :else]
-    @token_index, body = clone(parser_context: parser_context.clone.push!(:if)).parse_with_position! end_tokens
+    @token_index, body = clone(
+      parser_context: parser_context.clone.push!(:if),
+    ).parse_with_position! end_tokens
     body
   end
 
   def parse_if_expression!
     if_line, c, _ = consume! :if
     check = parse_expr!
-    pass_body = parse_if_body!
     consume! :then if peek_type == :then
+    pass_body = parse_if_body!
     if peek_type != :else
       consume! :end
       return AST::if check, pass_body, [], if_line, c
