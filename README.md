@@ -52,4 +52,4 @@ The core data structures are `List` `Record` `Int` `Float` `Str` `Sym`, all of w
 
 classes are the only way you can have mutation in Peacock. This is important, because although we avoid mutation at large, there are times where it is extremely convenient to have, Ex. local element state.
 
-all values (even primitives) are records, this is very much inspired by the joy I experienced in ruby.
+all values (even primitives) are objects, this is very much inspired by the joy I experienced in ruby.
