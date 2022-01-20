@@ -13,6 +13,7 @@ while true
   tokens = Lexer::tokenize(content)
   ast = Parser.new(tokens).parse!
   output = Compiler.new(ast).eval
+  # output = File.read("./test.js")
   # remove node specific lines.. todo, compiler shouldn't have this in there..
   output = output.split("\n")
     .filter { |line| !["module.exports", "require"].any? { |k| line.include? k } }.join "\n"

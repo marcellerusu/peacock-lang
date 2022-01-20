@@ -41,9 +41,9 @@ module Schemas
     return schema, find_bound_variables(expr)
   end
 
-  def parse_match_assignment_without_schema!(pattern)
+  def parse_match_assignment_without_schema!(pattern, value_expr = nil)
     fn_expr = function_call([pattern], schema_for)
-    parse_match_assignment!(fn_expr, pattern)
+    parse_match_assignment!(fn_expr, pattern, value_expr)
   end
 
   def extract_data_from_constructor(pattern)
@@ -143,17 +143,22 @@ module Schemas
     pattern
   end
 
-  def parse_match_assignment!(fn_expr, match_expr)
+  def parse_match_assignment!(fn_expr, match_expr, value_expr = nil)
     # TODO: line & column #s are off
-    line, c = consume! :assign
-    expr = parse_expr!
+    if value_expr
+      line, c = value_expr[:line], value_expr[:column]
+      expr = value_expr
+    else
+      line, c = consume! :assign
+      expr = parse_expr!
+    end
     if_expr = call_schema_valid(fn_expr, expr)
-    constructed_value = AST::assignment("__VALUE", function_call([expr], dot(fn_expr, "construct")))
-    constructed_value_lookup = AST::identifier_lookup("__VALUE", self.line, self.column)
+    value = AST::assignment("__VALUE", expr)
+    value_lookup = AST::identifier_lookup("__VALUE", self.line, self.column)
 
-    pass_body = [constructed_value] + find_bound_variables(match_expr).map do |path_and_sym|
+    pass_body = [value] + find_bound_variables(match_expr).map do |path_and_sym|
       sym, path = path_and_sym.last, path_and_sym[0...-1]
-      AST::assignment(sym, eval_path_on_expr(path, constructed_value_lookup), self.line, self.column)
+      AST::assignment(sym, eval_path_on_expr(path, value_lookup), self.line, self.column)
     end
     fail_body = [
       AST::throw(AST::str("Match error", self.line, self.column), self.line, self.column),
@@ -234,48 +239,7 @@ module Schemas
       schema = parse_operator_call!(schema)
     end
     expr_context.pop! :schema
-    schema = parse_custom_constructor!(schema) if peek_type == :from
     AST::assignment(sym, schema, line, c)
-  end
-
-  def parse_custom_constructor!(schema)
-    expr_context.push! :schema
-    consume! :from
-    from_schema, from_expr = if peek_type == :identifier
-        fn_expr = parse_sym!
-        assert { schema?(fn_expr[:sym]) }
-        consume! :open_parenthesis
-        arg = parse_expr!
-        consume! :close_parenthesis
-        [fn_expr, arg]
-      else
-        expr = parse_expr!
-        schema_ = function_call([expr], schema_for)
-        [schema_, expr]
-      end
-    expr_context.pop! :schema
-    consume! :to
-    as_expr = parse_expr!
-    arg_name = "__VALUE"
-    schema_name = "__TEMP_SCHEMA"
-
-    arg = AST::identifier_lookup(arg_name)
-    if_cond_expr = call_schema_valid(from_schema, arg)
-    pass_body = find_bound_variables(from_expr).map do |path_and_sym|
-      sym, path = path_and_sym.last, path_and_sym[0...-1]
-      AST::assignment(sym, eval_path_on_expr(path, arg), line, column)
-    end + [AST::return(as_expr, line, column)]
-
-    fail_body = [
-      AST::throw(AST::str("Match error", line, column), line, column),
-    ]
-
-    constructor = AST::function(
-      [AST::function_argument(arg_name, line, column)],
-      [AST::if(if_cond_expr, pass_body, fail_body, line, column)]
-    )
-
-    AST::function_call([schema, constructor], schema_create_with_constructor)
   end
 
   def get_schema_any_name(node)
@@ -307,10 +271,6 @@ module Schemas
       [AST::sym(name, line, column)],
       dot(schema, "any")
     )
-  end
-
-  def schema_create_with_constructor
-    dot(schema, "create_with_constructor")
   end
 
   def schema_for

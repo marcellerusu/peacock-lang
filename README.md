@@ -28,22 +28,6 @@ class Home < Element =
 
 as you can see Schemas are also used for `pattern matching`.
 
-We can also define rigid state transitions using custom constructors
-
-```
-schema Bread = { toasted, type: :white | :whole_wheat }
-schema UntoastedBread = Bread & { toasted: false }
-schema ToastedBread = Bread & { toasted: true }
-  from UntoastedBread({ type }) to { type, toasted: true }
-
-# This line below will fail
-ToastedBread(b) := { toasted: true, type: :white }
-```
-
-`from` & `to` keywords are how we define a custom constructor before the data gets validated.
-
-This is more than just defining rigid state machines, but also for parsing data between different formats.
-
 ### Immutable data structures
 
 The core data structures are `List` `Record` `Int` `Float` `Str` `Sym`, all of which are immutable [will implement collections as persistent immutable structures]

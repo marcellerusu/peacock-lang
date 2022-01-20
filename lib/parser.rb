@@ -6,6 +6,7 @@ require "parser/functions"
 require "parser/schemas"
 require "parser/classes"
 require "parser/html"
+require "parser/modules"
 # require "pry"
 
 OPERATORS = [:plus, :minus, :mult, :div, :and, :or, :schema_and, :schema_or, :eq, :not_eq, :gt, :lt, :gt_eq, :lt_eq]
@@ -19,6 +20,7 @@ class Parser
   include Schemas
   include Classes
   include HTML
+  include Modules
 
   def initialize(tokens, token_index = 0, indentation = 0, parser_context = nil, expr_context = nil)
     @tokens = tokens
@@ -53,14 +55,13 @@ class Parser
 
   def parse_with_position!(end_tokens = [])
     @ast = []
+    @ast.push module_def if parser_context.empty?
     while more_tokens? && still_indented?
       break if end_tokens.include? peek_type
-      if peek_type == :class
-        @ast.push parse_class_definition!
-      elsif peek_type == :schema
-        @ast.push parse_schema!
-      elsif peek_type == :identifier && peek_type(1) == :assign
-        @ast.push parse_assignment!
+      if peek_type == :export
+        @ast.push(*parse_export!)
+      elsif peek_type == :import
+        @ast.push parse_import!
       elsif peek_type == :return
         assert { parser_context.in_a? :function }
         @ast.push parse_return!
@@ -103,8 +104,14 @@ class Parser
       parse_nil!
     when type == :bang
       parse_bang!
+    when type == :schema
+      parse_schema!
+    when type == :identifier && peek_type(1) == :assign
+      parse_assignment!
     when type == :property
       parse_property!
+    when type == :class
+      parse_class_definition!
     when type == :open_square_bracket
       parse_array!
     when type == :open_html_tag
