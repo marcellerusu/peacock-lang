@@ -2,7 +2,7 @@ require "lexer"
 
 module Modules
   def module_def
-    AST::assignment "pea_module", AST::record([])
+    AST::assignment "pea_module", AST::record({})
   end
 
   def parse_import!

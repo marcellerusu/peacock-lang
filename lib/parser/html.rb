@@ -32,8 +32,8 @@ module HTML
       children = parse_html_children!
       _, _, close_element_name = consume! :close_custom_element_tag
       assert { element_name == close_element_name }
-      assert { !attributes.has_key?("children") }
-      attributes["children"] = AST::array(children)
+      assert { !attributes.has_key?(AST::sym("children")) }
+      attributes[AST::sym("children")] = AST::array(children)
     end
     AST::function_call(
       [AST::record(attributes)],
