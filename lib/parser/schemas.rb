@@ -153,12 +153,12 @@ module Schemas
       expr = parse_expr!
     end
     if_expr = call_schema_valid(fn_expr, expr)
-    constructed_value = AST::assignment("__VALUE", function_call([expr], dot(fn_expr, "construct")))
-    constructed_value_lookup = AST::identifier_lookup("__VALUE", self.line, self.column)
+    value = AST::assignment("__VALUE", expr)
+    value_lookup = AST::identifier_lookup("__VALUE", self.line, self.column)
 
-    pass_body = [constructed_value] + find_bound_variables(match_expr).map do |path_and_sym|
+    pass_body = [value] + find_bound_variables(match_expr).map do |path_and_sym|
       sym, path = path_and_sym.last, path_and_sym[0...-1]
-      AST::assignment(sym, eval_path_on_expr(path, constructed_value_lookup), self.line, self.column)
+      AST::assignment(sym, eval_path_on_expr(path, value_lookup), self.line, self.column)
     end
     fail_body = [
       AST::throw(AST::str("Match error", self.line, self.column), self.line, self.column),
