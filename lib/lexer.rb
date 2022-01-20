@@ -179,6 +179,12 @@ module Lexer
         tokens.push [line, column, :reduce]
       when scanner.scan(/next\b/)
         tokens.push [line, column, :next]
+      when scanner.scan(/import\b/)
+        tokens.push [line, column, :import]
+      when scanner.scan(/export\b/)
+        tokens.push [line, column, :export]
+      when scanner.scan(/default\b/)
+        tokens.push [line, column, :default]
       when scanner.scan(/break\b/)
         tokens.push [line, column, :break]
       when scanner.scan(/module\b/)

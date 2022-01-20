@@ -41,9 +41,9 @@ module Schemas
     return schema, find_bound_variables(expr)
   end
 
-  def parse_match_assignment_without_schema!(pattern)
+  def parse_match_assignment_without_schema!(pattern, value_expr = nil)
     fn_expr = function_call([pattern], schema_for)
-    parse_match_assignment!(fn_expr, pattern)
+    parse_match_assignment!(fn_expr, pattern, value_expr)
   end
 
   def extract_data_from_constructor(pattern)
@@ -143,10 +143,15 @@ module Schemas
     pattern
   end
 
-  def parse_match_assignment!(fn_expr, match_expr)
+  def parse_match_assignment!(fn_expr, match_expr, value_expr = nil)
     # TODO: line & column #s are off
-    line, c = consume! :assign
-    expr = parse_expr!
+    if value_expr
+      line, c = value_expr[:line], value_expr[:column]
+      expr = value_expr
+    else
+      line, c = consume! :assign
+      expr = parse_expr!
+    end
     if_expr = call_schema_valid(fn_expr, expr)
     constructed_value = AST::assignment("__VALUE", function_call([expr], dot(fn_expr, "construct")))
     constructed_value_lookup = AST::identifier_lookup("__VALUE", self.line, self.column)

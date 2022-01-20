@@ -14,6 +14,10 @@ module Helpers
       self
     end
 
+    def empty?
+      @contexts.size == 0
+    end
+
     def clone
       Context.new @contexts.clone
     end

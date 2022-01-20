@@ -1,0 +1,5 @@
+import { Child } from "./child"
+
+class Main < Element =
+  style _ is_on = "cursor: pointer;"
+  view = <Child />
