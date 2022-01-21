@@ -1,5 +1,6 @@
 require "utils"
 require "pry"
+require "parser"
 
 class Compiler
   # TODO: do something better for tests
@@ -124,6 +125,15 @@ class Compiler
   end
 
   def find_assignments
+    names = Parser::computed_files
+    module_defs = @ast
+      .filter { |node|
+      node[:node_type] == :assign &&
+      node[:expr][:node_type] == :function_call &&
+      node[:expr][:expr][:node_type] == :function
+    }
+      .flat_map { |node| node[:expr][:expr][:body] }
+      .filter { |node| node[:node_type] == :assign && names.include?(node[:sym]) }
     @ast
       .flat_map { |node|
       if node[:node_type] == :if
@@ -132,8 +142,8 @@ class Compiler
         [node]
       end
     }
-      .filter { |node| node[:node_type] == :assign }
-      .uniq { |node| node[:sym] }
+      .filter { |node| node[:node_type] == :assign && !names.include?(node[:sym]) }
+      .uniq { |node| node[:sym] } + module_defs
   end
 
   def eval_expr(node)
@@ -197,7 +207,7 @@ class Compiler
     pass_body = Compiler.new(node[:pass], @indent + 2).eval_without_variable_declarations
     fail_body = Compiler.new(node[:fail], @indent + 2).eval_without_variable_declarations
 
-    "#{padding}if (#{cond}.to_js()) {\n" \
+    "#{padding}if (#{cond}.to_b().to_js()) {\n" \
     "#{pass_body}\n" \
     "#{padding}} else {\n" \
     "#{fail_body}\n" \

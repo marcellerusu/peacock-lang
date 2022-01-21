@@ -7,7 +7,7 @@ require "parser"
 
 content = File.read(ARGV[0])
 tokens = Lexer::tokenize(content)
-ast = AST::remove_numbers(Parser.new(tokens).parse!)
+ast = AST::remove_numbers(Parser.new_top(tokens).parse!)
 spec = <<-EOS
   it "#{Time::now}" do
     ast = parse('#{content}')

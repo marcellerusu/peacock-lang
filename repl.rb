@@ -8,7 +8,7 @@ require "compiler"
 
 def eval(src)
   tokens = Lexer::tokenize src
-  ast = Parser.new(tokens).parse!
+  ast = Parser.new_top(tokens).parse!
   Compiler.new(ast).eval
 end
 

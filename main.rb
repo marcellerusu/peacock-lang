@@ -14,11 +14,11 @@ case ARGV[1]
 when "-t"
   pp tokens
 when /-a*/
-  ast = Parser.new(tokens).parse!
+  ast = Parser.new_top(tokens).parse!
   pp AST::remove_numbers(ast) unless ARGV[1].include? "n"
 when "-n"
 else
-  ast = Parser.new(tokens).parse!
+  ast = Parser.new_top(tokens).parse!
   js = Compiler.new(ast).eval
   puts js
 end
