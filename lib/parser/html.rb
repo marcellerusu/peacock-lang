@@ -51,6 +51,10 @@ module HTML
     attributes = {}
     while ![:gt, :self_close_html_tag].include?(peek_type) # `>` as in capture <div [name="3">] part
       _, _, sym = consume! :identifier
+      if peek_type != :declare
+        attributes[AST::sym(sym)] = AST::bool(true)
+        next
+      end
       consume! :declare
       expr_context.push! :html_tag
       value = if peek_type == :str_lit

@@ -89,7 +89,7 @@ module Lexer
         tokens.push [line, column, (scanner.matched == "true").to_s.to_sym]
       when scanner.scan(/nil(?!\?)\b/)
         tokens.push [line, column, :nil]
-      when scanner.scan(/<([A-Z][a-z1-9_]*)/)
+      when scanner.scan(/<([A-Z][a-zA-Z1-9_]*)/)
         assert { scanner.captures.size == 1 }
         tokens.push [line, column, :open_custom_element_tag, scanner.captures.first]
       when scanner.scan(/<([a-z][a-z1-9_]*)/)

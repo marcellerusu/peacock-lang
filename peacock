@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-ruby main.rb $1 | node
+to_html $1

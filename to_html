@@ -1,12 +1,12 @@
 #!/usr/bin/env ruby
 
-$LOAD_PATH.push "./lib"
+$LOAD_PATH.push "/Users/marcelrusu/Documents/Projects/peacock/lib"
 
 require "lexer"
 require "parser"
 require "compiler"
 
-HTML_OUTPUT_FILENAME = ARGV[1] || "index.html"
+HTML_OUTPUT_FILENAME = ARGV[1] || "public/index.html"
 
 while true
   content = File.read(ARGV[0])
@@ -29,6 +29,12 @@ while true
       <div id="main"></div>
     </body>
     <script>#{output}</script>
+    <style>
+      body {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+    </style>
   </html>
   EOS
 

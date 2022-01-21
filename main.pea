@@ -1,8 +1,1 @@
-import { Child } from "./child"
-
-class Main < Element =
-  style _ is_on = "cursor: pointer;"
-  view = 
-    <div>
-      <Child />
-    </div>
+console.log(<div>{[1, 2].map fn x => x * 3}</div>)
