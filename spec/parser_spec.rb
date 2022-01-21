@@ -164,8 +164,8 @@ describe Parser do
     end
   end
   context "functions" do
-    it "a := fn => 1" do
-      ast = parse("a := fn => 1")
+    it "a := fn => 1 end" do
+      ast = parse("a := fn => 1 end")
       fn = AST::function([], [AST::return(AST::int(1))])
       expect(ast).to ast_eq([
         init_module,
@@ -173,7 +173,7 @@ describe Parser do
       ])
     end
     it "id := fn x => x" do
-      ast = parse("id := fn x => x")
+      ast = parse("id := fn x => x end")
       fn = AST::function(
         [AST::function_argument("x")],
         [AST::return(AST::identifier_lookup("x"))]

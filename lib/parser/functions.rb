@@ -100,6 +100,7 @@ module Functions
     expr = parse_expr!
     expr_context.pop! :function
     body = [AST::return(expr, self.line, expr[:column])]
+    consume! :end
     # TODO: none 1-liners
     AST::function args, body, fn_line, c
   end

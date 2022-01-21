@@ -89,13 +89,7 @@ class Parser
     type = peek_type
     case
     when [:int_lit, :float_lit, :symbol].include?(type)
-      lit_expr = parse_lit! type
-      peek = peek_type
-      case
-      when OPERATORS.include?(peek)
-        parse_operator_call! lit_expr
-      else lit_expr
-      end
+      parse_lit! type
     when [:true, :false].include?(type)
       parse_bool! type
     when type == :str_lit
@@ -104,6 +98,8 @@ class Parser
       parse_nil!
     when type == :bang
       parse_bang!
+    when type == :open_parenthesis
+      parse_paren_expr!
     when type == :schema
       parse_schema!
     when type == :identifier && peek_type(1) == :assign
@@ -139,6 +135,14 @@ class Parser
     end
   end
 
+  def parse_paren_expr!
+    line, c = consume! :open_parenthesis
+    expr = parse_expr!
+    consume! :close_parenthesis
+    node = AST::paren_expr expr, line, c
+    parse_id_modifier_if_exists! node
+  end
+
   def parse_id_modifier_if_exists!(sym_expr)
     # TODO: kinda hacky.. :/
     # This is because all the tokens (text nodes)
@@ -159,7 +163,7 @@ class Parser
     when type == :class_property
       node = parse_class_properity_expression! sym_expr
       parse_id_modifier_if_exists! node
-    when OPERATORS.include?(type)
+    when OPERATORS.include?(type) && !expr_context.directly_in_a?(:operator)
       parse_operator_call! sym_expr
     when is_function?
       parse_function_def! sym_expr
@@ -185,14 +189,18 @@ class Parser
 
   def parse_operator_call!(lhs)
     line, c1, _, op = consume!
+    expr_context.push! :operator
     rhs_expr = parse_expr!
-    if [:schema_and, :schema_or].include?(op)
-      operator = dot(schema, [line, c1, op.to_s.split("schema_")[1]])
-      AST::function_call [lhs, rhs_expr], operator, line, c1
-    else
-      function = dot(lhs, [line, c1, "__#{op.to_s}__"])
-      AST::function_call [rhs_expr], function, line, c1
-    end
+    expr_context.pop! :operator
+    node = if [:schema_and, :schema_or].include?(op)
+        operator = dot(schema, [line, c1, op.to_s.split("schema_")[1]])
+        AST::function_call [lhs, rhs_expr], operator, line, c1
+      else
+        function = dot(lhs, [line, c1, "__#{op.to_s}__"])
+        node = AST::function_call [rhs_expr], function, line, c1
+        parse_id_modifier_if_exists! node
+      end
+    node
   end
 
   def parse_if_body!

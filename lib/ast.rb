@@ -130,6 +130,13 @@ module AST
     )
   end
 
+  def self.paren_expr(expr, line = nil, c = nil)
+    { node_type: :paren_expr,
+      expr: expr,
+      line: line,
+      column: c }
+  end
+
   def self.return(expr, line = expr[:line], c = expr[:column])
     { node_type: :return,
       line: line,

@@ -168,6 +168,8 @@ class Compiler
       eval_identifier_lookup node
     when :instance_lookup, :instance_method_lookup
       eval_instance_lookup node
+    when :paren_expr
+      eval_paren_expr node
     when :if
       eval_if_expression node
     when :symbol
@@ -204,6 +206,10 @@ class Compiler
 
   def eval_throw(node)
     "throw #{eval_expr(node[:expr])}"
+  end
+
+  def eval_paren_expr(node)
+    "(#{eval_expr node[:expr]})"
   end
 
   def eval_symbol(node)
@@ -342,7 +348,7 @@ class #{class_name} #{extends node} {
   #{constructor node, args, class_name}
   #{methods.map { |method|
       <<-EOM
-#{method[:sym]}(#{method_args(method[:expr])}) {
+#{sub_q(method[:sym])}(#{method_args(method[:expr])}) {
     #{method_body(method[:expr])}
   }
 EOM

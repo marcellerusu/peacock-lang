@@ -34,7 +34,8 @@ module Literals
 
   def parse_bool!(type)
     line, c, _ = consume! type
-    AST::bool type == :true, line, c
+    node = AST::bool type == :true, line, c
+    parse_id_modifier_if_exists! node
   end
 
   def parse_str!
