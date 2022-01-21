@@ -38,7 +38,7 @@ class Parser
     end
   end
 
-  def self.new_top
+  def self.new_top(tokens)
     Parser.new(tokens, 0, 0, nil, nil, true)
   end
 
