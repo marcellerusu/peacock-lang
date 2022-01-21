@@ -9,9 +9,7 @@ module HTML
     line, c, tag_name = consume! :open_html_tag
     self_closed, attributes = parse_html_attributes!
 
-    if peek_type == :self_close_html_tag
-      consume! :self_close_html_tag
-    else
+    if !self_closed
       children = parse_html_children!
       _, _, close_tag_name = consume! :close_html_tag
       assert { tag_name == close_tag_name }
