@@ -8,3 +8,5 @@ class Main < Element =
     <div onclick=#{set_state !is_on}>
       {if val then "this is ON" else "off like off" end}
     </div>
+
+print([1, 2].size&.to_s)
