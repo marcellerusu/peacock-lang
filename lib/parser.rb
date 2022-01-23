@@ -79,9 +79,8 @@ class Parser
       elsif peek_type == :import
         @ast.push(*parse_import!)
       elsif peek_type == :return
-        assert { parser_context.in_a? :function }
+        assert { parser_context.in_a?(:function) }
         @ast.push parse_return!
-        break
       else
         @ast.push parse_expr!
       end
@@ -193,7 +192,14 @@ class Parser
     line, c, _ = consume! :return unless implicit_return
     expr = parse_expr!
     c = expr[:column] if implicit_return
-    AST::return expr, line, c
+    node = AST::return expr, line, c
+    if peek_type == :if
+      line, c = consume! :if
+      cond = parse_expr!
+      AST::if(cond, [node], [], line, c)
+    else
+      node
+    end
   end
 
   def parse_assignment!

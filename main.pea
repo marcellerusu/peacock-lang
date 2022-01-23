@@ -1,2 +1,6 @@
-a := false == true || [1, 2].has?(4)
-print(a)
+class Test =
+  f =
+    return 2 if a
+    3
+
+print(Test.new.f)
