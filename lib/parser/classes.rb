@@ -25,7 +25,7 @@ module Classes
 
   def parse_super_class!
     return unless extends?
-    consume! :lt
+    consume! :<
     _, _, name = consume! :identifier
     name
   end
@@ -41,6 +41,6 @@ module Classes
 
   def extends?
     return false unless expr_context.directly_in_a? :class
-    peek_type == :lt
+    peek_type == :<
   end
 end

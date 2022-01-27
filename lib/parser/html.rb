@@ -1,7 +1,5 @@
 ID_TO_STR = {
   dot: ".",
-  gt: ">",
-  lt: "<",
 }
 
 module HTML
@@ -47,7 +45,7 @@ module HTML
   def parse_html_attributes!
     return !!consume!(:self_close_html_tag), {} if peek_type == :self_close_html_tag
     attributes = {}
-    while ![:gt, :self_close_html_tag].include?(peek_type) # `>` as in capture <div [name="3">] part
+    while ![:>, :self_close_html_tag].include?(peek_type)
       _, _, sym = consume! :identifier
       if peek_type != :declare
         attributes[AST::sym(sym)] = AST::bool(true)

@@ -124,7 +124,7 @@ module Lexer
       when scanner.scan(/=>/)
         tokens.push [line, column, :arrow]
       when scanner.scan(/==/)
-        tokens.push [line, column, :eq]
+        tokens.push [line, column, :"=="]
       when scanner.scan(/:=/)
         tokens.push [line, column, :assign]
       when scanner.scan(/\(/)
@@ -144,33 +144,33 @@ module Lexer
       when scanner.scan(/,/)
         tokens.push [line, column, :comma]
       when scanner.scan(/\*/)
-        tokens.push [line, column, :mult]
+        tokens.push [line, column, :*]
       when scanner.scan(/\//)
-        tokens.push [line, column, :div]
+        tokens.push [line, column, :/]
       when scanner.scan(/\+/)
-        tokens.push [line, column, :plus]
+        tokens.push [line, column, :+]
       when scanner.scan(/\>=/)
-        tokens.push [line, column, :gt_eq]
+        tokens.push [line, column, :">="]
       when scanner.scan(/<=/)
-        tokens.push [line, column, :lt_eq]
+        tokens.push [line, column, :"<="]
       when scanner.scan(/\>/)
-        tokens.push [line, column, :gt]
+        tokens.push [line, column, :>]
       when scanner.scan(/</)
-        tokens.push [line, column, :lt]
+        tokens.push [line, column, :<]
       when scanner.scan(/=/)
         tokens.push [line, column, :declare]
       when scanner.scan(/\|\|/)
-        tokens.push [line, column, :or]
+        tokens.push [line, column, :"||"]
       when scanner.scan(/&&/)
-        tokens.push [line, column, :and]
+        tokens.push [line, column, :&]
       when scanner.scan(/\|/)
-        tokens.push [line, column, :schema_or]
+        tokens.push [line, column, :|]
       when scanner.scan(/&/)
-        tokens.push [line, column, :schema_and]
+        tokens.push [line, column, :&]
       when scanner.scan(/%/)
         tokens.push [line, column, :anon_short_id]
       when scanner.scan(/-/)
-        tokens.push [line, column, :minus]
+        tokens.push [line, column, :-]
       when scanner.scan(/from\b/)
         tokens.push [line, column, :from]
       when scanner.scan(/to\b/)

@@ -112,13 +112,13 @@ describe Lexer, "#tokenize" do
     it "a := 3 == 4.0" do
       res = Lexer::tokenize("a := 3 == 4.0")
       expect(res).to eq([
-        [0, 0, :identifier, "a"], [0, 2, :assign], [0, 5, :int_lit, 3], [0, 7, :eq], [0, 10, :float_lit, 4.0],
+        [0, 0, :identifier, "a"], [0, 2, :assign], [0, 5, :int_lit, 3], [0, 7, :"=="], [0, 10, :float_lit, 4.0],
       ])
     end
     it "a := 3 == \"4\"" do
       res = Lexer::tokenize("a := 3 == \"4\"")
       expect(res).to eq([
-        [0, 0, :identifier, "a"], [0, 2, :assign], [0, 5, :int_lit, 3], [0, 7, :eq], [0, 10, :str_lit, "4", []],
+        [0, 0, :identifier, "a"], [0, 2, :assign], [0, 5, :int_lit, 3], [0, 7, :"=="], [0, 10, :str_lit, "4", []],
       ])
     end
     describe "array" do
@@ -153,7 +153,7 @@ describe Lexer, "#tokenize" do
       it "a x = x * x" do
         res = Lexer::tokenize("a x = x * x")
         expect(res).to eq([
-          [0, 0, :identifier, "a"], [0, 2, :identifier, "x"], [0, 4, :declare], [0, 6, :identifier, "x"], [0, 8, :mult], [0, 10, :identifier, "x"],
+          [0, 0, :identifier, "a"], [0, 2, :identifier, "x"], [0, 4, :declare], [0, 6, :identifier, "x"], [0, 8, :*], [0, 10, :identifier, "x"],
         ])
       end
     end

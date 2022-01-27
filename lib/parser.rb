@@ -9,7 +9,24 @@ require "parser/html"
 require "parser/modules"
 # require "pry"
 
-OPERATORS = [:plus, :minus, :mult, :div, :and, :or, :schema_and, :schema_or, :eq, :not_eq, :gt, :lt, :gt_eq, :lt_eq]
+OPERATORS = [:+, :-, :*, :/, :"&&", :"||", :&, :|, :"==", :"!=", :>, :>, :">=", :"<="]
+
+OP_TO_METHOD_NAME = {
+  :"&&" => "__and__",
+  :"||" => "__or__",
+  :">=" => "__gt_eq__",
+  :"<=" => "__lt_eq__",
+  :> => "__gt__",
+  :< => "__lt__",
+  :"==" => "__eq__",
+  :"!=" => "__not_eq__",
+  :+ => "__plus__",
+  :- => "__minus__",
+  :* => "__mult__",
+  :/ => "__div__",
+  :& => "and",
+  :| => "or",
+}
 
 ANON_SHORTHAND_ID = "__ANON_SHORT_ID"
 
@@ -214,15 +231,17 @@ class Parser
     expr_context.push! :operator
     rhs_expr = parse_expr!
     expr_context.pop! :operator
-    node = if [:schema_and, :schema_or].include?(op)
-        operator = dot(schema, [line, c1, op.to_s.split("schema_")[1]])
-        AST::function_call [lhs, rhs_expr], operator, line, c1
-      else
-        function = dot(lhs, [line, c1, "__#{op.to_s}__"])
-        node = AST::function_call [rhs_expr], function, line, c1
-        parse_id_modifier_if_exists! node
-      end
-    node
+    method_name = OP_TO_METHOD_NAME[op]
+    assert { !method_name.nil? }
+
+    if [:&, :|].include?(op)
+      operator = dot(schema, [line, c1, method_name])
+      AST::function_call [lhs, rhs_expr], operator, line, c1
+    else
+      function = dot(lhs, [line, c1, method_name])
+      node = AST::function_call [rhs_expr], function, line, c1
+      parse_id_modifier_if_exists! node
+    end
   end
 
   def parse_if_body!
