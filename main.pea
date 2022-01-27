@@ -1,1 +1,1 @@
-print([3, 3]&.size, nil&.size)
+print({ a: 3 } - [:a], { a: 3 } + { b: 4})
