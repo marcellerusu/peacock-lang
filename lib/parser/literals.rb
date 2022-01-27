@@ -29,7 +29,8 @@ module Literals
 
   def parse_nil!
     line, c, _ = consume! :nil
-    AST::nil line, c
+    node = AST::nil line, c
+    parse_id_modifier_if_exists!(node)
   end
 
   def parse_bool!(type)
