@@ -43,20 +43,15 @@ class Parser
     @@computed_files ||= []
   end
 
-  def initialize(tokens, token_index = 0, indentation = 0, parser_context = nil, expr_context = nil, first_run = false)
+  def initialize(tokens, token_index = 0, indentation = 0, parser_context = nil, expr_context = nil, first_run = true)
     @tokens = tokens
     @token_index = token_index
     @indentation = indentation
     @parser_context = parser_context
     @expr_context = expr_context
     if first_run
-      # puts "num times"
       @@computed_files = []
     end
-  end
-
-  def self.new_top(tokens)
-    Parser.new(tokens, 0, 0, nil, nil, true)
   end
 
   def self.computed_files
@@ -70,6 +65,7 @@ class Parser
       indentation || @indentation,
       parser_context || @parser_context,
       expr_context || @expr_context,
+      false
     )
   end
 
