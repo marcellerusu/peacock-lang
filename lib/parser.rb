@@ -181,39 +181,41 @@ class Parser
     # of html child aren't tokenized as raw text
     return sym_expr if expr_context.directly_in_a? :html_tag
     type = peek_type
-    case
-    when is_function_call?(sym_expr)
-      node = parse_function_call! sym_expr
-      parse_id_modifier_if_exists! node
-    when end_of_file?
-      sym_expr
-    when type == :open_square_bracket
-      parse_dynamic_lookup! sym_expr
-    when type == :& && peek_type(1) == :dot
-      consume! :&
-      consume! :dot
-      line, c, method = consume! :identifier
-      node = parse_function_call! dot(sym_expr, [line, c, method])
-      node = AST::function_call(
-        [AST::function([], [AST::return(node)])],
-        dot(sym_expr, "__and__")
-      )
-      parse_id_modifier_if_exists! node
-    when type == :dot
-      node = parse_dot_expression! sym_expr
-      parse_id_modifier_if_exists! node
-    when type == :class_property
-      node = parse_class_properity_expression! sym_expr
-      parse_id_modifier_if_exists! node
-    when OPERATORS.include?(type) && !expr_context.directly_in_a?(:operator)
-      parse_operator_call! sym_expr
-    when is_function?
-      parse_function_def! sym_expr
-    else sym_expr
-    end
+    node = case
+      when is_function_call?(sym_expr)
+        parse_function_call! sym_expr
+      when end_of_file?
+        return sym_expr
+      when type == :open_square_bracket
+        parse_dynamic_lookup! sym_expr
+      when type == :& && peek_type(1) == :dot
+        parse_nil_safe_op! sym_expr
+      when type == :dot
+        parse_dot_expression! sym_expr
+      when type == :class_property
+        parse_class_properity_expression! sym_expr
+      when OPERATORS.include?(type) && !expr_context.directly_in_a?(:operator)
+        return parse_operator_call! sym_expr
+      when is_function?
+        return parse_function_def! sym_expr
+      else
+        return sym_expr
+      end
+    parse_id_modifier_if_exists! node
   end
 
   # Individual parsers
+
+  def parse_nil_safe_op!(lhs)
+    consume! :&
+    consume! :dot
+    line, c, method = consume! :identifier
+    node = parse_function_call! dot(lhs, [line, c, method])
+    node = AST::function_call(
+      [AST::function([], [AST::return(node)])],
+      dot(lhs, "__and__")
+    )
+  end
 
   def parse_return!(implicit_return = false)
     line, c, _ = consume! :return unless implicit_return
@@ -337,7 +339,6 @@ class Parser
     # too many possibilities, will leave unchecked for now
     # assert { [:str_lit, :bool_lit, :symbol, :int_lit, :float_lit].include? expr[:args][0][:node_type] }
     node = AST::lookup(lhs, expr)
-    parse_id_modifier_if_exists!(node)
   end
 
   # Schema parsing
