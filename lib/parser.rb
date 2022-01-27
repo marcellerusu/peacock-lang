@@ -189,6 +189,16 @@ class Parser
       sym_expr
     when type == :open_square_bracket
       parse_dynamic_lookup! sym_expr
+    when type == :& && peek_type(1) == :dot
+      consume! :&
+      consume! :dot
+      line, c, method = consume! :identifier
+      node = parse_function_call! dot(sym_expr, [line, c, method])
+      node = AST::function_call(
+        [AST::function([], [AST::return(node)])],
+        dot(sym_expr, "__and__")
+      )
+      parse_id_modifier_if_exists! node
     when type == :dot
       node = parse_dot_expression! sym_expr
       parse_id_modifier_if_exists! node

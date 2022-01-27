@@ -1,17 +1,3 @@
-class Child < Element =
-  init_state = false
-  view props state _ =
-    <div>
-      <button onclick=#{set_state !state}>click me</button>
-      {state}
-      {props[:hmm]}
-    </div>
-
-
-class Main < Element =
-  init_state = "wow"
-  view _ state =
-    set_timeout #{set_state "oh"}, 2000
-    <div>
-      <Child hmm={state}/>
-    </div>
+a := [3, 3]
+b := nil
+print(a&.size, b&.size)
