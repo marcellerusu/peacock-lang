@@ -173,8 +173,6 @@ module Lexer
         tokens.push [line, column, :-]
       when scanner.scan(/from\b/)
         tokens.push [line, column, :from]
-      when scanner.scan(/to\b/)
-        tokens.push [line, column, :to]
       when scanner.scan(/reduce\b/)
         tokens.push [line, column, :reduce]
       when scanner.scan(/next\b/)
