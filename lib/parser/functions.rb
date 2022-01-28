@@ -1,5 +1,6 @@
 module Functions
   def is_function?(skip = 0)
+    return false if expr_context.in_a? :declare
     return false if peek_token(-1 + skip)[0] != self.line
     return false if peek_type(-1 + skip) != :identifier
     # skip params
@@ -7,7 +8,7 @@ module Functions
     t = peek_token(i + skip)
     return false if t.nil?
 
-    while t && t[2] == :identifier
+    while t && t[2] != :"="
       i += 1
       t = peek_token(i + skip)
     end
@@ -65,15 +66,22 @@ module Functions
 
   def parse_function_arguments!(end_type)
     args = []
+    matches = []
+    expr_context.push! :declare
+    index = 0
     while peek_type != end_type
-      line, c1, sym = consume! :identifier
-      args.push AST::function_argument(sym, line, c1)
+      schema, new_matches = parse_schema_literal! index
+      args.push schema
+      matches += new_matches
+      index += 1
     end
-    args
+    expr_context.pop! :declare
+    args_schema = function_call [AST::array(args)], schema_for
+    return args_schema, matches
   end
 
   def parse_function_def!(sym_expr)
-    args = parse_function_arguments! :"="
+    args_schema, matches = parse_function_arguments! :"="
     consume! :"="
     fn_line = line
     if new_line?
@@ -86,15 +94,21 @@ module Functions
       expr = parse_expr!
       body = [AST::return(expr, self.line, return_c)]
     end
-
-    function = AST::function(args, body, fn_line, sym_expr[:column])
-    AST::declare(sym_expr, function)
+    body = matches.map do |path_and_sym|
+      sym, path = path_and_sym.last, path_and_sym[0...-1]
+      AST::assignment(
+        sym,
+        eval_path_on_expr(path, AST::identifier_lookup("__VALUE"))
+      )
+    end + body
+    function = AST::function([AST::function_argument("__VALUE")], body, fn_line, sym_expr[:column])
+    AST::declare(sym_expr, args_schema, function)
   end
 
   def parse_anon_function_def!
     _, c, _ = consume! :fn
-    args = parse_function_arguments! :arrow
-    consume! :arrow
+    args = parse_function_arguments! :"=>"
+    consume! :"=>"
     fn_line = self.line
     expr_context.push! :function
     expr = parse_expr!

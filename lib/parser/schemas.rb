@@ -11,7 +11,7 @@ module Schemas
     match_arg_name = "match_expr"
     while peek_type != :end
       schema, matches = parse_schema_literal!
-      consume! :arrow
+      consume! :"=>"
       @token_index, body = clone(
         indentation: @indentation + 2,
         parser_context: parser_context.clone.push!(:function),
@@ -32,13 +32,13 @@ module Schemas
     AST::case value, AST::array(cases)
   end
 
-  def parse_schema_literal!
+  def parse_schema_literal!(index = nil)
     expr_context.push! :schema
     expr = parse_expr!
     expr_context.pop! :schema
     schema = function_call([expr], schema_for)
     assert { !OPERATORS.include?(peek_type) }
-    return schema, find_bound_variables(expr)
+    return schema, find_bound_variables(expr, index)
   end
 
   def parse_match_assignment_without_schema!(pattern, value_expr = nil)
@@ -192,7 +192,8 @@ module Schemas
     expr.dig(:expr, :property, :value) == "new"
   end
 
-  def find_bound_variables(match_expr)
+  def find_bound_variables(match_expr, index = nil)
+    return [[index, get_schema_any_name(match_expr)]] if schema_any?(match_expr)
     match_expr = extract_data_from_constructor(match_expr) if constructor?(match_expr)
     assert { match_expr != nil }
     case match_expr[:node_type]

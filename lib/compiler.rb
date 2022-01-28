@@ -91,22 +91,22 @@ class Compiler
     functions = @ast
       .filter { |node| node[:node_type] == :declare }
       .group_by { |node| node[:sym] }
-      .filter { |group| group.length > 1 }
+    # .filter { |group| group.length > 1 }
+    # binding.pry
 
     function = ""
     functions.each do |sym, function_group|
       indent!
-      function += "const " + sub_q(sym) + " = "
-      function += "(...params)" + " => "
-      function += "{" << "\n" + padding
-      # TODO: replace with Schema.case..
-      # const [name] = (...params) => Schema.case(List.new(params), [...function_cases])
-      function += "const functions = ["
-      function += function_group.map { |f| eval_function(f[:expr]) }.join(", ")
-      function += "];" << "\n" + padding
-      function += "const f_by_length = functions.find(f => f.length === params.length);\n" << padding
-      function += "if (f_by_length) return f_by_length(...params);\n"
-      function += "};\n"
+      function += "
+const #{sub_q(sym)} = (...params) => 
+  Schema.case(List.new(params),
+    List.new([
+      #{function_group.map do |fn|
+        # binding.pry
+        "List.new([#{eval_expr(fn[:schema])}, #{eval_function(fn[:expr])}])"
+      end.join ",\n"}
+    ])
+  );\n"
       dedent!
       @ast = @ast.filter { |node| node[:sym] != sym }
     end

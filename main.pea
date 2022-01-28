@@ -1,5 +1,5 @@
-class Main < Element =
-  view =
-    <div>
-      this is my home page.&yo
-    </div>
+f 3 = "oh"
+f a = a
+f a b = a + b
+
+print(f(5), f(3), f(3, 5))

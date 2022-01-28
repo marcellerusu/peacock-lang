@@ -1,3 +1,479 @@
+const __Symbols = {}
+class MatchError extends Error {}
+
+const allEntries = (obj) =>
+  Reflect.ownKeys(obj).map((k) => [Sym.new(k), obj[k]]);
+
+class Schema {
+  nil_q() {
+    return new Bool(false);
+  }
+  static for(schema) {
+    if (schema instanceof Schema) return schema;
+    if (schema instanceof List) return new ListSchema(schema);
+    if (schema instanceof Array) return new ListSchema(schema);
+    if (schema instanceof Function) return new FnSchema(schema);
+    if (schema instanceof Record) return new RecordSchema(schema);
+    if (schema === undefined) return new AnySchema();
+    // TODO: this should be more specific, why?
+    const literals = [Bool, Int, Float, Str, Sym];
+    if (literals.includes(schema.constructor)) return new LiteralSchema(schema);
+    if (typeof schema === "object") return new RecordSchema(schema);
+  }
+
+  static case(value, cases) {
+    const fn = cases.first((list) => {
+      const schema = list.__lookup__(new Int(0));
+      const fn = list.__lookup__(new Int(1));
+      if (schema.valid_q(value).to_js()) {
+        return fn;
+      }
+    });
+    if (!fn) throw new MatchError();
+    return fn(value);
+  }
+
+  static or(...schema) {
+    return new OrSchema(...schema);
+  }
+
+  static and(a, b) {
+    [a, b] = [Schema.for(a), Schema.for(b)];
+    if (a instanceof RecordSchema && b instanceof RecordSchema) {
+      return a.combine(b);
+    }
+    return new AndSchema(a, b);
+  }
+
+  static any(name) {
+    return new AnySchema(name.to_js());
+  }
+
+  static literal(value) {
+    return new LiteralSchema(value);
+  }
+
+  constructor(schema) {
+    this.schema_ = schema;
+  }
+
+  valid_q(other) {
+    throw null;
+  }
+
+  valid_b(other) {
+    if (!this.valid_q(other).to_js()) {
+      throw new MatchError();
+    }
+    return other;
+  }
+}
+
+class OrSchema extends Schema {
+  constructor(...schema) {
+    super(schema.map(Schema.for));
+  }
+  valid_q(other) {
+    return Bool.new(this.schema_.some((s) => s.valid_q(other).to_js()));
+  }
+}
+
+class AndSchema extends Schema {
+  constructor(...schema) {
+    super(schema.map(Schema.for));
+  }
+  valid_q(other) {
+    return Bool.new(this.schema_.every((s) => s.valid_q(other).to_js()));
+  }
+}
+
+class RecordSchema extends Schema {
+  constructor(schema) {
+    schema = schema.map((k, v) => {
+      return List.new([k, Schema.for(v)]);
+    });
+    super(schema);
+  }
+
+  combine(other) {
+    if (!(other instanceof RecordSchema)) throw new NotReached();
+    let newSchema = this.schema_.combine(other.schema_);
+    return new RecordSchema(newSchema);
+  }
+
+  valid_q(other) {
+    return this.schema_.every((k, v) =>
+      Bool.new(other.has_q(k).to_js() && v.valid_q(other.__lookup__(k)).to_js())
+    );
+  }
+}
+
+class ListSchema extends Schema {
+  constructor(value) {
+    if (value instanceof Array) {
+      value = List.new(value);
+    }
+    value = value.map(Schema.for);
+    super(value);
+  }
+  valid_q(other) {
+    if (!(other instanceof List)) return new Bool(false);
+    const otherSize = other.size().to_js();
+    return new Bool(
+      otherSize === this.schema_.size().to_js() &&
+        this.schema_.every((s, i) => s.valid_q(other.__lookup__(i))).to_js()
+    );
+  }
+  // _find_bound_variables(paths = []) {
+  //   // for (let )
+  // }
+  // _eval_path_on(path, list) {
+  //   let value = list;
+  //   for (let key of path) {
+  //     value = value.__lookup__(key);
+  //   }
+  //   return value;
+  // }
+}
+
+class FnSchema extends Schema {
+  valid_q(other) {
+    return this.schema_(other);
+  }
+}
+
+class AnySchema extends Schema {
+  valid_q(other) {
+    return Bool.new(true);
+  }
+}
+
+class LiteralSchema extends Schema {
+  valid_q(other) {
+    return this.schema_.__eq__(other);
+  }
+}
+
+module.exports = { Schema };
+class NotReached extends Error {
+  constructor(...artifacts) {
+    console.log(...artifacts);
+    super();
+  }
+}
+
+class StringScanner {
+  index = 0;
+  matched = null;
+  groups = [];
+  constructor(str) {
+    this.str = str;
+  }
+
+  scan(regex) {
+    const result = this.rest_of_str().match(regex);
+    if (result === null || result.index !== 0) return false;
+    const [matched, ...groups] = Array.from(result);
+    this.index += matched.length;
+    this.matched = matched;
+    this.groups = groups;
+    return true;
+  }
+
+  rest_of_str() {
+    return this.str.slice(this.index);
+  }
+
+  is_end_of_str() {
+    return this.index >= this.str.length;
+  }
+}
+
+class Token {
+  constructor(value) {
+    this.value = value;
+  }
+  is(TokenType) {
+    return this instanceof TokenType;
+  }
+}
+class ValueToken extends Token {}
+class IdentifierToken extends Token {}
+class OpenBrace extends Token {}
+class CloseBrace extends Token {}
+class Ampersand extends Token {}
+class PseudoClass extends Token {}
+class Dot extends Token {}
+
+const tokenize = (str) => {
+  const tokens = [];
+  const scanner = new StringScanner(str);
+  while (!scanner.is_end_of_str()) {
+    if (scanner.scan(/\s+/)) {
+      continue;
+    } else if (scanner.scan(/&/)) {
+      tokens.push(new Ampersand());
+    } else if (scanner.scan(/\./)) {
+      tokens.push(new Dot());
+    } else if (scanner.scan(/:([a-z]+)/)) {
+      tokens.push(new PseudoClass(scanner.groups[0]));
+    } else if (scanner.scan(/:(\s)*(.*);/)) {
+      tokens.push(new ValueToken(scanner.groups[1]));
+    } else if (scanner.scan(/([a-z][a-z1-9\-]*|\*)/)) {
+      tokens.push(new IdentifierToken(scanner.matched));
+    } else if (scanner.scan(/\{/)) {
+      tokens.push(new OpenBrace());
+    } else if (scanner.scan(/\}/)) {
+      tokens.push(new CloseBrace());
+    } else {
+      throw new NotReached([scanner.index, scanner.rest_of_str()]);
+    }
+  }
+  return tokens;
+};
+
+class TokenMismatch extends Error {
+  constructor(expected, got) {
+    super(`expected - ${expected.name}, got - ${got.constructor.name}`);
+  }
+}
+
+class AstNode {}
+class RuleNode extends AstNode {
+  constructor(name, value) {
+    super();
+    this.name = name;
+    this.value = value;
+  }
+}
+class ChildSelectorNode extends AstNode {
+  constructor(tag_name, rules) {
+    super();
+    this.tag_name = tag_name;
+    this.rules = rules;
+  }
+}
+
+class PseudoSelectorNode extends AstNode {
+  constructor(selector, rules) {
+    super();
+    this.selector = selector;
+    this.rules = rules;
+  }
+}
+
+class ClassSelectorNode extends AstNode {
+  constructor(class_name, rules) {
+    super();
+    this.class_name = class_name;
+    this.rules = rules;
+  }
+}
+
+class Parser {
+  constructor(tokens, index = 0, end_token = null) {
+    this.tokens = tokens;
+    this.index = index;
+    this.end_token = end_token;
+  }
+
+  get current() {
+    return this.tokens[this.index];
+  }
+
+  get peek() {
+    return this.tokens[this.index + 1];
+  }
+
+  clone(end_token = null) {
+    return new Parser(this.tokens, this.index, end_token || this.end_token);
+  }
+
+  consume_clone(parser) {
+    this.index = parser.index;
+  }
+
+  consume(TokenClass) {
+    if (!(this.current instanceof TokenClass))
+      throw new TokenMismatch(TokenClass, this.current);
+    const token = this.current;
+    this.index += 1;
+    return token;
+  }
+
+  can_parse() {
+    if (this.index >= this.tokens.length) return false;
+    if (!this.end_token) return true;
+    return !this.current.is(this.end_token);
+  }
+
+  parse() {
+    const ast = [];
+    while (this.can_parse()) {
+      if (this.current.is(Dot) && this.peek?.is(IdentifierToken)) {
+        ast.push(this.parse_class_selector());
+      } else if (this.current.is(Ampersand) && this.peek?.is(PseudoClass)) {
+        ast.push(this.parse_child_pseudo_selector());
+      } else if (this.current.is(IdentifierToken) && this.peek?.is(OpenBrace)) {
+        ast.push(this.parse_child_selector());
+      } else if (this.current.is(IdentifierToken)) {
+        ast.push(this.parse_rule());
+      } else {
+        throw new NotReached(this.current);
+      }
+    }
+    return ast;
+  }
+
+  parse_class_selector() {
+    this.consume(Dot);
+    const { value: class_name } = this.consume(IdentifierToken);
+    this.consume(OpenBrace);
+    const cloned_parser = this.clone(CloseBrace);
+    const rules = cloned_parser.parse();
+    this.consume_clone(cloned_parser);
+    this.consume(CloseBrace);
+    return new ClassSelectorNode(class_name, rules);
+  }
+
+  parse_child_pseudo_selector() {
+    this.consume(Ampersand);
+    const { value: selector } = this.consume(PseudoClass);
+    this.consume(OpenBrace);
+    const cloned_parser = this.clone(CloseBrace);
+    const rules = cloned_parser.parse();
+    this.consume_clone(cloned_parser);
+    this.consume(CloseBrace);
+    return new PseudoSelectorNode(selector, rules);
+  }
+
+  parse_child_selector() {
+    const { value: tag_name } = this.consume(IdentifierToken);
+    this.consume(OpenBrace);
+    const cloned_parser = this.clone(CloseBrace);
+    const rules = cloned_parser.parse();
+    this.consume_clone(cloned_parser);
+    this.consume(CloseBrace);
+    return new ChildSelectorNode(tag_name, rules);
+  }
+
+  parse_rule() {
+    const { value: name } = this.consume(IdentifierToken);
+    const { value } = this.consume(ValueToken);
+    return new RuleNode(name, value);
+  }
+}
+
+class Compiler {
+  constructor(ast, tag_names = [], top_level = true) {
+    this.ast = ast;
+    this.tag_names = tag_names;
+    this.top_level = top_level;
+  }
+
+  base_rules_start() {
+    if (this.top_level) {
+      if (this.tag_names.length !== 1) throw new NotReached();
+      return `${this.tag_names[0]} {\n`;
+    } else {
+      return "";
+    }
+  }
+
+  base_rules_end() {
+    if (this.top_level) {
+      return "}\n";
+    } else {
+      return "";
+    }
+  }
+
+  eval() {
+    const [rules, sub_rules] = this.eval_rules_and_sub_rules();
+    return [rules, ...sub_rules];
+  }
+
+  eval_rules_and_sub_rules() {
+    let rules = this.base_rules_start();
+    const rule_nodes = this.ast.filter((node) => node instanceof RuleNode);
+    for (let node of rule_nodes) {
+      rules += "  " + this.eval_rule(node) + "\n";
+    }
+    rules += this.base_rules_end();
+
+    let sub_rules = [];
+    const sub_rule_nodes = this.ast.filter(
+      (node) => !rule_nodes.includes(node)
+    );
+    for (let node of sub_rule_nodes) {
+      switch (node.constructor) {
+        case ClassSelectorNode:
+          sub_rules = sub_rules.concat(this.eval_class_selector(node));
+          break;
+        case PseudoSelectorNode:
+          sub_rules = sub_rules.concat(this.eval_pseudo_selector(node));
+          break;
+        case ChildSelectorNode:
+          sub_rules = sub_rules.concat(this.eval_child_selector(node));
+          break;
+        default:
+          throw new NotReached();
+      }
+    }
+    return [rules, sub_rules];
+  }
+
+  eval_rule({ name, value }) {
+    return `${name}: ${value};`;
+  }
+
+  eval_class_selector({ class_name, rules: ast }) {
+    if (!class_name) throw new NotReached();
+    let output = `${this.tag_names.join(" ")} .${class_name} {\n`;
+    const [rules, sub_rules] = new Compiler(
+      ast,
+      [...this.tag_names, class_name],
+      false
+    ).eval_rules_and_sub_rules();
+    output += rules;
+    output += "}\n";
+
+    return [output, ...sub_rules];
+  }
+
+  eval_pseudo_selector({ selector, rules: ast }) {
+    if (!selector) throw new NotReached();
+    let output = `${this.tag_names.join(" ")}:${selector} {\n`;
+    const [rules, sub_rules] = new Compiler(
+      ast,
+      [...this.tag_names, selector],
+      false
+    ).eval_rules_and_sub_rules();
+    output += rules;
+    output += "}\n";
+
+    return [output, ...sub_rules];
+  }
+
+  eval_child_selector({ tag_name, rules: ast }) {
+    let output = `${this.tag_names.join(" ")} ${tag_name} {\n`;
+    const [rules, sub_rules] = new Compiler(
+      ast,
+      [...this.tag_names, tag_name],
+      false
+    ).eval_rules_and_sub_rules();
+    output += rules;
+    output += "}\n";
+
+    return [output, ...sub_rules];
+  }
+}
+
+const compile_css = (style, tag_name) => {
+  const tokens = tokenize(style);
+  const ast = new Parser(tokens).parse();
+  return new Compiler(ast, [tag_name]).eval();
+};
 require("colors");
 
 class TypeMismatchError extends Error {}
@@ -770,3 +1246,21 @@ const __try = (fn) => {
     return undefined;
   }
 };
+const Peacock = {
+  symbol: symName => __Symbols[symName] || (__Symbols[symName] = Symbol(symName)),
+};
+let pea_module;
+
+const f = (...params) => 
+  Schema.case(List.new(params),
+    List.new([
+      List.new([Schema.for(List.new([Schema.for(Int.new(3))])), ((__VALUE) => {
+    return Int.new(5);; return Nil.new();
+  })])
+    ])
+  );
+pea_module = Record.new([
+
+]);
+print(f(Int.new(3)));
+__try(() => eval('Main')) && mount_element(Main, document.getElementById('main'))

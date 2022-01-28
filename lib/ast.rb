@@ -183,11 +183,12 @@ module AST
       sym: sym }
   end
 
-  def self.declare(sym_expr, expr)
+  def self.declare(sym_expr, schema, expr)
     { node_type: :declare,
       sym: sym_expr[:sym],
       line: sym_expr[:line],
       column: sym_expr[:column],
+      schema: schema,
       expr: expr }
   end
 
