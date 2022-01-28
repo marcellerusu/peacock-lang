@@ -103,14 +103,33 @@ module HTML
   end
 
   def parse_text_node!
-    text = []
+    text = ""
     # TODO: heckin' hack! find a way to consume raw text..
     # maybe I'll have to put this in the lexer somehow..
     # Things to think about..
-    while ![:open_html_tag, :close_html_tag, :open_brace].include?(peek_type)
-      _, _, word, type = consume!
-      text.push(word || ID_TO_STR[type] || type.to_s)
+    # ^^ this is starting to be better
+    prev_c = token[1]
+    while ![
+      :open_html_tag,
+      :open_custom_element_tag,
+      :close_custom_element_tag,
+      :close_html_tag,
+      :open_brace,
+    ].include?(peek_type)
+      _, c, word, type = consume!
+      padding = ""
+      padding = " " if c - prev_c >= 1
+      if word
+        text += padding + word
+        prev_c = c + word.size
+      elsif ID_TO_STR[type]
+        text += padding + ID_TO_STR[type]
+        prev_c = c + ID_TO_STR[type].size
+      else
+        text += padding + type.to_s
+        prev_c = c + type.to_s.size
+      end
     end
-    AST::html_text_node(AST::str(text.join(" ") + " "))
+    AST::html_text_node(AST::str(text))
   end
 end

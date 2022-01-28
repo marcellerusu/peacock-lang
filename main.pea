@@ -1,1 +1,5 @@
-print({ a: 3 } - [:a], { a: 3 } + { b: 4})
+class Main < Element =
+  view =
+    <div>
+      this is my home page.&yo
+    </div>
