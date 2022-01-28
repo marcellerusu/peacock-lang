@@ -158,7 +158,7 @@ module Lexer
       when scanner.scan(/</)
         tokens.push [line, column, :<]
       when scanner.scan(/=/)
-        tokens.push [line, column, :declare]
+        tokens.push [line, column, :"="]
       when scanner.scan(/\|\|/)
         tokens.push [line, column, :"||"]
       when scanner.scan(/&&/)

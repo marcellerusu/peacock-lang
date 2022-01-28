@@ -43,7 +43,7 @@ describe Lexer, "#tokenize" do
       res = Lexer::tokenize("=")
       expect(res).to eq([
         # Line 1, col 0
-        [0, 0, :declare],
+        [0, 0, :"="],
       ])
     end
 
@@ -153,7 +153,7 @@ describe Lexer, "#tokenize" do
       it "a x = x * x" do
         res = Lexer::tokenize("a x = x * x")
         expect(res).to eq([
-          [0, 0, :identifier, "a"], [0, 2, :identifier, "x"], [0, 4, :declare], [0, 6, :identifier, "x"], [0, 8, :*], [0, 10, :identifier, "x"],
+          [0, 0, :identifier, "a"], [0, 2, :identifier, "x"], [0, 4, :"="], [0, 6, :identifier, "x"], [0, 8, :*], [0, 10, :identifier, "x"],
         ])
       end
     end

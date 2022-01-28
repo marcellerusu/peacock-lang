@@ -47,11 +47,11 @@ module HTML
     attributes = {}
     while ![:>, :self_close_html_tag].include?(peek_type)
       _, _, sym = consume! :identifier
-      if peek_type != :declare
+      if peek_type != :"="
         attributes[AST::sym(sym)] = AST::bool(true)
         next
       end
-      consume! :declare
+      consume! :"="
       expr_context.push! :html_tag
       value = if peek_type == :str_lit
           parse_lit! :str_lit

@@ -232,7 +232,7 @@ module Schemas
     line = self.line
     consume! :schema
     _, c, sym = consume! :identifier
-    consume! :declare
+    consume! :"="
     expr = parse_expr!
     schema = function_call([expr], schema_for)
     while OPERATORS.include?(peek_type)

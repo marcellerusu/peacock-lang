@@ -12,7 +12,7 @@ module Functions
       t = peek_token(i + skip)
     end
     return false if t.nil?
-    self.line == t[0] && peek_type(i + skip) == :declare
+    self.line == t[0] && peek_type(i + skip) == :"="
   end
 
   def parse_bang!
@@ -73,8 +73,8 @@ module Functions
   end
 
   def parse_function_def!(sym_expr)
-    args = parse_function_arguments! :declare
-    consume! :declare
+    args = parse_function_arguments! :"="
+    consume! :"="
     fn_line = line
     if new_line?
       @token_index, body = clone(

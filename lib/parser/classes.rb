@@ -5,7 +5,7 @@ module Classes
     _, c, class_name = consume! :identifier
     super_class = parse_super_class!
     args = parse_class_args! if super_class.nil?
-    consume! :declare
+    consume! :"="
     assert { new_line? }
     @token_index, methods = clone(
       indentation: @indentation + 2,
@@ -32,7 +32,7 @@ module Classes
 
   def parse_class_args!
     args = []
-    while peek_type != :declare
+    while peek_type != :"="
       line, c, arg_name = consume! :identifier
       args.push(AST::function_argument(arg_name, line, c))
     end
