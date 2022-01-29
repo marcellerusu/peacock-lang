@@ -1,5 +1,3 @@
-f 3 = "oh"
-f a = a
-f a b = a + b
-
-print(f(5), f(3), f(3, 5))
+f { a } = a
+f [ a ] = a
+print(f({ a: "oh" }), f(["yea"]))

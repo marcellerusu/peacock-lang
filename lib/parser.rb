@@ -182,6 +182,8 @@ class Parser
         parse_function_call! sym_expr
       when end_of_file?
         return sym_expr
+      when is_function?
+        return parse_function_def! sym_expr
       when type == :open_square_bracket
         parse_dynamic_lookup! sym_expr
       when type == :& && peek_type(1) == :dot
@@ -192,8 +194,6 @@ class Parser
         parse_class_properity_expression! sym_expr
       when OPERATORS.include?(type) && !expr_context.directly_in_a?(:operator)
         return parse_operator_call! sym_expr
-      when is_function?
-        return parse_function_def! sym_expr
       else
         return sym_expr
       end

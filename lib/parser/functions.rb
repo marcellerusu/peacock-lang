@@ -64,7 +64,7 @@ module Functions
     parse_id_modifier_if_exists!(sym_expr)
   end
 
-  def parse_function_arguments!(end_type)
+  def parse_function_args_schema!(end_type)
     args = []
     matches = []
     expr_context.push! :declare
@@ -81,7 +81,7 @@ module Functions
   end
 
   def parse_function_def!(sym_expr)
-    args_schema, matches = parse_function_arguments! :"="
+    args_schema, matches = parse_function_args_schema! :"="
     consume! :"="
     fn_line = line
     if new_line?
