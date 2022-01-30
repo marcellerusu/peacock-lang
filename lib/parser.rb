@@ -190,7 +190,7 @@ class Parser
     return sym_expr if expr_context.directly_in_a? :html_tag
     type = peek_type
     node = case
-      when is_function_call?(sym_expr)
+      when function_call?(sym_expr)
         parse_function_call! sym_expr
       when end_of_file?
         return sym_expr
@@ -204,12 +204,16 @@ class Parser
         parse_dot_expression! sym_expr
       when type == :class_property
         parse_class_properity_expression! sym_expr
-      when OPERATORS.include?(type) && !expr_context.directly_in_a?(:operator)
+      when operator?
         return parse_operator_call! sym_expr
       else
         return sym_expr
       end
     parse_id_modifier_if_exists! node
+  end
+
+  def operator?
+    OPERATORS.include?(peek_type) && !expr_context.directly_in_a?(:operator)
   end
 
   # Individual parsers

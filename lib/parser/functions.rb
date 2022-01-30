@@ -28,7 +28,7 @@ module Functions
     end_of_last_token == column
   end
 
-  def is_function_call?(sym_expr)
+  def function_call?(sym_expr)
     return true if peek_type == :open_parenthesis
     is_dot_expr = sym_expr[:node_type] == :property_lookup ||
                   sym_expr[:node_type] == :instance_method_lookup
