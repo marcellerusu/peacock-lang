@@ -1,5 +1,8 @@
 module Functions
   def function?(skip = 0)
+    # TODO: replace with end_of_expr?
+    return false if peek_type == :close_brace
+    return false if operator?
     return false if peek_type == :dot
     return false if peek_token(-1 + skip)[0] != self.line
     return false if peek_type(-1 + skip) != :identifier

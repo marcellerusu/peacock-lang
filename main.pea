@@ -1,1 +1,1 @@
-<Child margin={i < l.last_index} />
+<Child margin={i < l.last_index} other_prop={3} />

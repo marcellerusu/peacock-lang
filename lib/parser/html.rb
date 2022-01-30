@@ -120,7 +120,7 @@ module HTML
       padding = ""
       padding = " " if c - prev_c >= 1
       if word
-        text += padding + word
+        text += padding + word.to_s
         prev_c = c + word.size
       elsif ID_TO_STR[type]
         text += padding + ID_TO_STR[type]
