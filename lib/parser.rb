@@ -194,7 +194,7 @@ class Parser
         parse_function_call! sym_expr
       when end_of_file?
         return sym_expr
-      when is_function?
+      when function?
         return parse_function_def! sym_expr
       when type == :open_square_bracket
         parse_dynamic_lookup! sym_expr
