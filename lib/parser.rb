@@ -9,7 +9,7 @@ require "parser/html"
 require "parser/modules"
 # require "pry"
 
-OPERATORS = [:+, :-, :*, :/, :"&&", :"||", :&, :|, :"==", :"!=", :>, :>, :">=", :"<="]
+OPERATORS = [:+, :-, :*, :/, :"&&", :"||", :&, :|, :"==", :"!=", :>, :<, :">=", :"<="]
 
 OP_TO_METHOD_NAME = {
   :"&&" => "__and__",

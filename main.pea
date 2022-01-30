@@ -1,1 +1,1 @@
-<div>{arr.map #{<Child text={%} />}}</div>
+<Child margin={i < l.last_index} />
