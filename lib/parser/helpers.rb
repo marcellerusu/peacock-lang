@@ -38,6 +38,7 @@ module Helpers
 
   def schema?(identifier)
     # identifiers starting w uppercase are interpreted as schemas
+    return false if identifier[0] == "_"
     identifier[0].upcase == identifier[0]
   end
 
@@ -78,6 +79,10 @@ module Helpers
     # puts "#{token_type} #{token}"
     assert { token_type == token[2] } unless token_type.nil?
     line_number, column_number, type, value, tokens = token
+    if type == :identifier && value == "_"
+      value += unused_count.to_s
+      increment_unused_count!
+    end
     @token_index += 1
     return line_number, column_number, value, type, tokens
   end

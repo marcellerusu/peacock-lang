@@ -6,6 +6,7 @@ module Literals
   end
 
   def parse_identifier!
+    return parse_sym! if expr_context.in_a? :schema
     expr = if parser_context.in_a?(:class) && !is_function?(1)
         line, c, sym = consume! :identifier
         AST::instance_method_lookup sym, line, c

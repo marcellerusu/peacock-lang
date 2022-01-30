@@ -87,28 +87,26 @@ class Compiler
     " " * (@indent + by)
   end
 
-  def collapse_function_overloading
-    functions = @ast
+  def collapse_function_overloading(ast = @ast, is_class = false)
+    functions = ast
       .filter { |node| node[:node_type] == :declare }
       .group_by { |node| node[:sym] }
-    # .filter { |group| group.length > 1 }
-    # binding.pry
 
     function = ""
     functions.each do |sym, function_group|
       indent!
+      function += "const #{sub_q(sym)} = (...params) => {" unless is_class
+      function += "#{sub_q(sym)}(...params) {" if is_class
       function += "
-const #{sub_q(sym)} = (...params) => 
-  Schema.case(List.new(params),
+  return Schema.case(List.new(params),
     List.new([
       #{function_group.map do |fn|
-        # binding.pry
         "List.new([#{eval_expr(fn[:schema])}, #{eval_function(fn[:expr])}])"
       end.join ",\n"}
     ])
-  );\n"
+  );\n}\n"
       dedent!
-      @ast = @ast.filter { |node| node[:sym] != sym }
+      ast.filter! { |node| node[:sym] != sym }
     end
     function
   end
@@ -299,7 +297,9 @@ const #{sub_q(sym)} = (...params) =>
   def eval_function(node)
     body = Compiler.new(node[:body], @indent + 2).eval
     args = node[:args].map { |arg| arg[:sym] }.join(", ")
-    "((#{args}) => {\n#{body}; return Nil.new();\n#{padding}})"
+    fn = "((#{args}) => {\n#{body}\n"
+    fn += "return Nil.new();\n" unless node[:body].last[:node_type] == :return
+    fn += "#{padding}})"
   end
 
   def eval_instance_lookup(node)
@@ -317,7 +317,7 @@ const #{sub_q(sym)} = (...params) =>
   end
 
   def eval_identifier_lookup(node)
-    binding.pry if !node[:sym]
+    assert { node[:sym] }
     sub_q(node[:sym])
   end
 
@@ -353,16 +353,11 @@ const #{sub_q(sym)} = (...params) =>
       "extends #{node[:super_class]}"
     end
 
+    # binding.pry
     class_def = <<-EOF
 class #{class_name} #{extends node} {
   #{constructor node, args, class_name}
-  #{methods.map { |method|
-      <<-EOM
-#{sub_q(method[:sym])}(#{method_args(method[:expr])}) {
-    #{method_body(method[:expr])}
-  }
-EOM
-    }.join("\n").strip()}
+  #{collapse_function_overloading methods, true}
 }
 EOF
     class_def.strip()

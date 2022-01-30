@@ -64,12 +64,12 @@ module Functions
     parse_id_modifier_if_exists!(sym_expr)
   end
 
-  def parse_function_args_schema!(end_type)
+  def parse_function_args_schema!
     args = []
     matches = []
     expr_context.push! :declare
     index = 0
-    while peek_type != end_type
+    while peek_type != :"="
       schema, new_matches = parse_schema_literal! index
       args.push schema
       matches += new_matches
@@ -81,7 +81,7 @@ module Functions
   end
 
   def parse_function_def!(sym_expr)
-    args_schema, matches = parse_function_args_schema! :"="
+    args_schema, matches = parse_function_args_schema!
     consume! :"="
     fn_line = line
     if new_line?
@@ -107,7 +107,11 @@ module Functions
 
   def parse_anon_function_def!
     _, c, _ = consume! :fn
-    args = parse_function_arguments! :"=>"
+    args = []
+    while peek_type != :"=>"
+      line, c1, value = consume! :identifier
+      args.push AST::function_argument(value, line, c1)
+    end
     consume! :"=>"
     fn_line = self.line
     expr_context.push! :function

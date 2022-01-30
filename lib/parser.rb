@@ -58,6 +58,18 @@ class Parser
     @@computed_files ||= []
   end
 
+  def unused_count
+    @@unused_count ||= 0
+  end
+
+  def increment_unused_count!
+    @@unused_count += 1
+  end
+
+  def self.reset_unused_count!
+    @@unused_count = 0
+  end
+
   def clone(tokens: nil, token_index: nil, indentation: nil, parser_context: nil, expr_context: nil)
     Parser.new(
       tokens || @tokens,

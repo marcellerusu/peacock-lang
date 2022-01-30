@@ -36,7 +36,11 @@ module Schemas
     expr_context.push! :schema
     expr = parse_expr!
     expr_context.pop! :schema
-    schema = function_call([expr], schema_for)
+    schema = if schema_any?(expr)
+        expr
+      else
+        function_call([expr], schema_for)
+      end
     assert { !OPERATORS.include?(peek_type) }
     return schema, find_bound_variables(expr, index)
   end
