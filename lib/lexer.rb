@@ -122,7 +122,7 @@ module Lexer
       when scanner.scan(/end\b/)
         tokens.push [line, column, :end]
       when scanner.scan(/=>/)
-        tokens.push [line, column, :arrow]
+        tokens.push [line, column, :"=>"]
       when scanner.scan(/==/)
         tokens.push [line, column, :"=="]
       when scanner.scan(/:=/)

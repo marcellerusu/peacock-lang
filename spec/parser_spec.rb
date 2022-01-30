@@ -4,7 +4,7 @@ require "ast"
 require "compiler"
 
 def dot(lhs, name)
-  AST::dot(lhs, [0, name])
+  AST::dot(lhs, name)
 end
 
 def try_eval(name)
@@ -37,12 +37,24 @@ def schema_valid(schema, expr)
   )
 end
 
+def lookup(expr, key)
+  key = case key
+    when String
+      AST::str(key)
+    when Integer
+      AST::int(key)
+    else
+      assert { false }
+    end
+  AST::function_call [key], dot(expr, "__lookup__")
+end
+
 def schema_for(expr)
   AST::function_call [expr], dot(schema, "for")
 end
 
 def schema_any(name)
-  AST::function_call [AST::str(name)], dot(schema, "any")
+  AST::function_call [AST::sym(name)], dot(schema, "any")
 end
 
 def throw_match_error
@@ -212,12 +224,17 @@ describe Parser do
         init_module,
         AST::declare(
           { sym: "add" },
+          schema_for(AST::array([schema_any("a"), schema_any("b")])),
           AST::function(
-            [AST::function_argument("a"), AST::function_argument("b")],
-            [AST::return(AST::function_call(
-              [AST::identifier_lookup("b")],
-              AST::dot(AST::identifier_lookup("a"), "__plus__"),
-            ))]
+            [AST::function_argument("__VALUE")],
+            [
+              AST::assignment("a", lookup(AST::identifier_lookup("__VALUE"), 0)),
+              AST::assignment("b", lookup(AST::identifier_lookup("__VALUE"), 1)),
+              AST::return(AST::function_call(
+                [AST::identifier_lookup("b")],
+                AST::dot(AST::identifier_lookup("a"), "__plus__"),
+              )),
+            ]
           )
         ),
       ])
@@ -230,12 +247,17 @@ describe Parser do
         init_module,
         AST::declare(
           { sym: "add" },
+          schema_for(AST::array([schema_any("a"), schema_any("b")])),
           AST::function(
-            [AST::function_argument("a"), AST::function_argument("b")],
-            [AST::return(AST::function_call(
-              [AST::identifier_lookup("b")],
-              AST::dot(AST::identifier_lookup("a"), "__plus__"),
-            ))]
+            [AST::function_argument("__VALUE")],
+            [
+              AST::assignment("a", lookup(AST::identifier_lookup("__VALUE"), 0)),
+              AST::assignment("b", lookup(AST::identifier_lookup("__VALUE"), 1)),
+              AST::return(AST::function_call(
+                [AST::identifier_lookup("b")],
+                AST::dot(AST::identifier_lookup("a"), "__plus__"),
+              )),
+            ]
           )
         ),
       ])
@@ -362,21 +384,25 @@ class Num val =
           [AST::function_argument("val")],
           [AST::declare(
             { sym: "add" },
+            schema_for(AST::array([schema_any("other")])),
             AST::function(
-              [AST::function_argument("other")],
-              [AST::return(
-                AST::function_call(
-                  [AST::naked_or(
-                    try_eval("other"),
-                    AST::function_call([],
-                                       AST::instance_method_lookup("other"))
-                  )],
-                  AST::dot(
-                    AST::instance_lookup("val"),
-                    "__plus__"
+              [AST::function_argument("__VALUE")],
+              [
+                AST::assignment("other", lookup(AST::identifier_lookup("__VALUE"), 0)),
+                AST::return(
+                  AST::function_call(
+                    [AST::naked_or(
+                      try_eval("other"),
+                      AST::function_call([],
+                                         AST::instance_method_lookup("other"))
+                    )],
+                    AST::dot(
+                      AST::instance_lookup("val"),
+                      "__plus__"
+                    )
                   )
-                )
-              )]
+                ),
+              ]
             )
           )]
         ),

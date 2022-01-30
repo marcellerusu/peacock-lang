@@ -11,7 +11,7 @@ module Schemas
     match_arg_name = "match_expr"
     while peek_type != :end
       schema, matches = parse_schema_literal!
-      consume! :arrow
+      consume! :"=>"
       @token_index, body = clone(
         indentation: @indentation + 2,
         parser_context: parser_context.clone.push!(:function),
@@ -32,13 +32,17 @@ module Schemas
     AST::case value, AST::array(cases)
   end
 
-  def parse_schema_literal!
+  def parse_schema_literal!(index = nil)
     expr_context.push! :schema
     expr = parse_expr!
     expr_context.pop! :schema
-    schema = function_call([expr], schema_for)
+    schema = if schema_any?(expr)
+        expr
+      else
+        function_call([expr], schema_for)
+      end
     assert { !OPERATORS.include?(peek_type) }
-    return schema, find_bound_variables(expr)
+    return schema, find_bound_variables(expr, index)
   end
 
   def parse_match_assignment_without_schema!(pattern, value_expr = nil)
@@ -192,14 +196,15 @@ module Schemas
     expr.dig(:expr, :property, :value) == "new"
   end
 
-  def find_bound_variables(match_expr)
+  def find_bound_variables(match_expr, outer_index = nil)
+    return [[outer_index, get_schema_any_name(match_expr)]] if schema_any?(match_expr)
     match_expr = extract_data_from_constructor(match_expr) if constructor?(match_expr)
     assert { match_expr != nil }
+    bound_variables = []
     case match_expr[:node_type]
     when :identifier_lookup
       return [[match_expr[:sym]]]
     when :record_lit
-      bound_variables = []
       match_expr[:value].each do |key, value|
         key = extract_data_from_constructor(key)[:value]
         bound_variables += if schema_any?(value)
@@ -208,9 +213,7 @@ module Schemas
             find_bound_variables(value).map { |path| [key] + path }
           end
       end
-      bound_variables
     when :array_lit
-      bound_variables = []
       match_expr[:value].each_with_index do |node, index|
         bound_variables += if schema_any?(node)
             [[index, get_schema_any_name(node)]]
@@ -218,12 +221,16 @@ module Schemas
             find_bound_variables(node).map { |path| [index] + path }
           end
       end
-      bound_variables
     when :int_lit, :float_lit, :str_lit, :bool_lit
-      []
+      # pass
     else
       pp match_expr
       assert { false }
+    end
+    if outer_index
+      bound_variables.map { |arr| [outer_index, *arr] }
+    else
+      bound_variables
     end
   end
 

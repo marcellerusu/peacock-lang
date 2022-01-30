@@ -11,6 +11,7 @@ module AST
     node.delete(:line)
     node.delete(:column)
     node[:expr] = AST::remove_numbers_single(node[:expr]) if node[:expr]
+    node[:schema] = AST::remove_numbers_single(node[:schema]) if node[:schema]
     node[:property] = AST::remove_numbers_single(node[:property]) if node[:property]
     node[:lhs_expr] = AST::remove_numbers_single(node[:lhs_expr]) if node[:lhs_expr]
     node[:value] = AST::remove_numbers(node[:value]) if node[:value].is_a?(Array)
@@ -183,11 +184,12 @@ module AST
       sym: sym }
   end
 
-  def self.declare(sym_expr, expr)
+  def self.declare(sym_expr, schema, expr)
     { node_type: :declare,
       sym: sym_expr[:sym],
       line: sym_expr[:line],
       column: sym_expr[:column],
+      schema: schema,
       expr: expr }
   end
 
