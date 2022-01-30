@@ -1,5 +1,1 @@
-class Test =
-  f { a } = a
-  f [a] = a
-
-print(Test.new.f([1]), Test.new.f({ a: "oh"})) 
+<div>{arr.map #{<Child text={%} />}}</div>

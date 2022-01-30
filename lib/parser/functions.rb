@@ -1,8 +1,9 @@
 module Functions
   def is_function?(skip = 0)
-    return false if expr_context.in_a? :declare
+    return false if peek_type == :dot
     return false if peek_token(-1 + skip)[0] != self.line
     return false if peek_type(-1 + skip) != :identifier
+    return false if expr_context.in_a? :declare
     # skip params
     i = 0
     t = peek_token(i + skip)
