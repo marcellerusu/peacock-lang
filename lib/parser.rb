@@ -55,7 +55,7 @@ class Parser
   end
 
   def self.computed_files
-    @@computed_files ||= []
+    @@computed_files
   end
 
   def unused_count
@@ -198,8 +198,10 @@ class Parser
         return parse_function_def! sym_expr
       when type == :open_square_bracket
         parse_dynamic_lookup! sym_expr
+      when type == :& && peek_type(1) == :open_square_bracket
+        parse_nil_safe_lookup! sym_expr
       when type == :& && peek_type(1) == :dot
-        parse_nil_safe_op! sym_expr
+        parse_nil_safe_call! sym_expr
       when type == :dot
         parse_dot_expression! sym_expr
       when type == :class_property
@@ -218,7 +220,19 @@ class Parser
 
   # Individual parsers
 
-  def parse_nil_safe_op!(lhs)
+  def parse_nil_safe_lookup!(lhs)
+    consume! :&
+    consume! :open_square_bracket
+    expr = parse_expr!
+    consume! :close_square_bracket
+    node = AST::lookup lhs, expr
+    node = AST::function_call(
+      [AST::function([], [AST::return(node)])],
+      dot(lhs, "__and__")
+    )
+  end
+
+  def parse_nil_safe_call!(lhs)
     consume! :&
     consume! :dot
     line, c, method = consume! :identifier

@@ -10,3 +10,7 @@ class Main < Element =
     </div>
 
 print([1, 2].size&.to_s)
+
+obj := { id: 10 }
+
+print({ *obj, name: "Marcelle" })
