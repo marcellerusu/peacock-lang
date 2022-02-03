@@ -112,13 +112,15 @@ module Helpers
     OPERATORS.include?(type)
   end
 
-  def end_of_expr?
+  def end_of_expr?(*excluding)
+    return false if excluding.include? peek_type
     closing_tags = [:close_parenthesis, :close_brace, :close_square_bracket, :of, :then]
     new_line? ||
     closing_tags.include?(peek_type) ||
     property_accessor? ||
     operator? ||
-    peek_type == :dot
+    peek_type == :dot ||
+    peek_type == :comma
   end
 
   def end_of_file?

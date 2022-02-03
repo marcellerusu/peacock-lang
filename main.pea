@@ -1,2 +1,1 @@
-arr := [{ a: 5 }]
-print(arr.find #{ %[:a] == 3 }&[:a])
+console.log 1.to_js, 2.to_js
