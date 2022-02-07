@@ -190,7 +190,7 @@ module Schemas
   end
 
   def constructor?(expr)
-    constructors = ["List", "Int", "Float", "Str", "Sym", "Record", "Bool"]
+    constructors = ["List", "Int", "Float", "Str", "Sym", "Record", "Bool", "Nil"]
 
     constructors.include?(expr.dig(:expr, :lhs_expr, :sym)) &&
     expr.dig(:expr, :property, :value) == "new"
@@ -221,7 +221,7 @@ module Schemas
             find_bound_variables(node).map { |path| [index] + path }
           end
       end
-    when :int_lit, :float_lit, :str_lit, :bool_lit
+    when :int_lit, :float_lit, :str_lit, :bool_lit, :nil_lit
       # pass
     else
       pp match_expr

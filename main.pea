@@ -1,1 +1,3 @@
-console.log 1.to_js, 2.to_js
+f nil = true
+
+print(f(nil))
