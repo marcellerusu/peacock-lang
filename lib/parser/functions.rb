@@ -56,7 +56,7 @@ module Functions
     consume! :anon_short_fn_start
     expr = parse_expr!
     assert { expr[:node_type] != :return }
-    expr = AST::return(expr, line, c)
+    expr = AST::return(expr, line, c) unless expr[:node_type] == :if
     consume! :close_brace
     args = [AST::function_argument(ANON_SHORTHAND_ID, line, c)]
     AST::function args, [expr], line, c
@@ -163,12 +163,24 @@ module Functions
     )
   end
 
-  def or_lookup(node)
+  def or_lookup(node, args)
     line, c = node[:line], node[:column]
-    AST::naked_or(
-      try_lookup(node[:sym], line, c),
-      AST::function_call([], node, line, c)
-    )
+    if args.size == 0
+      AST::naked_or(
+        try_lookup(node[:sym], line, c),
+        AST::function_call([], node, line, c)
+      )
+    else
+      AST::function_call(
+        args,
+        AST::naked_or(
+          try_lookup(node[:sym], line, c),
+          node
+        ),
+        line,
+        c
+      )
+    end
   end
 
   def parse_function_call!(fn_expr)
@@ -177,7 +189,7 @@ module Functions
       else
         parse_function_call_args_without_paren!
       end
-    return or_lookup(fn_expr) if args.size == 0 && fn_expr[:node_type] == :instance_method_lookup
+    return or_lookup(fn_expr, args) if fn_expr[:node_type] == :instance_method_lookup
     return parse_match_assignment!(fn_expr, args[0]) if args.size == 1 && peek_type == :assign
     AST::function_call args, fn_expr, fn_expr[:line], fn_expr[:column]
   end
