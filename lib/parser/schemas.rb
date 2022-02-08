@@ -44,6 +44,8 @@ module Schemas
         expr_context.pop! :schema
         consume! :close_parenthesis
         pattern
+      elsif schema_expr[:node_type] == :identifier_lookup
+        nil
       else
         schema_expr
       end
@@ -208,6 +210,7 @@ module Schemas
   end
 
   def find_bound_variables(match_expr, outer_index = nil)
+    return [] if match_expr.nil?
     if schema_any?(match_expr)
       if outer_index
         return [[outer_index, get_schema_any_name(match_expr)]]
