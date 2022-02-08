@@ -1,5 +1,4 @@
 schema User = { id }
+f { user: User } = user
 
-f User = 3
-
-print(f({ id: 3 }))
+print(f({user: { id: 4 } }))

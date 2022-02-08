@@ -209,6 +209,10 @@ module Schemas
     expr.dig(:expr, :property, :value) == "new"
   end
 
+  def schema_lookup?(node)
+    return node[:node_type] == :identifier_lookup && schema?(node[:sym])
+  end
+
   def find_bound_variables(match_expr, outer_index = nil)
     return [] if match_expr.nil?
     if schema_any?(match_expr)
@@ -227,7 +231,7 @@ module Schemas
     when :record_lit
       match_expr[:value].each do |key, value|
         key = extract_data_from_constructor(key)[:value]
-        bound_variables += if schema_any?(value)
+        bound_variables += if schema_any?(value) || schema_lookup?(value)
             [[key, key]]
           else
             find_bound_variables(value).map { |path| [key] + path }

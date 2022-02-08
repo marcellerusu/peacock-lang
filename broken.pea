@@ -13,11 +13,5 @@ class Main < Element =
 # Implement splat operator
 print({ *{ id: 10 }, name: "Marcelle" })
 
-# `user` is incorrectly bound as `User`
-schema User = { id }
-
-val := case { user: { id:4 } }
-of { user: User } => user
-end
-
-print(val)
+# top level paren-less calling
+f 3
