@@ -1,4 +1,5 @@
-schema User = { id }
-f { user: User } = user
-
-print(f({user: { id: 4 } }))
+class Main < Element =
+  view _ _ _ =
+    <div>
+      {if true then "ok" end}
+    </div>

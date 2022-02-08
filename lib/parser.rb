@@ -341,6 +341,8 @@ class Parser
           [replace_return(if_expr)]
         )
       )
+    elsif expr_context.directly_in_a? :html_escaped_expr
+      AST::function([], [replace_return(if_expr)])
     elsif parser_context.directly_in_a? :function
       replace_return(if_expr)
     else

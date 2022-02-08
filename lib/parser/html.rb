@@ -97,7 +97,9 @@ module HTML
 
   def parse_html_expr_node!
     consume! :open_brace
+    expr_context.push! :html_escaped_expr
     expr = parse_expr!
+    expr_context.pop! :html_escaped_expr
     consume! :close_brace
     expr
   end
