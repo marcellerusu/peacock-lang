@@ -1,3 +1,7 @@
-f nil = true
+schema User = { id }
 
-print(f(nil))
+val := case { id: 4 }
+of User({ id }) => id
+end
+
+print(val)

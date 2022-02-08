@@ -34,15 +34,26 @@ module Schemas
 
   def parse_schema_literal!(index = nil)
     expr_context.push! :schema
-    expr = parse_expr!
+    schema_expr = parse_expr!
     expr_context.pop! :schema
-    schema = if schema_any?(expr)
-        expr
+    match_expr = if peek_type == :open_parenthesis
+        assert { schema_expr[:node_type] == :identifier_lookup }
+        consume! :open_parenthesis
+        expr_context.push! :schema
+        pattern = parse_expr!
+        expr_context.pop! :schema
+        consume! :close_parenthesis
+        pattern
       else
-        function_call([expr], schema_for)
+        schema_expr
+      end
+    schema = if schema_any?(schema_expr)
+        schema_expr
+      else
+        function_call([schema_expr], schema_for)
       end
     assert { !OPERATORS.include?(peek_type) }
-    return schema, find_bound_variables(expr, index)
+    return schema, find_bound_variables(match_expr, index)
   end
 
   def parse_match_assignment_without_schema!(pattern, value_expr = nil)
@@ -197,7 +208,13 @@ module Schemas
   end
 
   def find_bound_variables(match_expr, outer_index = nil)
-    return [[outer_index, get_schema_any_name(match_expr)]] if schema_any?(match_expr)
+    if schema_any?(match_expr)
+      if outer_index
+        return [[outer_index, get_schema_any_name(match_expr)]]
+      else
+        return [[get_schema_any_name(match_expr)]]
+      end
+    end
     match_expr = extract_data_from_constructor(match_expr) if constructor?(match_expr)
     assert { match_expr != nil }
     bound_variables = []
@@ -235,11 +252,11 @@ module Schemas
   end
 
   def parse_schema!
-    expr_context.push! :schema
     line = self.line
     consume! :schema
     _, c, sym = consume! :identifier
     consume! :"="
+    expr_context.push! :schema
     expr = parse_expr!
     schema = function_call([expr], schema_for)
     while OPERATORS.include?(peek_type)
