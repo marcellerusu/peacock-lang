@@ -1,7 +1,5 @@
 schema User = { id }
 
-val := case { id: 4 }
-of User({ id }) => id
-end
+f User(a) = 3
 
-print(val)
+print(f({ id: 3 }))
