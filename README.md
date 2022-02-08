@@ -19,24 +19,21 @@ schema Error = { loading: false, error: NotNil }
 
 # User code
 schema User = { id, email, created_at }
-schema LoadingUser = Loading & User
-schema LoadedUser = Loaded & User
-schema ErrorUser = Error & User
 
 class UserAdmin < Element =
-  style LoadingUser _ _ = "background: grey;"
-  style ErrorUser _ _ = "background: red;"
-  style LoadedUser _ _ = "background: green;"
+  style Loading _ _ = "background: grey;"
+  style Error _ _ = "background: red;"
+  style Loaded _ _ = "background: green;"
 
-  view LoadingUser _ _ =
+  view Loading _ _ =
     <div>
       Loading user!
     </div>
-  view ErrorUser _ _ =
+  view Error _ _ =
     <div>
       Error loading user
     </div>
-  view LoadedUser({ email, created_at }) _ _ =
+  view User({ email, created_at }) _ _ =
     <div>
       User details
       <div>[email = {email}]</div>
