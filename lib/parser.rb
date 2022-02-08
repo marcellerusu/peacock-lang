@@ -260,7 +260,9 @@ class Parser
   def parse_assignment!
     line, c, sym = consume! :identifier
     consume! :assign
+    expr_context.push! :assignment
     expr = parse_expr!
+    expr_context.pop! :assignment
     AST::assignment sym, expr, line, c
   end
 
@@ -341,6 +343,11 @@ class Parser
           [replace_return(if_expr)]
         )
       )
+    elsif expr_context.directly_in_a? :assignment
+      # TODO: we shouldn't have to create a function here
+      # we could do something similar to insert_return, but insert_assignment
+      # but that requires expr_context to store the actual node, not just node_type
+      AST::function_call [], AST::function([], [replace_return(if_expr)])
     elsif expr_context.directly_in_a? :html_escaped_expr
       AST::function([], [replace_return(if_expr)])
     elsif parser_context.directly_in_a? :function

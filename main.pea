@@ -1,5 +1,2 @@
-class Main < Element =
-  view _ _ _ =
-    <div>
-      {if true then "ok" end}
-    </div>
+a := if true then 3 end
+print(a)
