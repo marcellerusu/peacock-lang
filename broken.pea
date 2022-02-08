@@ -8,3 +8,22 @@ f 3
 f.each #{ |name|
   print(name)
 }
+
+# TODO
+# [v high] Element#refresh_children
+#       -> idea w the array
+# [high] css diffing
+#       -> issues to work out, but progress is made
+# [med] efficent immutable data-structures
+#       -> need more time
+# [low] build out schema std lib
+#       -> easy, but need time to see whats necessary
+# THATS IT???
+
+# later
+# [] formater
+# [] source-maps
+#    -> need more time
+# [] debugger support
+#    -> doesn't need to be perfect
+# 
