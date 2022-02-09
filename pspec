@@ -1,3 +1,6 @@
 #!/usr/bin/env bash
 
-ruby main.rb p_spec/literals.pea | node
+for test_file in p_spec/*
+do
+  ruby main.rb $test_file | node
+done
