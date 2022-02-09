@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+ruby main.rb p_spec/literals.pea | node
