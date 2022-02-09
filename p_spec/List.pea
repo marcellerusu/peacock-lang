@@ -1,0 +1,9 @@
+Spec.new List fn c =>
+  c.it "#__plus__" fn
+    expect([10] + [20]).to eq([10, 20])
+  end
+
+  c.it "#__minus__" fn
+    expect([10] - [10]).to eq([])
+  end
+end
