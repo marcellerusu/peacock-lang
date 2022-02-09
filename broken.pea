@@ -27,3 +27,7 @@ f.each #{ |name|
 # [] debugger support
 #    -> doesn't need to be perfect
 # 
+
+# List schema should check bound variables
+can_update_document { id } { id } =
+  print(name)

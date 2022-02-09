@@ -39,11 +39,7 @@ module Functions
     return true if is_dot_expr && end_of_expr?
     cloned = clone
     begin
-      while cloned.line == line
-        cloned.parse_expr!
-        break if cloned.end_of_expr?
-        cloned.consume! :comma
-      end
+      cloned.parse_function_call_args_without_paren!
     rescue AssertionError
       return false
     else
@@ -112,11 +108,13 @@ module Functions
   def parse_anon_function_def!
     _, c, _ = consume! :fn
     args = []
-    while peek_type != :"=>"
-      line, c1, value = consume! :identifier
-      args.push AST::function_argument(value, line, c1)
+    if prev_token_line == self.line
+      while peek_type != :"=>"
+        line, c1, value = consume! :identifier
+        args.push AST::function_argument(value, line, c1)
+      end
+      consume! :"=>"
     end
-    consume! :"=>"
     fn_line = self.line
     @token_index, body = clone(
       indentation: @indentation + 2,
@@ -143,8 +141,8 @@ module Functions
     return args if peek_type == :comma
     until end_of_expr?
       args.push parse_expr!
-      break if end_of_expr?(:comma)
-      consume! :comma
+      break if peek_type != :fn && end_of_expr?(:comma)
+      consume! :comma if peek_type != :fn
     end
     args
   end
