@@ -1,5 +1,5 @@
-Spec.new "Record" fn c =>
-  c.it "#__plus__ should eq" fn
+Spec.new Record do |c|
+  c.it "#__plus__ should eq" do
     expect({ a: 10 } + { b: 20 }).to eq({ a: 10, b: 20 })
   end
 end

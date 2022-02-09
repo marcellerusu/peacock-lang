@@ -12,7 +12,7 @@ Schemas are how we describe the state in our program
 
 ```
 # Helper schemas that would be provided by peacock
-schema NotNil = fn val => !val.nil? end
+schema NotNil =  #{ !%.nil? }
 schema Loading = { loading: true }
 schema Loaded = { loading: false, error: nil }
 schema Error = { loading: false, error: NotNil }

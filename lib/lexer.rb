@@ -103,8 +103,8 @@ module Lexer
         tokens.push [line, column, :close_custom_element_tag, scanner.captures.first]
       when scanner.scan(/self\b/)
         tokens.push [line, column, :self]
-      when scanner.scan(/fn\b/)
-        tokens.push [line, column, :fn]
+      when scanner.scan(/do\b/)
+        tokens.push [line, column, :do]
       when scanner.scan(/case\b/)
         tokens.push [line, column, :case]
       when scanner.scan(/of\b/)
@@ -163,6 +163,8 @@ module Lexer
         tokens.push [line, column, :"="]
       when scanner.scan(/\|\|/)
         tokens.push [line, column, :"||"]
+      when scanner.scan(/\|/)
+        tokens.push [line, column, :"|"]
       when scanner.scan(/&&/)
         tokens.push [line, column, :"&&"]
       when scanner.scan(/\|/)

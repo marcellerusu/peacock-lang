@@ -156,7 +156,7 @@ class Parser
       parse_custom_element!
     when type == :open_brace
       parse_record!
-    when type == :fn
+    when type == :do
       parse_anon_function_def!
     when type == :if
       node = parse_if_expression!

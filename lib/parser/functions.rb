@@ -106,14 +106,16 @@ module Functions
   end
 
   def parse_anon_function_def!
-    _, c, _ = consume! :fn
+    _, c, _ = consume! :do
     args = []
-    if prev_token_line == self.line
-      while peek_type != :"=>"
+    if peek_type == :"|"
+      consume! :"|"
+      while peek_type != :"|"
         line, c1, value = consume! :identifier
         args.push AST::function_argument(value, line, c1)
+        consume! :comma unless peek_type == :"|"
       end
-      consume! :"=>"
+      consume! :"|"
     end
     fn_line = self.line
     @token_index, body = clone(
@@ -141,7 +143,7 @@ module Functions
     return args if peek_type == :comma
     until end_of_expr?
       args.push parse_expr!
-      next if peek_type == :fn
+      next if peek_type == :do
       break if end_of_expr?(:comma)
       consume! :comma
     end
