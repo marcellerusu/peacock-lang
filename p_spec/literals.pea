@@ -1,4 +1,4 @@
-Unit.new "Record", fn c =>
+Spec.new "Record", fn c =>
   c.it "#__plus__ should eq", fn =>
     expect({ a: 10 } + { b: 20 }).to eq({ a: 10, b: 20 })
   end

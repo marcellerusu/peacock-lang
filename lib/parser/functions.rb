@@ -118,10 +118,10 @@ module Functions
     end
     consume! :"=>"
     fn_line = self.line
-    expr_context.push! :function
-    expr = parse_expr!
-    expr_context.pop! :function
-    body = [AST::return(expr, self.line, expr[:column])]
+    @token_index, body = clone(
+      indentation: @indentation + 2,
+      parser_context: parser_context.clone.push!(:function),
+    ).parse_with_position!
     consume! :end
     # TODO: none 1-liners
     AST::function args, body, fn_line, c

@@ -55,7 +55,7 @@ class Compiler
     code += schema_lib
     code += css_preprocessor
     code += literals
-    code += punit
+    code += pspec
     code += "const Peacock = {\n"
     indent!
     code += padding + "symbol: symName => __Symbols[symName] || (__Symbols[symName] = Symbol(symName)),\n"
@@ -63,8 +63,8 @@ class Compiler
     code += "};\n"
   end
 
-  def punit
-    File.read(File.dirname(__FILE__) + "/pea_std_lib/punit.js")
+  def pspec
+    File.read(File.dirname(__FILE__) + "/pea_std_lib/pspec.js")
   end
 
   def literals

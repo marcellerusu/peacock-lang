@@ -97,7 +97,7 @@ class Parser
   def parse_with_position!(end_tokens = [])
     @ast = []
     @ast.push module_def if parser_context.empty?
-    while more_tokens? && still_indented?
+    while more_tokens? && still_indented? && peek_type != :end
       break if end_tokens.include? peek_type
       if peek_type == :export
         @ast.push(*parse_export!)
