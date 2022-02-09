@@ -141,8 +141,9 @@ module Functions
     return args if peek_type == :comma
     until end_of_expr?
       args.push parse_expr!
-      break if peek_type != :fn && end_of_expr?(:comma)
-      consume! :comma if peek_type != :fn
+      next if peek_type == :fn
+      break if end_of_expr?(:comma)
+      consume! :comma
     end
     args
   end
