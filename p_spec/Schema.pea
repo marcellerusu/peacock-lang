@@ -1,0 +1,8 @@
+Spec.new Schema do |c|
+  c.it "schema operator" do
+    schema Loading = { loading: true }
+    schema LoadingUser = Loading & { id, name }
+
+    LoadingUser(user) := { loading: true, id: 10, name: "marcelle" }
+  end
+end
