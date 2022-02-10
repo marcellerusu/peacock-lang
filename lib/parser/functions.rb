@@ -67,28 +67,46 @@ module Functions
   def parse_function_args_schema!
     args = []
     matches = []
+    # in case of
+    # def f = 0
+    # OR
+    # def f
+    #   function_code()
+    # end
+    if peek_type == :"=" || prev_token_line != self.line
+      args_schema = function_call [AST::array(args)], schema_for
+      return args_schema, matches
+    end
+    list_schema_index = 0
+    consume! :open_parenthesis
     expr_context.push! :declare
-    index = 0
-    while peek_type != :"="
-      schema, new_matches = parse_schema_literal! index
+    while peek_type != :close_parenthesis
+      schema, new_matches = parse_schema_literal! list_schema_index
       args.push schema
+      consume! :comma unless peek_type == :close_parenthesis
       matches += new_matches
-      index += 1
+      list_schema_index += 1
     end
     expr_context.pop! :declare
+    consume! :close_parenthesis
     args_schema = function_call [AST::array(args)], schema_for
     return args_schema, matches
   end
 
-  def parse_function_def!(sym_expr)
+  def parse_function_def!
+    consume! :def
+    sym_line, sym_c, sym_name = consume! :identifier
     args_schema, matches = parse_function_args_schema!
-    consume! :"="
+    is_is_single_expr = false
+    if peek_type == :"="
+      is_single_expr = true
+      consume! :"="
+    end
     fn_line = line
     if new_line?
-      @token_index, body = clone(
-        indentation: @indentation + 2,
-        parser_context: parser_context.clone.push!(:function),
-      ).parse_with_position!
+      assert { !is_single_expr }
+      @token_index, body = clone(parser_context: parser_context.clone.push!(:function)).parse_with_position!
+      consume! :end
     else
       return_c = column
       expr = parse_expr!
@@ -101,8 +119,8 @@ module Functions
         eval_path_on_expr(path, AST::identifier_lookup("__VALUE"))
       )
     end + body
-    function = AST::function([AST::function_argument("__VALUE")], body, fn_line, sym_expr[:column])
-    AST::declare(sym_expr, args_schema, function)
+    function = AST::function([AST::function_argument("__VALUE")], body, fn_line, sym_c)
+    AST::declare(sym_name, args_schema, function, sym_line, sym_c)
   end
 
   def parse_anon_function_def!
@@ -118,12 +136,8 @@ module Functions
       consume! :"|"
     end
     fn_line = self.line
-    @token_index, body = clone(
-      indentation: @indentation + 2,
-      parser_context: parser_context.clone.push!(:function),
-    ).parse_with_position!
+    @token_index, body = clone(parser_context: parser_context.clone.push!(:function)).parse_with_position!
     consume! :end
-    # TODO: none 1-liners
     AST::function args, body, fn_line, c
   end
 

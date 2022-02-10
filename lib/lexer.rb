@@ -105,6 +105,8 @@ module Lexer
         tokens.push [line, column, :self]
       when scanner.scan(/do\b/)
         tokens.push [line, column, :do]
+      when scanner.scan(/def\b/)
+        tokens.push [line, column, :def]
       when scanner.scan(/case\b/)
         tokens.push [line, column, :case]
       when scanner.scan(/of\b/)

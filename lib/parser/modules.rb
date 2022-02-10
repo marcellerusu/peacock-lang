@@ -28,7 +28,7 @@ module Modules
     else
       computed_files.push var_name
       tokens = Lexer::tokenize program
-      ast = Parser.new(tokens, 0, 0, nil, nil, false).parse!
+      ast = Parser.new(tokens, 0, nil, nil, false).parse!
       file_expr = AST::function_call(
         [],
         AST::function(

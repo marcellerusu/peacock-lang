@@ -218,12 +218,12 @@ describe Parser do
       ])
     end
 
-    it "add a b = a + b" do
-      ast = parse("add a b = a + b")
+    it "def add(a, b) = a + b" do
+      ast = parse("def add(a, b) = a + b")
       expect(ast).to ast_eq([
         init_module,
         AST::declare(
-          { sym: "add" },
+          "add",
           schema_for(AST::array([schema_any("a"), schema_any("b")])),
           AST::function(
             [AST::function_argument("__VALUE")],
@@ -239,14 +239,15 @@ describe Parser do
         ),
       ])
     end
-    it "add a b =\n  return a + b" do
+    it "def add(a, b)\n  return a + b\nend" do
       ast = parse("
-        add a b =
-          return a + b")
+        def add(a, b)
+          return a + b
+        end")
       expect(ast).to ast_eq([
         init_module,
         AST::declare(
-          { sym: "add" },
+          "add",
           schema_for(AST::array([schema_any("a"), schema_any("b")])),
           AST::function(
             [AST::function_argument("__VALUE")],
@@ -370,45 +371,6 @@ describe Parser do
     end
   end
 
-  context "class" do
-    it "Num" do
-      ast = parse("
-class Num val =
-  add other = @val + other
-")
-      expect(ast).to ast_eq([
-        init_module,
-        AST::class(
-          "Num",
-          nil,
-          [AST::function_argument("val")],
-          [AST::declare(
-            { sym: "add" },
-            schema_for(AST::array([schema_any("other")])),
-            AST::function(
-              [AST::function_argument("__VALUE")],
-              [
-                AST::assignment("other", lookup(AST::identifier_lookup("__VALUE"), 0)),
-                AST::return(
-                  AST::function_call(
-                    [AST::naked_or(
-                      try_eval("other"),
-                      AST::function_call([],
-                                         AST::instance_method_lookup("other"))
-                    )],
-                    AST::dot(
-                      AST::instance_lookup("val"),
-                      "__plus__"
-                    )
-                  )
-                ),
-              ]
-            )
-          )]
-        ),
-      ])
-    end
-  end
   context "case", :i do
     it "array single element" do
       ast = parse("

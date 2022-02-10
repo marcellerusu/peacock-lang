@@ -199,6 +199,8 @@ class Compiler
       eval_case_expression node
     when :naked_or
       eval_naked_or node
+    when :instance_assign
+      eval_instance_assign node
     else
       puts "no case matched node_type: #{node[:node_type]}"
       assert { false }
@@ -295,6 +297,10 @@ class Compiler
     "const #{sub_q(node[:sym])} = #{eval_expr(node[:expr])}"
   end
 
+  def eval_instance_assign(node)
+    "this.#{sub_q(node[:sym])} = #{eval_expr(node[:expr])}"
+  end
+
   def eval_assignment(node)
     "#{sub_q(node[:sym])} = #{eval_expr(node[:expr])}"
   end
@@ -327,30 +333,28 @@ class Compiler
   end
 
   def eval_class_definition(node)
-    class_name, args, methods = node[:sym], node[:args].map { |arg| arg[:sym] }, node[:methods]
-
-    def method_args(node)
-      node[:args].map { |arg| arg[:sym] }.join(", ")
-    end
+    class_name, method_nodes = node[:sym], node[:methods]
 
     def method_body(node)
       body = Compiler.new(node[:body], @indent + 2).eval
     end
 
-    def constructor(node, args, class_name)
-      if !node[:super_class].nil?
-        ""
-      else
-        "
-  constructor(#{args.join(", ")}) {
-    #{args.map { |arg|
-          "this.#{arg} = #{arg};"
-        }.join("\n").strip()}
-  }
-  static [\"new\"](#{args.join(", ")}) {
-    return new this(#{args.join(", ")});
+    def constructor(node, class_name, method_nodes)
+      con = "  constructor(...args) {"
+      con += "super(...args);" if node[:super_class]
+      con += method_nodes.map { |n|
+        name = sub_q(n[:sym])
+        "this.#{name} = this.#{name}.bind(this);"
+      }.join("\n").strip()
+      con += "this.init && this.init(...args);"
+      con += "}"
+      if !node[:super_class]
+        con += "
+  static [\"new\"](...args) {
+    return new this(...args);
   }".strip
       end
+      con
     end
 
     def extends(node)
@@ -361,8 +365,8 @@ class Compiler
     # binding.pry
     class_def = <<-EOF
 class #{class_name} #{extends node} {
-  #{constructor node, args, class_name}
-  #{collapse_function_overloading methods, true}
+  #{constructor(node, class_name, method_nodes)}
+  #{collapse_function_overloading(method_nodes, true)}
 }
 EOF
     class_def.strip()

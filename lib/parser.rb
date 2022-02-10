@@ -43,10 +43,9 @@ class Parser
     @@computed_files ||= []
   end
 
-  def initialize(tokens, token_index = 0, indentation = 0, parser_context = nil, expr_context = nil, first_run = true)
+  def initialize(tokens, token_index = 0, parser_context = nil, expr_context = nil, first_run = true)
     @tokens = tokens
     @token_index = token_index
-    @indentation = indentation
     @parser_context = parser_context
     @expr_context = expr_context
     if first_run
@@ -70,11 +69,10 @@ class Parser
     @@unused_count = 0
   end
 
-  def clone(tokens: nil, token_index: nil, indentation: nil, parser_context: nil, expr_context: nil)
+  def clone(tokens: nil, token_index: nil, parser_context: nil, expr_context: nil)
     Parser.new(
       tokens || @tokens,
       token_index || @token_index,
-      indentation || @indentation,
       parser_context || @parser_context,
       expr_context || @expr_context,
       false
@@ -97,7 +95,7 @@ class Parser
   def parse_with_position!(end_tokens = [])
     @ast = []
     @ast.push module_def if parser_context.empty?
-    while more_tokens? && still_indented? && peek_type != :end
+    while more_tokens? && peek_type != :end
       break if end_tokens.include? peek_type
       if peek_type == :export
         @ast.push(*parse_export!)
@@ -156,6 +154,8 @@ class Parser
       parse_custom_element!
     when type == :open_brace
       parse_record!
+    when type == :def
+      parse_function_def!
     when type == :do
       parse_anon_function_def!
     when type == :if
@@ -190,12 +190,12 @@ class Parser
     return sym_expr if expr_context.directly_in_a? :html_tag
     type = peek_type
     node = case
+      when type == :assign
+        parse_instance_assignment! sym_expr
       when function_call?(sym_expr)
         parse_function_call! sym_expr
       when end_of_file?
         return sym_expr
-      when function?
-        return parse_function_def! sym_expr
       when type == :open_square_bracket
         parse_dynamic_lookup! sym_expr
       when type == :& && peek_type(1) == :open_square_bracket
@@ -255,6 +255,14 @@ class Parser
     else
       node
     end
+  end
+
+  def parse_instance_assignment!(lhs)
+    consume! :assign
+    expr_context.push! :assignment
+    expr = parse_expr!
+    expr_context.pop! :assignment
+    AST::instance_assignment lhs, expr
   end
 
   def parse_assignment!

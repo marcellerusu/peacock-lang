@@ -4,19 +4,15 @@ module Classes
     line, _ = consume! :class
     _, c, class_name = consume! :identifier
     super_class = parse_super_class!
-    args = parse_class_args! if super_class.nil?
-    consume! :"="
+    # args = parse_class_args! if super_class.nil?
     assert { new_line? }
-    @token_index, methods = clone(
-      indentation: @indentation + 2,
-      parser_context: parser_context.clone.push!(:class),
-    ).parse_with_position!
+    @token_index, methods = clone(parser_context: parser_context.clone.push!(:class)).parse_with_position!
+    consume! :end
     assert { methods.all? { |node| node[:node_type] == :declare } }
     expr_context.pop! :class
     AST::class(
       class_name,
       super_class,
-      args || [],
       methods,
       line,
       c

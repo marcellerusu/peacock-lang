@@ -184,12 +184,20 @@ module AST
       sym: sym }
   end
 
-  def self.declare(sym_expr, schema, expr)
+  def self.declare(sym, schema, expr, line = nil, c = nil)
     { node_type: :declare,
-      sym: sym_expr[:sym],
-      line: sym_expr[:line],
-      column: sym_expr[:column],
+      sym: sym,
+      line: line,
+      column: c,
       schema: schema,
+      expr: expr }
+  end
+
+  def self.instance_assignment(lhs, expr)
+    { node_type: :instance_assign,
+      sym: lhs[:sym],
+      line: lhs[:line],
+      column: lhs[:column],
       expr: expr }
   end
 
@@ -283,11 +291,10 @@ module AST
       column: column }
   end
 
-  def self.class(name, super_class, args, methods, line = nil, column = nil)
+  def self.class(name, super_class, methods, line = nil, column = nil)
     { node_type: :class,
       sym: name,
       super_class: super_class,
-      args: args,
       methods: methods,
       line: line,
       column: column }

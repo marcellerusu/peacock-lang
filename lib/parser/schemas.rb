@@ -12,10 +12,7 @@ module Schemas
     while peek_type != :end
       schema, matches = parse_schema_literal!
       consume! :"=>"
-      @token_index, body = clone(
-        indentation: @indentation + 2,
-        parser_context: parser_context.clone.push!(:function),
-      ).parse_with_position!
+      @token_index, body = clone(parser_context: parser_context.clone.push!(:function)).parse_with_position!
       fn = AST::function(
         [AST::function_argument(match_arg_name)],
         matches.map do |path_and_sym|

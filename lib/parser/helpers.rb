@@ -47,11 +47,6 @@ module Helpers
     @token_index < @tokens.size
   end
 
-  def still_indented?
-    assert { !column.nil? }
-    column >= @indentation
-  end
-
   def token
     @tokens[@token_index]
   end

@@ -1,13 +1,10 @@
 # Implement splat operator
 print({ *{ id: 10 }, name: "Marcelle" })
 
+f({ user: User(u) }) = u
+
 # top level paren-less calling
 f 3
-
-# named params for anon functions
-f.each #{ |name|
-  print(name)
-}
 
 # TODO
 # [v high] Element#refresh_children
@@ -29,5 +26,12 @@ f.each #{ |name|
 # 
 
 # List schema should check bound variables
-can_update_document { id } { id } =
-  print(name)
+schema Same = [id, id]
+Same(a) := [1, 2] # fails
+
+# rendering custom elements at base line
+class Main < Element
+  def view(_, _, _)
+    <User name="marcelle" />
+  end
+end

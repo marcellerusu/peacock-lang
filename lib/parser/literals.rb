@@ -51,7 +51,6 @@ module Literals
           ast = clone(
             tokens: group[:tokens],
             token_index: 0,
-            indentation: 0,
             parser_context: parser_context.clone.push!(:str),
           ).parse!
           assert { ast.size == 1 }
