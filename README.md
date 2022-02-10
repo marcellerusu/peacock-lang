@@ -11,36 +11,38 @@ Inspired by the power of clojure spec & the joy of ruby
 Schemas are how we describe the state in our program
 
 ```
-# Helper schemas that would be provided by peacock
-schema NotNil =  #{ !%.nil? }
 schema Loading = { loading: true }
 schema Loaded = { loading: false, error: nil }
-schema Error = { loading: false, error: NotNil }
+schema WebError = { loading: false, error: NotNil }
 
 # User code
 schema User = { id, email, created_at }
 
-class UserAdmin < Element =
-  style Loading _ _ = "background: grey;"
-  style Error _ _ = "background: red;"
-  style Loaded _ _ = "background: green;"
+class UserAdmin < Element
+  def style(Loading, _, _) = "background: grey;"
+  def style(WebError, _, _) = "background: red;"
+  def style(Loaded, _, _) = "background: green;"
 
-  view Loading _ _ =
+  view (Loading, _, _)
     <div>
       Loading user!
     </div>
-  view Error _ _ =
+  end
+  view (Error, _, _)
     <div>
       Error loading user
     </div>
-  view User({ email, created_at }) _ _ =
+  end
+  view (User({ email, created_at }), _, _)
     <div>
       User details
       <div>[email = {email}]</div>
       <div>[created_at = {created_at}]</div>
     </div>
+  end
+end
 ```
 
 ### Immutable data structures
 
-The core data structures are `List` `Record` `Int` `Float` `Str` `Sym`, all of which are immutable [will implement collections as persistent immutable structures]
+The core data structures are `List` `Record` `Int` `Float` `Str` `Sym` `Nil`, all of which are immutable [will implement collections as persistent immutable structures]
