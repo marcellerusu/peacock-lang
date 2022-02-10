@@ -3,6 +3,8 @@ Spec.new Schema do |c|
     schema Loading = { loading: true }
     schema LoadingUser = Loading & { id, name }
 
-    LoadingUser(user) := { loading: true, id: 10, name: "marcelle" }
+    user := { loading: true, id: 10, name: "marcelle" }
+    LoadingUser(valid_user) := user
+    expect(valid_user).to eq(user)
   end
 end
