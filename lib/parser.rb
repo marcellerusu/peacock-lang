@@ -134,41 +134,41 @@ class Parser
       parse_str!
     when type == :nil
       parse_nil!
+    when type == :open_square_bracket
+      parse_array!
+    when type == :open_brace
+      parse_record!
     when type == :bang
       parse_bang!
     when type == :open_parenthesis
       parse_paren_expr!
-    when type == :schema
-      parse_schema!
     when type == :identifier && peek_type(1) == :assign
       parse_assignment!
+    when type == :identifier
+      parse_identifier!
     when type == :property
       parse_property!
-    when type == :class
-      parse_class_definition!
-    when type == :open_square_bracket
-      parse_array!
     when type == :open_html_tag
       parse_html_tag!
     when type == :open_custom_element_tag
       parse_custom_element!
-    when type == :open_brace
-      parse_record!
+    when type == :class
+      parse_class_definition!
     when type == :def
       parse_function_def!
     when type == :do
       parse_anon_function_def!
-    when type == :if
-      node = parse_if_expression!
-      modify_if_statement_for_context node
-    when type == :identifier
-      parse_identifier!
-    when type == :case
-      parse_case_expression!
     when type == :anon_short_fn_start
       parse_anon_function_shorthand!
     when type == :anon_short_id
       parse_anon_short_id!
+    when type == :if
+      node = parse_if_expression!
+      modify_if_statement_for_context node
+    when type == :schema
+      parse_schema!
+    when type == :case
+      parse_case_expression!
     else
       puts "no match [parse_expr!] :#{type}"
       assert { false }
