@@ -1,10 +1,6 @@
-import { Child } from "./rspec_child"
+schema Loading = { loading: true }
+schema LoadingUser = Loading & { id, name }
 
-class Main < Element
-  def style(_, is_on, _) = "cursor: pointer;"
-  def view(_, _, _)
-    <div>
-      <Child />
-    </div>
-  end
-end
+LoadingUser(user) := { loading: true, id: 10, name: "marcelle" }
+
+print(user)

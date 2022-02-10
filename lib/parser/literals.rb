@@ -91,7 +91,7 @@ module Literals
       value = if peek_type == :colon
           consume! :colon
           parse_expr!
-        elsif expr_context.directly_in_a? :schema
+        elsif expr_context.in_a? :schema
           sym = extract_data_from_constructor(key)
           call_schema_any sym[:sym]
         elsif literal_is_a?(key, "Sym")
