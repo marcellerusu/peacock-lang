@@ -109,7 +109,7 @@ module Helpers
 
   def end_of_expr?(*excluding)
     return false if excluding.include? peek_type
-    closing_tags = [:close_parenthesis, :close_brace, :close_square_bracket, :of, :then]
+    closing_tags = [:close_parenthesis, :close_brace, :close_square_bracket, :end, :then]
     new_line? ||
     closing_tags.include?(peek_type) ||
     property_accessor? ||

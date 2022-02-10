@@ -7,4 +7,12 @@ Spec.new Schema do |c|
     LoadingUser(valid_user) := user
     expect(valid_user).to eq(user)
   end
+  
+  c.it "case expr" do
+    val := case [1]
+      when [a]
+        a
+      end
+    expect(val).to eq(1)
+  end
 end

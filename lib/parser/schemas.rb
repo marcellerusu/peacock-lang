@@ -6,13 +6,12 @@ module Schemas
   def parse_case_expression!
     consume! :case
     value = parse_expr!
-    consume! :of
     cases = []
     match_arg_name = "match_expr"
     while peek_type != :end
+      consume! :when
       schema, matches = parse_schema_literal!
-      consume! :"=>"
-      @token_index, body = clone(parser_context: parser_context.clone.push!(:function)).parse_with_position!
+      @token_index, body = clone(parser_context: parser_context.clone.push!(:function)).parse_with_position! [:when]
       fn = AST::function(
         [AST::function_argument(match_arg_name)],
         matches.map do |path_and_sym|

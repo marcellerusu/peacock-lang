@@ -1,6 +1,8 @@
-schema Loading = { loading: true }
-schema LoadingUser = Loading & { id, name }
+class Test
+  def f(a) = case a
+    when {b}
+      b
+    end
+end
 
-LoadingUser(user) := { loading: true, id: 10, name: "marcelle" }
-
-print(user)
+print(Test.new.f {b: 3})

@@ -35,3 +35,8 @@ class Main < Element
     <User name="marcelle" />
   end
 end
+
+# `else` in `case`
+case val
+else
+end
