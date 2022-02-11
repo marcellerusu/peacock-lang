@@ -1,4 +1,5 @@
-# Peacock
+
+# <img src="https://user-images.githubusercontent.com/7607387/153535569-5c42a9a9-73bb-447a-a0d9-7aa521ebd52f.png" height=50 /> Peacock
 
 A dynamic functional language aimed at bringing joy to the front-end
 
@@ -9,6 +10,7 @@ Inspired by the power of clojure spec & the joy of ruby
 ### Schemas
 
 Schemas are how we describe the state in our program
+
 
 ```
 schema Loading = { loading: true }
