@@ -21,4 +21,30 @@ Spec.new Schema do |c|
     [{ b: { a } }] := [{ b: { a: 1 } }]
     expect(a).to eq(1)
   end
+
+  c.it "function overloading - record" do
+    def f({ a }) = a
+    def f([ a ]) = a
+    expect(f({ a: 10 })).to eq(10)
+  end
+
+  c.it "function overloading - list" do
+    def f({ a }) = a
+    def f([ a ]) = a
+    expect(f([10])).to eq(10)
+  end
+
+  c.it "literal nil" do
+    def f(nil) = true
+
+    expect(f(nil)).to eq(true)
+  end
+
+  c.it "schema lookup deconstruction from function" do
+    schema User = { id }
+
+    def f(User({ id })) = id
+
+    expect(f({ id: 10 })).to eq(10)
+  end
 end

@@ -1,1 +1,8 @@
-print({ *{ id: 10 }, name: "Marcelle" })
+class Test
+  def f(a) = case a
+    when {b}
+      b
+    end
+end
+
+print(Test.new.f {b: 3})

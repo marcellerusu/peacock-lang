@@ -1,0 +1,11 @@
+Spec.new "general" do |c|
+  c.it "js_lookup" do
+    class Test
+      def try_it_out
+        js_lookup console, "constructor", "name"
+      end
+    end
+
+    expect(Test.new.try_it_out).to eq("Object")
+  end
+end
