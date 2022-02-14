@@ -8,3 +8,4 @@ yarn.lock
 index.html
 rspec*.pea
 test.js
+.DS_Store
