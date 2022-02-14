@@ -1,4 +1,3 @@
-
 # <img src="https://user-images.githubusercontent.com/7607387/153535569-5c42a9a9-73bb-447a-a0d9-7aa521ebd52f.png" height=50 /> Peacock
 
 A dynamic functional language aimed at bringing joy to the front-end
@@ -11,13 +10,11 @@ Inspired by the power of clojure spec & the joy of ruby
 
 Schemas are how we describe the state in our program
 
-
 ```
 schema Loading = { loading: true }
 schema Loaded = { loading: false, error: nil }
 schema WebError = { loading: false, error: NotNil }
 
-# User code
 schema User = { id, email, created_at }
 
 class UserAdmin < Element
@@ -25,17 +22,17 @@ class UserAdmin < Element
   def style(WebError, _, _) = "background: red;"
   def style(Loaded, _, _) = "background: green;"
 
-  view (Loading, _, _)
+  def view(Loading, _, _)
     <div>
       Loading user!
     </div>
   end
-  view (Error, _, _)
+  def view(Error, _, _)
     <div>
       Error loading user
     </div>
   end
-  view (User({ email, created_at }), _, _)
+  def view(User({ email, created_at }), _, _)
     <div>
       User details
       <div>[email = {email}]</div>
