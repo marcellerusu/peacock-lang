@@ -1,3 +1,1 @@
-obj := { *{ a: 3 }, a: 10 }
-
-print(obj)
+print({ *{ id: 10 }, name: "Marcelle" })

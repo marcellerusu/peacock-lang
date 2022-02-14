@@ -1,6 +1,3 @@
-# Implement splat operator
-print({ *{ id: 10 }, name: "Marcelle" })
-
 f({ user: User(u) }) = u
 
 # top level paren-less calling
@@ -36,7 +33,12 @@ class Main < Element
   end
 end
 
-# `else` in `case`
+# `else` in `case` - maybe we don't need this??
 case val
 else
 end
+
+
+# export default
+
+export default value
