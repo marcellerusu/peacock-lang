@@ -75,12 +75,15 @@ module AST
     )
   end
 
-  def self.record(value, line = nil, c = nil)
+  def self.record(value, splats = AST::array([]), line = nil, c = nil)
     AST::literal_constructor(
-      { node_type: :record_lit,
-        line: line,
-        column: c,
-        value: value },
+      [
+        { node_type: :record_lit,
+          line: line,
+          column: c,
+          value: value },
+        splats,
+      ],
       "Record"
     )
   end
@@ -261,9 +264,10 @@ module AST
       expr: expr }
   end
 
-  def self.literal_constructor(value_expr, type_name, line = nil, c = nil)
+  def self.literal_constructor(args, type_name, line = nil, c = nil)
+    args = [args] unless args.is_a? Array
     AST::function_call(
-      [value_expr],
+      args,
       AST::dot(
         AST::identifier_lookup(type_name, line, c),
         [line, c, "new"],

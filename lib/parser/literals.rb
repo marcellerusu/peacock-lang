@@ -83,28 +83,51 @@ module Literals
     end
   end
 
+  def try_parse_record_splat!(index)
+    return nil if peek_type != :*
+    line, c = consume! :*
+    splat = parse_expr!
+    AST::record({
+      AST::sym("splat") => splat,
+      AST::sym("index") => AST::int(index),
+    }, AST::array([]), line, c)
+  end
+
   def parse_record!
     line, c, _ = consume! :open_brace
     record = {}
+    splats = []
+    i = 0
     while peek_type != :close_brace
-      key = parse_record_key!
-      value = if peek_type == :colon
-          consume! :colon
-          parse_expr!
-        elsif expr_context.in_a? :schema
-          sym = extract_data_from_constructor(key)
-          call_schema_any sym[:sym]
-        elsif literal_is_a?(key, "Sym")
-          sym = extract_data_from_constructor(key)
-          AST::identifier_lookup sym[:value], sym[:line], sym[:column]
-        else
-          assert_not_reached
-        end
-      record[key] = value
+      splat = try_parse_record_splat!(i)
+      i += 1
+      if splat
+        splats.push splat
+      else
+        key = parse_record_key!
+        value = if peek_type == :colon
+            consume! :colon
+            parse_expr!
+          elsif expr_context.in_a? :schema
+            sym = extract_data_from_constructor(key)
+            call_schema_any sym[:sym]
+          elsif literal_is_a?(key, "Sym")
+            sym = extract_data_from_constructor(key)
+            AST::identifier_lookup sym[:value], sym[:line], sym[:column]
+          else
+            assert_not_reached
+          end
+        record[key] = value
+      end
       consume! :comma unless peek_type == :close_brace
     end
     consume! :close_brace
-    node = AST::record(record, line, c)
+    node = AST::record(
+      record,
+      AST::array(splats.compact),
+      line,
+      c
+    )
     return parse_match_assignment_without_schema!(node) if peek_type == :assign
     parse_id_modifier_if_exists!(node)
   end

@@ -6,7 +6,7 @@ def comp_init_module
   "let pea_module;
 pea_module = Record.new([
 
-]);\n"
+], List.new([]));\n"
 end
 
 describe Compiler do
@@ -45,7 +45,7 @@ describe Compiler do
       expect(js).to eq("#{comp_init_module}Record.new([
   [Sym.new(Peacock.symbol(\"a\")), Int.new(3)],
   [Sym.new(Peacock.symbol(\"b\")), List.new([Int.new(1), Float.new(2.3), Str.new(`s`)])]
-]);")
+], List.new([]));")
     end
     it "{a: 3, b: [1, 2.3, \"s\"], c: { d: 3 }}" do
       tokens = Lexer::tokenize("{a: 3, b: [1, 2.3, \"s\"], c: { d: 3 }}")
@@ -56,8 +56,8 @@ describe Compiler do
   [Sym.new(Peacock.symbol(\"b\")), List.new([Int.new(1), Float.new(2.3), Str.new(`s`)])],
   [Sym.new(Peacock.symbol(\"c\")), Record.new([
     [Sym.new(Peacock.symbol(\"d\")), Int.new(3)]
-  ])]
-]);")
+  ], List.new([]))]
+], List.new([]));")
     end
   end
 end

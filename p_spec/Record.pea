@@ -2,4 +2,18 @@ Spec.new Record do |c|
   c.it "#__plus__ should eq" do
     expect({ a: 10 } + { b: 20 }).to eq({ a: 10, b: 20 })
   end
+
+  c.it "lookup on literal" do
+    expect({ a: "str"}[:a]).to eq("str")
+  end
+  
+  c.it "lookup on var" do
+    r := { a: "str"}
+    expect(r[:a]).to eq("str")
+  end
+
+  c.it "lookup with a string" do
+    r := { ["key"]: "str"}
+    expect(r["key"]).to eq("str")
+  end
 end

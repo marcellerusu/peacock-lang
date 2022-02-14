@@ -9,9 +9,10 @@ Spec.new Schema do |c|
   end
   
   c.it "case expr" do
-    val := case [1]
-      when [a]
-        a
+    val :=
+      case [1]
+        [a] ->
+          a
       end
     expect(val).to eq(1)
   end
