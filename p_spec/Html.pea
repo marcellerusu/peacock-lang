@@ -1,0 +1,6 @@
+Spec.new "Html" do |c|
+  c.it "h1 inner text" do
+    h1 := <h1>inner text...</h1>
+    expect(h1.inner_text).to eq("inner text...")
+  end
+end
