@@ -11,7 +11,7 @@ Spec.new Schema do |c|
   c.it "case expr" do
     val :=
       case [1]
-        [a] ->
+      when [a]
           a
       end
     expect(val).to eq(1)
