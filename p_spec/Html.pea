@@ -35,7 +35,7 @@ Spec.new "Html" do |c|
     expect(Main.new.inner_text).to eq("this is my home page.&yo")
   end
 
-  c.it ":children" do
+  c.it "props[:children] should render" do
     class Child < Element
       def view({ children }, _, _)
         <div>
