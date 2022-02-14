@@ -16,4 +16,17 @@ Spec.new Record do |c|
     r := { ["key"]: "str"}
     expect(r["key"]).to eq("str")
   end
+
+  c.it "splat on literal" do
+    expect({ *{ a: 3 }, b: 10 }).to eq({ a: 3, b: 10 })
+  end
+
+  c.it "splat on lookup" do
+    obj := { a: 3 }
+    expect({ *obj, b: 10 }).to eq({ a: 3, b: 10 })
+  end
+
+  c.it "splat duplicate key" do
+    expect({ *{ a: 3 }, a: 10 }).to eq({ a: 10 })
+  end
 end
