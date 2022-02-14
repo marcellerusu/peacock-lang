@@ -42,3 +42,5 @@ end
 # export default
 
 export default value
+
+# tests with real dom

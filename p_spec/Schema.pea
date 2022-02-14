@@ -16,4 +16,9 @@ Spec.new Schema do |c|
       end
     expect(val).to eq(1)
   end
+
+  c.it "List deconstruction" do
+    [{ b: { a } }] := [{ b: { a: 1 } }]
+    expect(a).to eq(1)
+  end
 end

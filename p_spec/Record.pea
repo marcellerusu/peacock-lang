@@ -1,6 +1,10 @@
 Spec.new Record do |c|
-  c.it "#__plus__ should eq" do
+  c.it "#__plus__" do
     expect({ a: 10 } + { b: 20 }).to eq({ a: 10, b: 20 })
+  end
+
+  c.it "#__minus__" do
+    expect({ a: 3 } - [:a]).to eq({})
   end
 
   c.it "lookup on literal" do
@@ -32,5 +36,9 @@ Spec.new Record do |c|
 
   c.it "splat duplicate key - splat after" do
     expect({ a: 10, *{ a: 3 } }).to eq({ a: 3 })
+  end
+
+  c.it "#to_l" do
+    expect({a: 3, b: 5}.to_l).to eq([[:a, 3], [:b, 5]])
   end
 end
