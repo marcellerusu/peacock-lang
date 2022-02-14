@@ -43,4 +43,4 @@ end
 
 export default value
 
-# tests with real dom
+# pspec should not be a bash script!

@@ -51,16 +51,10 @@ class Compiler
   end
 
   def std_lib
-    code = "const __Symbols = {}\n"
-    code += schema_lib
+    code = schema_lib
     code += css_preprocessor
     code += literals
     code += pspec
-    code += "const Peacock = {\n"
-    indent!
-    code += padding + "symbol: symName => __Symbols[symName] || (__Symbols[symName] = Symbol(symName)),\n"
-    dedent!
-    code += "};\n"
   end
 
   def pspec
@@ -228,7 +222,7 @@ class Compiler
   end
 
   def eval_symbol(node)
-    "Peacock.symbol(\"#{node[:value]}\")"
+    "\"#{node[:value]}\""
   end
 
   def eval_str(node)

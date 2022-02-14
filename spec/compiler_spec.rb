@@ -43,8 +43,8 @@ describe Compiler do
       ast = Parser.new(tokens).parse!
       js = Compiler.new(ast).eval.strip
       expect(js).to eq("#{comp_init_module}Record.new([
-  [Sym.new(Peacock.symbol(\"a\")), Int.new(3)],
-  [Sym.new(Peacock.symbol(\"b\")), List.new([Int.new(1), Float.new(2.3), Str.new(`s`)])]
+  [Sym.new(\"a\"), Int.new(3)],
+  [Sym.new(\"b\"), List.new([Int.new(1), Float.new(2.3), Str.new(`s`)])]
 ], List.new([]));")
     end
     it "{a: 3, b: [1, 2.3, \"s\"], c: { d: 3 }}" do
@@ -52,10 +52,10 @@ describe Compiler do
       ast = Parser.new(tokens).parse!
       js = Compiler.new(ast).eval.strip
       expect(js).to eq("#{comp_init_module}Record.new([
-  [Sym.new(Peacock.symbol(\"a\")), Int.new(3)],
-  [Sym.new(Peacock.symbol(\"b\")), List.new([Int.new(1), Float.new(2.3), Str.new(`s`)])],
-  [Sym.new(Peacock.symbol(\"c\")), Record.new([
-    [Sym.new(Peacock.symbol(\"d\")), Int.new(3)]
+  [Sym.new(\"a\"), Int.new(3)],
+  [Sym.new(\"b\"), List.new([Int.new(1), Float.new(2.3), Str.new(`s`)])],
+  [Sym.new(\"c\"), Record.new([
+    [Sym.new(\"d\"), Int.new(3)]
   ], List.new([]))]
 ], List.new([]));")
     end
