@@ -26,7 +26,11 @@ Spec.new Record do |c|
     expect({ *obj, b: 10 }).to eq({ a: 3, b: 10 })
   end
 
-  c.it "splat duplicate key" do
+  c.it "splat duplicate key - splat first" do
     expect({ *{ a: 3 }, a: 10 }).to eq({ a: 10 })
+  end
+
+  c.it "splat duplicate key - splat after" do
+    expect({ a: 10, *{ a: 3 } }).to eq({ a: 3 })
   end
 end
