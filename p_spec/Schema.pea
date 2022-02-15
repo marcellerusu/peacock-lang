@@ -47,4 +47,12 @@ Spec.new Schema do |c|
 
     expect(f({ id: 10 })).to eq(10)
   end
+
+  c.it "splat destructuring" do
+    schema User = { id, email }
+
+    User({ id, *user }) := { id: 10, email: "email" }
+
+    expect([id, user]).to eq([id, { id: 10, email: "email" }])
+  end
 end
