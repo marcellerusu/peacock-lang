@@ -98,7 +98,7 @@ class Parser
     @ast = []
     @ast.push module_def if parser_context.empty?
     while more_tokens? && current_token.is_not_a?(:end)
-      break if current_token.one_of?(*end_tokens)
+      break if current_token.is_one_of?(*end_tokens)
       case current_token.type
       when :export
         @ast.push(*parse_export!)
@@ -127,9 +127,9 @@ class Parser
 
   def parse_expr!
     case
-    when current_token.one_of?(:int_lit, :float_lit, :symbol)
+    when current_token.is_one_of?(:int_lit, :float_lit, :symbol)
       parse_lit! current_token.type
-    when current_token.one_of?(:true, :false)
+    when current_token.is_one_of?(:true, :false)
       parse_bool! current_token.type
     when current_token.is_a?(:str_lit)
       parse_str!
@@ -215,7 +215,7 @@ class Parser
   end
 
   def operator?
-    current_token.one_of?(*OPERATORS) && !expr_context.directly_in_a?(:operator)
+    current_token.is_one_of?(*OPERATORS) && !expr_context.directly_in_a?(:operator)
   end
 
   # Individual parsers
@@ -281,7 +281,7 @@ class Parser
     method_name = OP_TO_METHOD_NAME[op_token.type]
     assert { !method_name.nil? }
 
-    if op_token.one_of?(:&, :|)
+    if op_token.is_one_of?(:&, :|)
       operator = dot(schema, [op_token.position, method_name])
       AST::function_call [lhs, rhs_expr], operator, op_token.position
     else

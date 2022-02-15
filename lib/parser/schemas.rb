@@ -50,7 +50,7 @@ module Schemas
       else
         function_call([schema_expr], schema_for)
       end
-    assert { current_token.not_one_of? *OPERATORS }
+    assert { current_token.is_not_one_of? *OPERATORS }
     return schema, find_bound_variables(match_expr, index)
   end
 
@@ -274,7 +274,7 @@ module Schemas
     expr_context.push! :schema
     expr = parse_expr!
     schema = function_call([expr], schema_for)
-    while current_token.one_of?(*OPERATORS)
+    while current_token.is_one_of?(*OPERATORS)
       schema = parse_operator_call!(schema)
     end
     expr_context.pop! :schema

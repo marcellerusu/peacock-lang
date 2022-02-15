@@ -46,7 +46,7 @@ module HTML
       return true, {}
     end
     attributes = {}
-    while current_token.not_one_of?(:>, :self_close_html_tag)
+    while current_token.is_not_one_of?(:>, :self_close_html_tag)
       id_token = consume! :identifier
       if current_token.is_not_a? :"="
         attributes[AST::sym(id_token.value)] = AST::bool(true)
@@ -81,7 +81,7 @@ module HTML
 
   def parse_html_children!
     children = []
-    while current_token.not_one_of?(:close_html_tag, :close_custom_element_tag)
+    while current_token.is_not_one_of?(:close_html_tag, :close_custom_element_tag)
       case current_token.type
       when :identifier
         children.push parse_text_node!
@@ -114,7 +114,7 @@ module HTML
     # Things to think about..
     # ^^ this is starting to be better
     prev_c = current_token.position
-    while current_token.not_one_of?(
+    while current_token.is_not_one_of?(
       :open_html_tag,
       :open_custom_element_tag,
       :close_custom_element_tag,

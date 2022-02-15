@@ -89,10 +89,10 @@ module Helpers
 
   def end_of_expr?(*excluding)
     return true if current_token.nil?
-    return false if current_token.one_of? *excluding
+    return false if current_token.is_one_of? *excluding
     closing_tags = [:close_parenthesis, :close_brace, :close_square_bracket, :end, :then]
     new_line? ||
-    current_token.one_of?(*closing_tags) ||
+    current_token.is_one_of?(*closing_tags) ||
     property_accessor? ||
     operator? ||
     current_token.type == :dot ||

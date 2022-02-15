@@ -31,12 +31,12 @@ module Lexer
       !is_a?(type)
     end
 
-    def one_of?(*types)
+    def is_one_of?(*types)
       types.include? @type
     end
 
-    def not_one_of?(*types)
-      !one_of?(*types)
+    def is_not_one_of?(*types)
+      !is_one_of?(*types)
     end
   end
 
