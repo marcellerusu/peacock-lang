@@ -240,7 +240,7 @@ module Schemas
             find_bound_variables(value).map { |path| [key] + path }
           end
       end
-      if match_expr[:splat]
+      if match_expr[:splat].size > 0
         # TODO: match_expr[:splat] shouldn't be an array
         r = match_expr[:splat][0][:value]
         splat_name = r[AST::sym("splat")][:sym]
