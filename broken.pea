@@ -43,3 +43,14 @@ end
 export default value
 
 # pspec should not be a bash script!
+
+# splats in destructuring
+# nested destructuring
+schema User = { id, email, child }
+
+User({ id, child: { *child } }) := { id: 10, email: "email", child: { id: 11 } }
+
+print(id, child)
+
+# splats for arrays
+

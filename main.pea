@@ -1,8 +1,5 @@
-class Test
-  def f(a) = case a
-    when {b}
-      b
-    end
-end
+schema User = { id, email }
 
-print(Test.new.f {b: 3})
+User({ id, *user }) := { id: 10, email: "email" }
+
+print(id, user)

@@ -63,11 +63,15 @@ module Schemas
     return pattern unless constructor? pattern
     raw_value = pattern[:args][0]
     if raw_value[:node_type] == :array_lit
+      # TODO: array splats
       { **raw_value,
         value: raw_value[:value].map { |node| extract_data_from_constructor(node) } }
     elsif raw_value[:node_type] == :record_lit
+      assert { pattern[:args][1][:args].size <= 1 } # only have 1 splat
+      splat = pattern[:args][1][:args][0]
       { **raw_value,
-        value: raw_value[:value].transform_values { |node| extract_data_from_constructor(node) } }
+        value: raw_value[:value].transform_values { |node| extract_data_from_constructor(node) },
+        splat: splat && splat[:value].map { |node| extract_data_from_constructor(node) } }
     else
       raw_value
     end
@@ -185,6 +189,9 @@ module Schemas
           AST::sym(path)
         elsif path.is_a?(Integer)
           AST::int(path)
+        elsif path.is_a?(Symbol)
+          assert { path == :_self }
+          next
         else
           assert { false }
         end
@@ -232,6 +239,12 @@ module Schemas
           else
             find_bound_variables(value).map { |path| [key] + path }
           end
+      end
+      if match_expr[:splat]
+        # TODO: match_expr[:splat] shouldn't be an array
+        r = match_expr[:splat][0][:value]
+        splat_name = r[AST::sym("splat")][:sym]
+        bound_variables += [[:_self, splat_name]]
       end
     when :array_lit
       match_expr[:value].each_with_index do |node, index|
