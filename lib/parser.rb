@@ -126,49 +126,52 @@ class Parser
   # Parsing begins!
 
   def parse_expr!
-    case
-    when current_token.is_one_of?(:int_lit, :float_lit, :symbol)
-      parse_lit! current_token.type
-    when current_token.is_one_of?(:true, :false)
-      parse_bool! current_token.type
-    when current_token.is_a?(:str_lit)
+    # more complex conditions first
+    if current_token.is_one_of?(:int_lit, :float_lit, :symbol)
+      return parse_lit! current_token.type
+    elsif current_token.is_one_of?(:true, :false)
+      return parse_bool! current_token.type
+    elsif current_token.is_a?(:identifier) && peek_token&.is_a?(:assign)
+      return parse_assignment!
+    end
+    # simple after
+    case current_token.type
+    when :str_lit
       parse_str!
-    when current_token.is_a?(:nil)
+    when :nil
       parse_nil!
-    when current_token.is_a?(:open_square_bracket)
+    when :open_square_bracket
       parse_array!
-    when current_token.is_a?(:open_brace)
+    when :open_brace
       parse_record!
-    when current_token.is_a?(:bang)
+    when :bang
       parse_bang!
-    when current_token.is_a?(:open_parenthesis)
+    when :open_parenthesis
       parse_paren_expr!
-    when current_token.is_a?(:identifier) && peek_token&.is_a?(:assign)
-      parse_assignment!
-    when current_token.is_a?(:identifier)
+    when :identifier
       parse_identifier!
-    when current_token.is_a?(:property)
+    when :property
       parse_property!
-    when current_token.is_a?(:open_html_tag)
+    when :open_html_tag
       parse_html_tag!
-    when current_token.is_a?(:open_custom_element_tag)
+    when :open_custom_element_tag
       parse_custom_element!
-    when current_token.is_a?(:class)
+    when :class
       parse_class_definition!
-    when current_token.is_a?(:def)
+    when :def
       parse_function_def!
-    when current_token.is_a?(:do)
+    when :do
       parse_anon_function_def!
-    when current_token.is_a?(:anon_short_fn_start)
+    when :anon_short_fn_start
       parse_anon_function_shorthand!
-    when current_token.is_a?(:anon_short_id)
+    when :anon_short_id
       parse_anon_short_id!
-    when current_token.is_a?(:if)
+    when :if
       node = parse_if_expression!
       modify_if_statement_for_context node
-    when current_token.is_a?(:schema)
+    when :schema
       parse_schema!
-    when current_token.is_a?(:case)
+    when :case
       parse_case_expression!
     else
       puts "no match [parse_expr!] :#{type}"
