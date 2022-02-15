@@ -63,7 +63,7 @@ end
 
 def parse(str)
   tokens = Lexer::tokenize(str.strip)
-  ast = Parser.new(tokens).parse!
+  ast = Parser.new(tokens, str).parse!
   AST::remove_numbers(ast)
 end
 
@@ -151,14 +151,14 @@ describe Parser do
       expect(ast).to ast_eq([
         init_module,
         # TODO: shouldn't have to specify line & col #s
-        AST::record({ AST::sym("a", 0, 2) => AST::float(3.5) }),
+        AST::record({ AST::sym("a", 2) => AST::float(3.5) }),
       ])
     end
     it "{a: [false, 1, \"3\"]}" do
       ast = parse("{a: [false, 1, \"3\"]}")
       expect(ast).to ast_eq([
         init_module,
-        AST::record({ AST::sym("a", 0, 1) => AST::array([
+        AST::record({ AST::sym("a", 1) => AST::array([
           AST::bool(false),
           AST::int(1),
           AST::str("3"),
@@ -170,7 +170,7 @@ describe Parser do
       expect(ast).to ast_eq([
         init_module,
         AST::array([
-          AST::record({ AST::sym("a", 0, 3) => AST::float(3.5) }),
+          AST::record({ AST::sym("a", 3) => AST::float(3.5) }),
         ]),
       ])
     end

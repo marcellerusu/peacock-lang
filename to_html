@@ -11,7 +11,7 @@ HTML_OUTPUT_FILENAME = ARGV[1] || "public/index.html"
 while true
   content = File.read(ARGV[0])
   tokens = Lexer::tokenize(content)
-  ast = Parser.new(tokens).parse!
+  ast = Parser.new(tokens, content).parse!
   output = Compiler.new(ast).eval
   # output = File.read("./test.js")
   # remove node specific lines.. todo, compiler shouldn't have this in there..

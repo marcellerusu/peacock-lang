@@ -54,3 +54,6 @@ print(id, child)
 
 # splats for arrays
 
+# schemas in anon-functions
+[{ id: 10 }].map do { id } id * 10 end
+# don't use Schema.case!

@@ -8,8 +8,7 @@ AST_LIT_TO_CONSTRUCTOR = {
 module AST
   def self.remove_numbers_single(node)
     assert { node.is_a? Hash }
-    node.delete(:line)
-    node.delete(:column)
+    node.delete(:position)
     node[:expr] = AST::remove_numbers_single(node[:expr]) if node[:expr]
     node[:schema] = AST::remove_numbers_single(node[:schema]) if node[:schema]
     node[:property] = AST::remove_numbers_single(node[:property]) if node[:property]
@@ -36,65 +35,65 @@ module AST
     hash.map { |k, n| [k, AST::remove_numbers_single(n)] }.to_h
   end
 
-  def self.int(value, line = nil, column = nil)
+  def self.int(value, position = nil)
     AST::literal_constructor(
       { node_type: :int_lit,
-        line: line,
-        column: column,
-        value: value },
-      "Int"
+        value: value,
+        position: position },
+      "Int",
+      position
     )
   end
 
-  def self.literal(line, c, type, value)
+  def self.literal(position, type, value)
     AST::literal_constructor(
       { node_type: type,
-        line: line,
-        column: c,
+        position: position,
         value: value },
-      AST_LIT_TO_CONSTRUCTOR[type]
+      AST_LIT_TO_CONSTRUCTOR[type],
+      position
     )
   end
 
-  def self.nil(line = nil, c = nil)
+  def self.nil(position = nil)
     AST::literal_constructor(
       { node_type: :nil_lit,
-        line: line,
-        column: c },
-      "Nil"
+        position: position },
+      "Nil",
+      position
     )
   end
 
-  def self.array(value, line = nil, c = nil)
+  def self.array(value, position = nil)
     AST::literal_constructor(
       { node_type: :array_lit,
-        line: line,
-        column: c,
+        position: position,
         value: value },
-      "List"
+      "List",
+      position
     )
   end
 
-  def self.record(value, splats = AST::array([]), line = nil, c = nil)
+  def self.record(value, splats = AST::array([]), position = nil)
     AST::literal_constructor(
       [
         { node_type: :record_lit,
-          line: line,
-          column: c,
+          position: position,
           value: value },
         splats,
       ],
-      "Record"
+      "Record",
+      position
     )
   end
 
-  def self.sym(value, line = nil, c = nil)
+  def self.sym(value, position = nil)
     AST::literal_constructor(
       { node_type: :symbol,
-        line: line,
-        column: c,
+        position: position,
         value: value },
-      "Sym"
+      "Sym",
+      position
     )
   end
 
@@ -104,94 +103,86 @@ module AST
       rhs: rhs }
   end
 
-  def self.bool(value, line = nil, c = nil)
+  def self.bool(value, position = nil)
     AST::literal_constructor(
       { node_type: :bool_lit,
-        line: line,
-        column: c,
+        position: position,
         value: value },
-      "Bool"
+      "Bool",
+      position
     )
   end
 
-  def self.float(value, line = nil, c = nil)
+  def self.float(value, position = nil)
     AST::literal_constructor(
       { node_type: :float_lit,
-        line: line,
-        column: c,
+        position: position,
         value: value },
-      "Float"
+      "Float",
+      position
     )
   end
 
-  def self.str(value, line = nil, c = nil)
+  def self.str(value, position = nil)
     AST::literal_constructor(
       { node_type: :str_lit,
-        line: line,
-        column: c,
+        position: position,
         value: value },
-      "Str"
+      "Str",
+      position
     )
   end
 
-  def self.paren_expr(expr, line = nil, c = nil)
+  def self.paren_expr(expr, position = nil)
     { node_type: :paren_expr,
       expr: expr,
-      line: line,
-      column: c }
+      position: position }
   end
 
-  def self.return(expr, line = expr[:line], c = expr[:column])
+  def self.return(expr, position = expr[:position])
     { node_type: :return,
-      line: line,
-      column: c,
+      position: position,
       expr: expr }
   end
 
-  def self.if(expr, pass, _fail, line = nil, c = nil)
+  def self.if(expr, pass, _fail, position = nil)
     { node_type: :if,
-      line: line,
-      column: c,
+      position: position,
       expr: expr,
       pass: pass,
       fail: _fail }
   end
 
-  def self.function_call(args, expr, line = nil, c = nil)
+  def self.function_call(args, expr, position = nil)
     { node_type: :function_call,
-      line: line,
-      column: c,
+      position: position,
       args: args,
       expr: expr }
   end
 
-  def self.function(args, body, line = nil, c = nil)
+  def self.function(args, body, position = nil)
     { node_type: :function,
-      line: line,
-      column: c,
+      position: position,
       args: args,
       body: body }
   end
 
-  def self.function_argument(sym, line = nil, c = nil)
+  def self.function_argument(sym, position = nil)
     { node_type: :function_argument,
-      line: line,
-      column: c,
+      position: position,
       sym: sym }
   end
 
-  def self.identifier_lookup(sym, line = nil, c = nil)
+  def self.identifier_lookup(sym, position = nil)
     { node_type: :identifier_lookup,
-      line: line,
-      column: c,
+      position: position,
       sym: sym }
   end
 
-  def self.declare(sym, schema, expr, line = nil, c = nil)
+  def self.declare(sym, schema, expr, position = nil)
     { node_type: :declare,
       sym: sym,
-      line: line,
-      column: c,
+      position: position,
       schema: schema,
       expr: expr }
   end
@@ -199,53 +190,49 @@ module AST
   def self.instance_assignment(lhs, expr)
     { node_type: :instance_assign,
       sym: lhs[:sym],
-      line: lhs[:line],
-      column: lhs[:column],
+      position: lhs[:position],
       expr: expr }
   end
 
-  def self.assignment(sym, expr, line = nil, c = nil)
+  def self.assignment(sym, expr, position = nil)
     { node_type: :assign,
       sym: sym,
-      line: line,
-      column: c,
+      position: position,
       expr: expr }
   end
 
-  def self.property_lookup(line, c, lhs_expr, property)
+  def self.property_lookup(position, lhs_expr, property)
     # just convert to string for now... TODO: idk
     { node_type: :property_lookup,
       lhs_expr: lhs_expr,
-      line: line,
-      column: c,
+      position: position,
       property: property }
   end
 
-  def self.dot(lhs_expr, id, line = nil, c = nil)
-    id = [lhs_expr[:line], lhs_expr[:column], id] unless id.is_a?(Array)
-    lit_line, lit_c, sym = id
-    property = { line: lit_line, column: lit_c, node_type: :str_lit, value: sym }
-    AST::property_lookup line, c, lhs_expr, property
+  def self.dot(lhs_expr, id, position = nil)
+    id = [id.position, id.value] if id.class == Lexer::Token
+    id = [lhs_expr[:position], id] if id.is_a?(String)
+    lit_position, sym = id
+    property = { position: lit_position, node_type: :str_lit, value: sym }
+    AST::property_lookup position, lhs_expr, property
   end
 
-  def self.instance_method_lookup(name, line = nil, c = nil)
+  def self.instance_method_lookup(name, position = nil)
     { node_type: :instance_method_lookup,
       sym: name,
-      line: line,
-      column: c }
+      position: position }
   end
 
-  def self.instance_lookup(name, line = nil, c = nil)
+  def self.instance_lookup(name, position = nil)
     { node_type: :instance_lookup,
       sym: name,
-      line: line,
-      column: c }
+      position: position }
   end
 
   def self.lookup(lhs, expr)
     AST::function_call(
       [expr],
-      AST::dot(lhs, "__lookup__", lhs[:line], lhs[:column])
+      AST::dot(lhs, "__lookup__", lhs[:position])
     )
   end
 
@@ -257,58 +244,85 @@ module AST
     AST::function_call([], AST::dot(expr, "to_s"))
   end
 
-  def self.throw(expr, line = nil, c = nil)
+  def self.throw(expr, position = nil)
     { node_type: :throw,
-      line: line,
-      column: c,
+      position: position,
       expr: expr }
   end
 
-  def self.literal_constructor(args, type_name, line = nil, c = nil)
+  def self.literal_constructor(args, type_name, position = nil)
     args = [args] unless args.is_a? Array
     AST::function_call(
       args,
       AST::dot(
-        AST::identifier_lookup(type_name, line, c),
-        [line, c, "new"],
-        line,
-        c
+        AST::identifier_lookup(type_name, position),
+        [position, "new"],
+        position
       ),
-      line,
-      c
+      position
     )
   end
 
-  def self.html_tag(name, attributes, children, line = nil, column = nil)
+  def self.html_tag(name, attributes, children, position = nil)
     { node_type: :html_tag,
       name: name,
       attributes: attributes,
       children: children,
-      line: line,
-      column: column }
+      position: position }
   end
 
-  def self.html_text_node(value, line = nil, column = nil)
+  def self.html_text_node(value, position = nil)
     { node_type: :html_text_node,
       value: value,
-      line: line,
-      column: column }
+      position: position }
   end
 
-  def self.class(name, super_class, methods, line = nil, column = nil)
+  def self.class(name, super_class, methods, position = nil)
     { node_type: :class,
       sym: name,
       super_class: super_class,
       methods: methods,
-      line: line,
-      column: column }
+      position: position }
   end
 
-  def self.case(expr, cases, line = nil, column = nil)
+  def self.case(expr, cases, position = nil)
     { node_type: :case,
       expr: expr,
       cases: cases,
-      line: line,
-      column: column }
+      position: position }
+  end
+
+  # TODO Nasty helpers
+
+  def self.try_lookup(sym, position)
+    raw_str = { node_type: :str_lit,
+                position: position,
+                value: sym }
+    AST::function_call(
+      [AST::function(
+        [],
+        [AST::return(AST::function_call([raw_str], AST::identifier_lookup("eval")))]
+      )],
+      AST::identifier_lookup("__try")
+    )
+  end
+
+  def self.or_lookup(node, args)
+    position = node[:position]
+    if args.size == 0
+      AST::naked_or(
+        AST::try_lookup(node[:sym], position),
+        AST::function_call([], node, position)
+      )
+    else
+      AST::function_call(
+        args,
+        AST::naked_or(
+          AST::try_lookup(node[:sym], position),
+          node
+        ),
+        position
+      )
+    end
   end
 end

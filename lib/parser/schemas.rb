@@ -8,10 +8,10 @@ module Schemas
     value = parse_expr!
     cases = []
     match_arg_name = "match_expr"
-    while peek_type != :end
+    while current_token.is_not_a? :end
       consume! :when
       schema, matches = parse_schema_literal!
-      @token_index, body = clone(parser_context: parser_context.clone.push!(:function)).parse_with_position! [:when]
+      @token_index, body = clone(parser_context: parser_context.push(:function)).parse_with_position! [:when]
       fn = AST::function(
         [AST::function_argument(match_arg_name)],
         matches.map do |path_and_sym|
@@ -32,7 +32,7 @@ module Schemas
     expr_context.push! :schema
     schema_expr = parse_expr!
     expr_context.pop! :schema
-    match_expr = if peek_type == :open_parenthesis
+    match_expr = if current_token.is_a? :open_parenthesis
         assert { schema_expr[:node_type] == :identifier_lookup }
         consume! :open_parenthesis
         expr_context.push! :schema
@@ -50,7 +50,7 @@ module Schemas
       else
         function_call([schema_expr], schema_for)
       end
-    assert { !OPERATORS.include?(peek_type) }
+    assert { current_token.not_one_of? *OPERATORS }
     return schema, find_bound_variables(match_expr, index)
   end
 
@@ -161,26 +161,26 @@ module Schemas
   end
 
   def parse_match_assignment!(fn_expr, match_expr, value_expr = nil)
-    # TODO: line & column #s are off
     if value_expr
-      line, c = value_expr[:line], value_expr[:column]
+      position = value_expr[:position]
       expr = value_expr
     else
-      line, c = consume! :assign
+      assign_token = consume! :assign
+      position = assign_token.position
       expr = parse_expr!
     end
     if_expr = call_schema_valid(fn_expr, expr)
     value = AST::assignment("__VALUE", expr)
-    value_lookup = AST::identifier_lookup("__VALUE", self.line, self.column)
+    value_lookup = AST::identifier_lookup("__VALUE", current_token.position)
 
     pass_body = [value] + find_bound_variables(match_expr).map do |path_and_sym|
       sym, path = path_and_sym.last, path_and_sym[0...-1]
-      AST::assignment(sym, eval_path_on_expr(path, value_lookup), self.line, self.column)
+      AST::assignment(sym, eval_path_on_expr(path, value_lookup), current_token.position)
     end
     fail_body = [
-      AST::throw(AST::str("Match error", self.line, self.column), self.line, self.column),
+      AST::throw(AST::str("Match error", current_token.position), current_token.position),
     ]
-    AST::if if_expr, pass_body, fail_body, line, c
+    AST::if if_expr, pass_body, fail_body, position
   end
 
   def eval_path_on_expr(paths, expr)
@@ -268,18 +268,17 @@ module Schemas
   end
 
   def parse_schema!
-    line = self.line
     consume! :schema
-    _, c, sym = consume! :identifier
+    schema_name_token = consume! :identifier
     consume! :"="
     expr_context.push! :schema
     expr = parse_expr!
     schema = function_call([expr], schema_for)
-    while OPERATORS.include?(peek_type)
+    while current_token.one_of?(*OPERATORS)
       schema = parse_operator_call!(schema)
     end
     expr_context.pop! :schema
-    AST::assignment(sym, schema, line, c)
+    AST::assignment(schema_name_token.value, schema, schema_name_token.position)
   end
 
   def get_schema_any_name(node)
@@ -295,7 +294,7 @@ module Schemas
   end
 
   def schema
-    AST::identifier_lookup("Schema", line, column)
+    AST::identifier_lookup("Schema", prev_token.position)
   end
 
   def call_schema_valid(schema_fn, expr)
@@ -308,7 +307,7 @@ module Schemas
 
   def call_schema_any(name)
     function_call(
-      [AST::sym(name, line, column)],
+      [AST::sym(name, prev_token.position)],
       dot(schema, "any")
     )
   end

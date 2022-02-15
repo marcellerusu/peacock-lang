@@ -2,6 +2,44 @@ require "strscan"
 require "utils"
 
 module Lexer
+  class Token
+    attr_reader :position, :type, :value, :captures
+    def self.set_position!(position)
+      @@current_position = position
+    end
+
+    def ==(other)
+      type == other.type && value == other.value && captures == other.captures
+    end
+
+    def initialize(type, value = nil, captures = nil)
+      @position = @@current_position
+      @type = type
+      @value = value
+      @captures = captures
+    end
+
+    def value=(value)
+      @value = value
+    end
+
+    def is_a?(type)
+      type == @type
+    end
+
+    def is_not_a?(type)
+      !is_a?(type)
+    end
+
+    def one_of?(*types)
+      types.include? @type
+    end
+
+    def not_one_of?(*types)
+      !one_of?(*types)
+    end
+  end
+
   def self.get_escaped_part_of_str(str, offset)
     capture_start = i = 0
     num_open_braces = 1
@@ -26,33 +64,18 @@ module Lexer
     end
   end
 
-  def self.pos_to_line_and_column(pos, program)
-    i = 0
-    line = 0
-    column = 0
-    while i < pos
-      if program[i] == "\n"
-        line += 1
-        column = 0
-      end
-      column += 1
-      i += 1
-    end
-    return line, column
-  end
-
   def self.tokenize(program)
     tokens = []
     scanner = StringScanner.new(program)
     while true
-      line, column = Lexer::pos_to_line_and_column(scanner.pos, program)
+      Token.set_position!(scanner.pos)
       case
       when scanner.eos?
         break
       when scanner.scan(/\s+/)
         next
       when scanner.scan(/#\{/)
-        tokens.push [line, column, :anon_short_fn_start]
+        tokens.push Token.new(:anon_short_fn_start)
       when scanner.scan(/#.*/)
         next
       when scanner.scan(/"/)
@@ -76,139 +99,139 @@ module Lexer
           { **capture,
             tokens: Lexer::tokenize(capture[:value]) }
         end
-        tokens.push [line, column, :str_lit, str, captures]
+        tokens.push Token.new(:str_lit, str, captures)
       when scanner.scan(/\d+\.\d+/)
-        tokens.push [line, column, :float_lit, scanner.matched.to_f]
+        tokens.push Token.new(:float_lit, scanner.matched.to_f)
       when scanner.scan(/\d+/)
-        tokens.push [line, column, :int_lit, scanner.matched.to_i]
+        tokens.push Token.new(:int_lit, scanner.matched.to_i)
       when scanner.scan(/_/)
-        tokens.push [line, column, :identifier, "_"]
+        tokens.push Token.new(:identifier, "_")
       when scanner.scan(/(true|false)\b/)
-        tokens.push [line, column, (scanner.matched == "true").to_s.to_sym]
+        tokens.push Token.new(scanner.matched.to_sym)
       when scanner.scan(/nil(?!\?)\b/)
-        tokens.push [line, column, :nil]
+        tokens.push Token.new(:nil)
       when scanner.scan(/<([A-Z][a-zA-Z1-9_]*)/)
         assert { scanner.captures.size == 1 }
-        tokens.push [line, column, :open_custom_element_tag, scanner.captures.first]
+        tokens.push Token.new(:open_custom_element_tag, scanner.captures.first)
       when scanner.scan(/<([a-z][a-z1-9_]*)/)
         assert { scanner.captures.size == 1 }
-        tokens.push [line, column, :open_html_tag, scanner.captures.first]
+        tokens.push Token.new(:open_html_tag, scanner.captures.first)
       when scanner.scan(/\/>/)
-        tokens.push [line, column, :self_close_html_tag]
+        tokens.push Token.new(:self_close_html_tag)
       when scanner.scan(/<\/([a-z][a-z1-9_]*)>/)
         assert { scanner.captures.size == 1 }
-        tokens.push [line, column, :close_html_tag, scanner.captures.first]
+        tokens.push Token.new(:close_html_tag, scanner.captures.first)
       when scanner.scan(/<\/([A-Z][a-z1-9_]*)>/)
         assert { scanner.captures.size == 1 }
-        tokens.push [line, column, :close_custom_element_tag, scanner.captures.first]
+        tokens.push Token.new(:close_custom_element_tag, scanner.captures.first)
       when scanner.scan(/self\b/)
-        tokens.push [line, column, :self]
+        tokens.push Token.new(:self)
       when scanner.scan(/do\b/)
-        tokens.push [line, column, :do]
+        tokens.push Token.new(:do)
       when scanner.scan(/def\b/)
-        tokens.push [line, column, :def]
+        tokens.push Token.new(:def)
       when scanner.scan(/case\b/)
-        tokens.push [line, column, :case]
+        tokens.push Token.new(:case)
       when scanner.scan(/when\b/)
-        tokens.push [line, column, :when]
+        tokens.push Token.new(:when)
       when scanner.scan(/if\b/)
-        tokens.push [line, column, :if]
+        tokens.push Token.new(:if)
       when scanner.scan(/unless\b/)
-        tokens.push [line, column, :unless]
+        tokens.push Token.new(:unless)
       when scanner.scan(/else\b/)
-        tokens.push [line, column, :else]
+        tokens.push Token.new(:else)
       when scanner.scan(/then\b/)
-        tokens.push [line, column, :then]
+        tokens.push Token.new(:then)
       when scanner.scan(/end\b/)
-        tokens.push [line, column, :end]
+        tokens.push Token.new(:end)
       when scanner.scan(/=>/)
-        tokens.push [line, column, :"=>"]
+        tokens.push Token.new(:"=>")
       when scanner.scan(/!=/)
-        tokens.push [line, column, :"!="]
+        tokens.push Token.new(:"!=")
       when scanner.scan(/==/)
-        tokens.push [line, column, :"=="]
+        tokens.push Token.new(:"==")
       when scanner.scan(/\!/)
-        tokens.push [line, column, :bang]
+        tokens.push Token.new(:bang)
       when scanner.scan(/:=/)
-        tokens.push [line, column, :assign]
+        tokens.push Token.new(:assign)
       when scanner.scan(/\(/)
-        tokens.push [line, column, :open_parenthesis]
+        tokens.push Token.new(:open_parenthesis)
       when scanner.scan(/\)/)
-        tokens.push [line, column, :close_parenthesis]
+        tokens.push Token.new(:close_parenthesis)
       when scanner.scan(/\{/)
-        tokens.push [line, column, :open_brace]
+        tokens.push Token.new(:open_brace)
       when scanner.scan(/\}/)
-        tokens.push [line, column, :close_brace]
+        tokens.push Token.new(:close_brace)
       when scanner.scan(/\[/)
-        tokens.push [line, column, :open_square_bracket]
+        tokens.push Token.new(:open_square_bracket)
       when scanner.scan(/\]/)
-        tokens.push [line, column, :close_square_bracket]
+        tokens.push Token.new(:close_square_bracket)
       when scanner.scan(/\./)
-        tokens.push [line, column, :dot]
+        tokens.push Token.new(:dot)
       when scanner.scan(/,/)
-        tokens.push [line, column, :comma]
+        tokens.push Token.new(:comma)
       when scanner.scan(/\*/)
-        tokens.push [line, column, :*]
+        tokens.push Token.new(:*)
       when scanner.scan(/\//)
-        tokens.push [line, column, :/]
+        tokens.push Token.new(:/)
       when scanner.scan(/\+/)
-        tokens.push [line, column, :+]
+        tokens.push Token.new(:+)
       when scanner.scan(/\>=/)
-        tokens.push [line, column, :">="]
+        tokens.push Token.new(:">=")
       when scanner.scan(/<=/)
-        tokens.push [line, column, :"<="]
+        tokens.push Token.new(:"<=")
       when scanner.scan(/\>/)
-        tokens.push [line, column, :>]
+        tokens.push Token.new(:>)
       when scanner.scan(/</)
-        tokens.push [line, column, :<]
+        tokens.push Token.new(:<)
       when scanner.scan(/=/)
-        tokens.push [line, column, :"="]
+        tokens.push Token.new(:"=")
       when scanner.scan(/\|\|/)
-        tokens.push [line, column, :"||"]
+        tokens.push Token.new(:"||")
       when scanner.scan(/\|/)
-        tokens.push [line, column, :"|"]
+        tokens.push Token.new(:"|")
       when scanner.scan(/&&/)
-        tokens.push [line, column, :"&&"]
+        tokens.push Token.new(:"&&")
       when scanner.scan(/\|/)
-        tokens.push [line, column, :|]
+        tokens.push Token.new(:|)
       when scanner.scan(/&/)
-        tokens.push [line, column, :&]
+        tokens.push Token.new(:&)
       when scanner.scan(/%/)
-        tokens.push [line, column, :anon_short_id]
+        tokens.push Token.new(:anon_short_id)
       when scanner.scan(/-/)
-        tokens.push [line, column, :-]
+        tokens.push Token.new(:-)
       when scanner.scan(/from\b/)
-        tokens.push [line, column, :from]
+        tokens.push Token.new(:from)
       when scanner.scan(/reduce\b/)
-        tokens.push [line, column, :reduce]
+        tokens.push Token.new(:reduce)
       when scanner.scan(/next\b/)
-        tokens.push [line, column, :next]
+        tokens.push Token.new(:next)
       when scanner.scan(/import\b/)
-        tokens.push [line, column, :import]
+        tokens.push Token.new(:import)
       when scanner.scan(/export\b/)
-        tokens.push [line, column, :export]
+        tokens.push Token.new(:export)
       when scanner.scan(/default\b/)
-        tokens.push [line, column, :default]
+        tokens.push Token.new(:default)
       when scanner.scan(/break\b/)
-        tokens.push [line, column, :break]
+        tokens.push Token.new(:break)
       when scanner.scan(/module\b/)
-        tokens.push [line, column, :module]
+        tokens.push Token.new(:module)
       when scanner.scan(/class\b/)
-        tokens.push [line, column, :class]
+        tokens.push Token.new(:class)
       when scanner.scan(/return\b/)
-        tokens.push [line, column, :return]
+        tokens.push Token.new(:return)
       when scanner.scan(/schema\b/)
-        tokens.push [line, column, :schema]
+        tokens.push Token.new(:schema)
       when scanner.scan(/::[a-zA-Z][a-zA-Z1-9\_!?]*/)
-        tokens.push [line, column, :class_property, scanner.matched[2..]]
+        tokens.push Token.new(:class_property, scanner.matched[2..])
       when scanner.scan(/@[a-zA-Z][a-zA-Z1-9\_!?]*/)
-        tokens.push [line, column, :property, scanner.matched[1..]]
+        tokens.push Token.new(:property, scanner.matched[1..])
       when scanner.scan(/:[a-zA-Z][a-zA-Z1-9\_!?]*/)
-        tokens.push [line, column, :symbol, scanner.matched[1..]]
+        tokens.push Token.new(:symbol, scanner.matched[1..])
       when scanner.scan(/:/)
-        tokens.push [line, column, :colon]
+        tokens.push Token.new(:colon)
       when scanner.scan(/[a-zA-Z][a-zA-Z1-9\_!?]*/)
-        tokens.push [line, column, :identifier, scanner.matched]
+        tokens.push Token.new(:identifier, scanner.matched)
       else
         raise AssertionError
       end

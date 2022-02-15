@@ -4,63 +4,65 @@ ID_TO_STR = {
 
 module HTML
   def parse_html_tag!
-    line, c, tag_name = consume! :open_html_tag
+    open_tag_token = consume! :open_html_tag
     self_closed, attributes = parse_html_attributes!
 
     if !self_closed
       children = parse_html_children!
-      _, _, close_tag_name = consume! :close_html_tag
-      assert { tag_name == close_tag_name }
+      close_tag_token = consume! :close_html_tag
+      assert { open_tag_token.value == close_tag_token.value }
     end
     AST::html_tag(
-      AST::str(tag_name),
+      AST::str(open_tag_token.value),
       AST::record(attributes),
       AST::array(children || []),
-      line,
-      c
+      open_tag_token.position
     )
   end
 
   def parse_custom_element!
-    line, c, element_name = consume! :open_custom_element_tag
+    open_tag_token = consume! :open_custom_element_tag
     self_closed, attributes = parse_html_attributes!
     if !self_closed
       children = parse_html_children!
-      _, _, close_element_name = consume! :close_custom_element_tag
-      assert { element_name == close_element_name }
+      close_tag_token = consume! :close_custom_element_tag
+      assert { open_tag_token.value == close_tag_token.value }
       assert { !attributes.has_key?(AST::sym("children")) }
       attributes[AST::sym("children")] = AST::array(children)
     end
     AST::function_call(
       [AST::record(attributes)],
       AST::dot(
-        AST::identifier_lookup(element_name, line, c),
+        AST::identifier_lookup(open_tag_token.value, open_tag_token.position),
         "new"
       ),
-      line,
-      c
+      open_tag_token.position
     )
   end
 
   def parse_html_attributes!
-    return !!consume!(:self_close_html_tag), {} if peek_type == :self_close_html_tag
+    if current_token.is_a? :self_close_html_tag
+      consume! :self_close_html_tag
+      return true, {}
+    end
     attributes = {}
-    while ![:>, :self_close_html_tag].include?(peek_type)
-      _, _, sym = consume! :identifier
-      if peek_type != :"="
-        attributes[AST::sym(sym)] = AST::bool(true)
+    while current_token.not_one_of?(:>, :self_close_html_tag)
+      id_token = consume! :identifier
+      if current_token.is_not_a? :"="
+        attributes[AST::sym(id_token.value)] = AST::bool(true)
         next
       end
       consume! :"="
       expr_context.push! :html_tag
-      value = if peek_type == :str_lit
+      value = case current_token.type
+        when :str_lit
           parse_lit! :str_lit
-        elsif peek_type == :anon_short_fn_start
+        when :anon_short_fn_start
           expr_context.pop! :html_tag
           fn = parse_anon_function_shorthand!
           expr_context.push! :html_tag
           fn
-        elsif peek_type == :open_brace
+        when :open_brace
           expr_context.pop! :html_tag
           consume! :open_brace
           val = parse_expr!
@@ -71,22 +73,23 @@ module HTML
           assert { false }
         end
       expr_context.pop! :html_tag
-      attributes[AST::sym(sym)] = value
+      attributes[AST::sym(id_token.value)] = value
     end
-    _, _, _, type = consume!
-    return type == :self_close_html_tag, attributes
+    closing_token = consume!
+    return closing_token.is_a?(:self_close_html_tag), attributes
   end
 
   def parse_html_children!
     children = []
-    while ![:close_html_tag, :close_custom_element_tag].include?(peek_type)
-      if peek_type == :identifier
+    while current_token.not_one_of?(:close_html_tag, :close_custom_element_tag)
+      case current_token.type
+      when :identifier
         children.push parse_text_node!
-      elsif peek_type == :open_custom_element_tag
+      when :open_custom_element_tag
         children.push parse_custom_element!
-      elsif peek_type == :open_html_tag
+      when :open_html_tag
         children.push parse_html_tag!
-      elsif peek_type == :open_brace
+      when :open_brace
         children.push parse_html_expr_node!
       else
         assert { false }
@@ -110,26 +113,27 @@ module HTML
     # maybe I'll have to put this in the lexer somehow..
     # Things to think about..
     # ^^ this is starting to be better
-    prev_c = token[1]
-    while ![
+    prev_c = current_token.position
+    while current_token.not_one_of?(
       :open_html_tag,
       :open_custom_element_tag,
       :close_custom_element_tag,
       :close_html_tag,
       :open_brace,
-    ].include?(peek_type)
-      _, c, word, type = consume!
+    )
+      word_token = consume!
       padding = ""
-      padding = " " if c - prev_c >= 1
-      if word
-        text += padding + word.to_s
-        prev_c = c + word.size
-      elsif ID_TO_STR[type]
-        text += padding + ID_TO_STR[type]
-        prev_c = c + ID_TO_STR[type].size
+      padding = " " if word_token.position - prev_c >= 1
+      if word_token.value
+        text += padding + word_token.value
+        prev_c = word_token.position + word_token.value.size
+      elsif ID_TO_STR[word_token.type]
+        id_str = ID_TO_STR[word_token.type]
+        text += padding + id_str
+        prev_c = word_token.position + id_str.size
       else
-        text += padding + type.to_s
-        prev_c = c + type.to_s.size
+        text += padding + word_token.type.to_s
+        prev_c = word_token.position + word_token.type.to_s.size
       end
     end
     AST::html_text_node(AST::str(text))

@@ -12,9 +12,10 @@ module Modules
     pattern = parse_expr!
     expr_context.pop! :schema
     consume! :from
-    line, c, file_name, _, tokens = consume! :str_lit
+    str_token = consume! :str_lit
+    file_name = str_token.value
     file_name = "#{file_name}.pea" if !file_name.end_with? ".pea"
-    assert { tokens.size == 0 }
+    assert { str_token.captures.size == 0 }
     program = File.read(file_name)
     # when we start doing hot reloading
     # we should use a mutation of the file name as the variable
@@ -28,15 +29,12 @@ module Modules
     else
       computed_files.push var_name
       tokens = Lexer::tokenize program
-      ast = Parser.new(tokens, 0, nil, nil, false).parse!
+      ast = Parser.new(tokens, program, 0, nil, nil, false).parse!
       file_expr = AST::function_call(
         [],
         AST::function(
           [],
-          [
-            *ast,
-            AST::return(AST::identifier_lookup("pea_module")),
-          ]
+          [*ast, AST::return(AST::identifier_lookup("pea_module"))]
         )
       )
       file_assign = AST::assignment(var_name, file_expr)
@@ -46,12 +44,12 @@ module Modules
   end
 
   def parse_export!
-    line, c = consume! :export
+    export = consume! :export
     expr = parse_expr!
     assert { [:assign, :declare, :class].include?(expr[:node_type]) }
     assignment = AST::function_call(
       [
-        AST::sym(expr[:sym], line, c),
+        AST::sym(expr[:sym], export.position),
         AST::identifier_lookup(expr[:sym]),
       ],
       AST::dot(

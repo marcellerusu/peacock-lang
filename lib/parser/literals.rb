@@ -1,15 +1,17 @@
 module Literals
   def parse_sym!
-    line, c, sym = consume! :identifier
-    return call_schema_any(sym) if expr_context.directly_in_a?(:schema) && !schema?(sym)
-    AST::identifier_lookup sym, line, c
+    id_token = consume! :identifier
+    if expr_context.directly_in_a?(:schema) && !schema?(id_token.value)
+      return call_schema_any(id_token.value)
+    end
+    AST::identifier_lookup id_token.value, id_token.position
   end
 
   def parse_identifier!
     return parse_sym! if expr_context.in_a? :schema
-    expr = if parser_context.in_a?(:class) && !function?(1)
-        line, c, sym = consume! :identifier
-        AST::instance_method_lookup sym, line, c
+    expr = if parser_context.in_a?(:class)
+        id_token = consume! :identifier
+        AST::instance_method_lookup id_token.value, id_token.position
       else
         parse_sym!
       end
@@ -17,49 +19,52 @@ module Literals
   end
 
   def parse_property!
-    line, c, name = consume! :property
-    node = AST::instance_lookup name, line, c
+    token = consume! :property
+    node = AST::instance_lookup token.value, token.position
     parse_id_modifier_if_exists!(node)
   end
 
   def parse_lit!(type)
-    line, c, lit = consume! type
-    node = AST::literal line, c, type, lit
+    token = consume! type
+    node = AST::literal token.position, type, token.value
     parse_id_modifier_if_exists!(node)
   end
 
   def parse_nil!
-    line, c, _ = consume! :nil
-    node = AST::nil line, c
+    token = consume! :nil
+    node = AST::nil token.position
     parse_id_modifier_if_exists!(node)
   end
 
   def parse_bool!(type)
-    line, c, _ = consume! type
-    node = AST::bool type == :true, line, c
+    token = consume! type
+    node = AST::bool type == :true, token.position
     parse_id_modifier_if_exists! node
   end
 
   def parse_str!
-    line, c, value, _, escaped = consume! :str_lit
-    str_expr = if escaped.size == 0
-        AST::str value, line, c
+    str_token = consume! :str_lit
+    str_expr = if str_token.captures.size == 0
+        AST::str str_token.value, str_token.position
       else
         strings = []
-        strings.push AST::str(value[0...escaped.first[:start] - 2], line, c)
-        escaped.each_with_index do |group, i|
+        strings.push AST::str(
+          str_token.value[0...str_token.captures.first[:start] - 2],
+          str_token.position
+        )
+        str_token.captures.each_with_index do |group, i|
           ast = clone(
             tokens: group[:tokens],
             token_index: 0,
-            parser_context: parser_context.clone.push!(:str),
+            parser_context: parser_context.push(:str),
           ).parse!
           assert { ast.size == 1 }
           strings.push AST::to_s(ast.first)
-          if i + 1 < escaped.size
-            strings.push AST::str(value[group[:end] + 1...escaped[i + 1][:start] - 2])
+          if i + 1 < str_token.captures.size
+            strings.push AST::str(str_token.value[group[:end] + 1...str_token.captures[i + 1][:start] - 2])
           end
         end
-        strings.push AST::str(value[escaped.last[:end] + 1..])
+        strings.push AST::str(str_token.value[str_token.captures.last[:end] + 1..])
 
         strings.reduce do |str, cur|
           AST::plus str, cur
@@ -69,10 +74,11 @@ module Literals
   end
 
   def parse_record_key!
-    if peek_type == :identifier
-      line, c, sym = consume! :identifier
-      AST::sym sym, line, c
-    elsif peek_type == :open_square_bracket
+    case current_token.type
+    when :identifier
+      id_token = consume! :identifier
+      AST::sym id_token.value, id_token.position
+    when :open_square_bracket
       assert { !expr_context.directly_in_a?(:schema) }
       consume! :open_square_bracket
       val = parse_expr!
@@ -84,28 +90,32 @@ module Literals
   end
 
   def try_parse_record_splat!(index)
-    return nil if peek_type != :*
-    line, c = consume! :*
+    return nil if current_token.is_not_a? :*
+    splat_token = consume! :*
     splat = parse_expr!
-    AST::record({
-      AST::sym("splat") => splat,
-      AST::sym("index") => AST::int(index),
-    }, AST::array([]), line, c)
+    AST::record(
+      {
+        AST::sym("splat") => splat,
+        AST::sym("index") => AST::int(index),
+      },
+      AST::array([]),
+      splat_token.position
+    )
   end
 
   def parse_record!
-    line, c, _ = consume! :open_brace
+    open_brace = consume! :open_brace
     record = {}
     splats = []
     i = 0
-    while peek_type != :close_brace
+    while current_token.is_not_a? :close_brace
       splat = try_parse_record_splat!(i)
       i += 1
       if splat
         splats.push splat
       else
         key = parse_record_key!
-        value = if peek_type == :colon
+        value = if current_token.is_a? :colon
             consume! :colon
             parse_expr!
           elsif expr_context.in_a? :schema
@@ -113,35 +123,34 @@ module Literals
             call_schema_any sym[:sym]
           elsif literal_is_a?(key, "Sym")
             sym = extract_data_from_constructor(key)
-            AST::identifier_lookup sym[:value], sym[:line], sym[:column]
+            AST::identifier_lookup sym[:value], sym[:position]
           else
             assert_not_reached
           end
         record[key] = value
       end
-      consume! :comma unless peek_type == :close_brace
+      consume! :comma if current_token.is_not_a? :close_brace
     end
     consume! :close_brace
     node = AST::record(
       record,
       AST::array(splats.compact),
-      line,
-      c
+      open_brace.position
     )
-    return parse_match_assignment_without_schema!(node) if peek_type == :assign
+    return parse_match_assignment_without_schema!(node) if current_token&.is_a? :assign
     parse_id_modifier_if_exists!(node)
   end
 
   def parse_array!
-    line, c, _ = consume! :open_square_bracket
+    sq_bracket = consume! :open_square_bracket
     elements = []
-    while peek_type != :close_square_bracket
+    while current_token.is_not_a? :close_square_bracket
       elements.push parse_expr!
-      consume! :comma unless peek_type == :close_square_bracket
+      consume! :comma if current_token.is_not_a? :close_square_bracket
     end
     consume! :close_square_bracket
-    node = AST::array elements, line, c
-    return parse_match_assignment_without_schema!(node) if peek_type == :assign
+    node = AST::array elements, sq_bracket.position
+    return parse_match_assignment_without_schema!(node) if current_token&.is_a? :assign
     parse_id_modifier_if_exists!(node)
   end
 end

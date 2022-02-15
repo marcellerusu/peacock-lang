@@ -1,25 +1,4 @@
 module Functions
-  def function?(skip = 0)
-    # TODO: replace with end_of_expr?
-    return false if peek_type == :close_brace
-    return false if operator?
-    return false if peek_type == :dot
-    return false if peek_token(-1 + skip)[0] != self.line
-    return false if peek_type(-1 + skip) != :identifier
-    return false if expr_context.in_a? :declare
-    # skip params
-    i = 0
-    t = peek_token(i + skip)
-    return false if t.nil?
-
-    while t && t[2] != :"="
-      i += 1
-      t = peek_token(i + skip)
-    end
-    return false if t.nil?
-    self.line == t[0] && peek_type(i + skip) == :"="
-  end
-
   def parse_bang!
     consume! :bang
     expr = parse_expr!
@@ -27,12 +6,12 @@ module Functions
   end
 
   def property_accessor?
-    peek_type == :open_square_bracket &&
-    end_of_last_token == column
+    current_token.is_a?(:open_square_bracket) &&
+      end_of_last_token == current_token.position
   end
 
   def function_call?(sym_expr)
-    return true if peek_type == :open_parenthesis
+    return true if current_token&.is_a? :open_parenthesis
     is_dot_expr = sym_expr[:node_type] == :property_lookup ||
                   sym_expr[:node_type] == :instance_method_lookup
     return false if !is_dot_expr
@@ -48,19 +27,19 @@ module Functions
   end
 
   def parse_anon_function_shorthand!
-    line, c = self.line, column
-    consume! :anon_short_fn_start
+    fn_start_token = consume! :anon_short_fn_start
+    # binding.pry
     expr = parse_expr!
     assert { expr[:node_type] != :return }
-    expr = AST::return(expr, line, c) unless expr[:node_type] == :if
+    expr = AST::return(expr, fn_start_token.position) unless expr[:node_type] == :if
     consume! :close_brace
-    args = [AST::function_argument(ANON_SHORTHAND_ID, line, c)]
-    AST::function args, [expr], line, c
+    args = [AST::function_argument(ANON_SHORTHAND_ID, fn_start_token.position)]
+    AST::function args, [expr], fn_start_token.position
   end
 
   def parse_anon_short_id!
-    line, c = consume! :anon_short_id
-    sym_expr = AST::identifier_lookup(ANON_SHORTHAND_ID, line, c)
+    id_token = consume! :anon_short_id
+    sym_expr = AST::identifier_lookup(ANON_SHORTHAND_ID, id_token.position)
     parse_id_modifier_if_exists!(sym_expr)
   end
 
@@ -73,17 +52,17 @@ module Functions
     # def f
     #   function_code()
     # end
-    if peek_type == :"=" || prev_token_line != self.line
+    if current_token.is_a?(:"=") || new_line?
       args_schema = function_call [AST::array(args)], schema_for
       return args_schema, matches
     end
     list_schema_index = 0
     consume! :open_parenthesis
     expr_context.push! :declare
-    while peek_type != :close_parenthesis
+    while current_token.is_not_a?(:close_parenthesis)
       schema, new_matches = parse_schema_literal! list_schema_index
       args.push schema
-      consume! :comma unless peek_type == :close_parenthesis
+      consume! :comma if current_token.is_not_a? :close_parenthesis
       matches += new_matches
       list_schema_index += 1
     end
@@ -95,22 +74,21 @@ module Functions
 
   def parse_function_def!
     consume! :def
-    sym_line, sym_c, sym_name = consume! :identifier
+    id_token = consume! :identifier
     args_schema, matches = parse_function_args_schema!
-    is_is_single_expr = false
-    if peek_type == :"="
+    is_single_expr = false
+    if current_token.is_a? :"="
       is_single_expr = true
       consume! :"="
     end
-    fn_line = line
+
     if new_line?
       assert { !is_single_expr }
-      @token_index, body = clone(parser_context: parser_context.clone.push!(:function)).parse_with_position!
+      @token_index, body = clone(parser_context: parser_context.push(:function)).parse_with_position!
       consume! :end
     else
-      return_c = column
       expr = parse_expr!
-      body = [AST::return(expr, self.line, return_c)]
+      body = [AST::return(expr)]
     end
     body = matches.map do |path_and_sym|
       sym, path = path_and_sym.last, path_and_sym[0...-1]
@@ -119,34 +97,33 @@ module Functions
         eval_path_on_expr(path, AST::identifier_lookup("__VALUE"))
       )
     end + body
-    function = AST::function([AST::function_argument("__VALUE")], body, fn_line, sym_c)
-    AST::declare(sym_name, args_schema, function, sym_line, sym_c)
+    function = AST::function([AST::function_argument("__VALUE")], body, id_token.position)
+    AST::declare(id_token.value, args_schema, function, id_token.position)
   end
 
   def parse_anon_function_def!
-    _, c, _ = consume! :do
+    do_token = consume! :do
     args = []
-    if peek_type == :"|"
+    if current_token.is_a? :"|"
       consume! :"|"
-      while peek_type != :"|"
-        line, c1, value = consume! :identifier
-        args.push AST::function_argument(value, line, c1)
-        consume! :comma unless peek_type == :"|"
+      while current_token.is_not_a?(:"|")
+        id_token = consume! :identifier
+        args.push AST::function_argument(id_token.value, id_token.position)
+        consume! :comma if current_token.is_not_a? :"|"
       end
       consume! :"|"
     end
-    fn_line = self.line
-    @token_index, body = clone(parser_context: parser_context.clone.push!(:function)).parse_with_position!
+    @token_index, body = clone(parser_context: parser_context.push(:function)).parse_with_position!
     consume! :end
-    AST::function args, body, fn_line, c
+    AST::function args, body, do_token.position
   end
 
   def parse_function_call_args_with_paren!
     consume! :open_parenthesis
     args = []
-    while peek_type != :close_parenthesis
+    while current_token.is_not_a? :close_parenthesis
       args.push parse_expr!
-      consume! :comma unless peek_type == :close_parenthesis
+      consume! :comma if current_token.is_not_a? :close_parenthesis
     end
     consume! :close_parenthesis
     args
@@ -154,58 +131,25 @@ module Functions
 
   def parse_function_call_args_without_paren!
     args = []
-    return args if peek_type == :comma
+    return args if current_token&.is_a? :comma
     until end_of_expr?
       args.push parse_expr!
-      next if peek_type == :do
+      # TODO: shouldn't this be a break?
+      next if current_token&.is_a? :do
       break if end_of_expr?(:comma)
       consume! :comma
     end
     args
   end
 
-  def try_lookup(sym, line, c)
-    raw_str = { node_type: :str_lit,
-                line: line,
-                column: c,
-                value: sym }
-    AST::function_call(
-      [AST::function(
-        [],
-        [AST::return(AST::function_call([raw_str], AST::identifier_lookup("eval")))]
-      )],
-      AST::identifier_lookup("__try")
-    )
-  end
-
-  def or_lookup(node, args)
-    line, c = node[:line], node[:column]
-    if args.size == 0
-      AST::naked_or(
-        try_lookup(node[:sym], line, c),
-        AST::function_call([], node, line, c)
-      )
-    else
-      AST::function_call(
-        args,
-        AST::naked_or(
-          try_lookup(node[:sym], line, c),
-          node
-        ),
-        line,
-        c
-      )
-    end
-  end
-
   def parse_function_call!(fn_expr)
-    args = if peek_type == :open_parenthesis
+    args = if current_token&.is_a? :open_parenthesis
         parse_function_call_args_with_paren!
       else
         parse_function_call_args_without_paren!
       end
-    return or_lookup(fn_expr, args) if fn_expr[:node_type] == :instance_method_lookup
-    return parse_match_assignment!(fn_expr, args[0]) if args.size == 1 && peek_type == :assign
-    AST::function_call args, fn_expr, fn_expr[:line], fn_expr[:column]
+    return AST::or_lookup(fn_expr, args) if fn_expr[:node_type] == :instance_method_lookup
+    return parse_match_assignment!(fn_expr, args[0]) if args.size == 1 && current_token&.is_a?(:assign)
+    AST::function_call args, fn_expr, fn_expr[:position]
   end
 end

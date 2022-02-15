@@ -14,6 +14,10 @@ module Helpers
       self
     end
 
+    def push(context)
+      clone.push! context
+    end
+
     def empty?
       @contexts.size == 0
     end
@@ -42,80 +46,57 @@ module Helpers
     identifier[0].upcase == identifier[0]
   end
 
-  def more_tokens?
-    assert { @token_index <= @tokens.size }
-    @token_index < @tokens.size
-  end
-
-  def token
+  def current_token
     @tokens[@token_index]
   end
 
-  def end_of_last_token
-    _, column, type, val = peek_token(-1)
-    assert { type == :identifier }
-    column + val.size
+  def prev_token
+    @tokens[@token_index - 1]
   end
 
-  def prev_token_line
-    assert { @token_index > 0 }
-    peek_token(-1)[0]
+  def peek_token
+    @tokens[@token_index + 1]
   end
 
-  def line
-    token[0] if token
-  end
-
-  def column
-    token[1] if token
+  def more_tokens?
+    !end_of_file?
   end
 
   def consume!(token_type = nil)
-    # puts "#{token_type} #{token}"
-    assert { token_type == token[2] } unless token_type.nil?
-    line_number, column_number, type, value, tokens = token
-    if type == :identifier && value == "_"
-      value += unused_count.to_s
+    # puts "#{token_type} #{current_token.type}"
+    # binding.pry if token_type && token_type != current_token.type
+    assert { token_type == current_token.type } unless token_type.nil?
+    if current_token.is_a?(:identifier) && current_token.value == "_"
+      current_token.value += unused_count.to_s
       increment_unused_count!
     end
     @token_index += 1
-    return line_number, column_number, value, type, tokens
-  end
-
-  def peek_expr(by = 0)
-    parser = clone
-    expr = nil
-    (by + 1).times { expr = parser.parse_expr }
-    expr
-  end
-
-  def peek_token(by = 0)
-    return @tokens[@token_index + by]
-  end
-
-  def peek_type(by = 0)
-    return nil if @token_index + by > @tokens.size
-    line, column, type = peek_token(by)
-    type
+    return prev_token
   end
 
   def new_line?
-    prev_token_line != line
+    @program_string[prev_token.position..current_token.position].include? "\n"
   end
 
-  def operator?(type = peek_type)
+  def end_of_last_token
+    assert { prev_token.is_a? :identifier }
+    prev_token.position + prev_token.value.size
+  end
+
+  def operator?(type = current_token.type)
     OPERATORS.include?(type)
   end
 
   def end_of_expr?(*excluding)
-    return false if excluding.include? peek_type
+    return true if current_token.nil?
+    return false if current_token.one_of? *excluding
     closing_tags = [:close_parenthesis, :close_brace, :close_square_bracket, :end, :then]
     new_line? ||
-    closing_tags.include?(peek_type) ||
+    current_token.one_of?(*closing_tags) ||
     property_accessor? ||
     operator? ||
-    peek_type == :dot ||
-    peek_type == :comma
+    current_token.type == :dot ||
+    current_token.type == :comma
   end
 
   def end_of_file?
