@@ -93,10 +93,6 @@ module AST
         .dot("for")
         .call([self])
     end
-
-    def naked_or(rhs)
-      NakedOr.new(self, rhs)
-    end
   end
 
   class NakedOr < Node
@@ -113,6 +109,10 @@ module AST
   end
 
   class TryLookup < Node
+    def naked_or(rhs)
+      NakedOr.new(self, rhs)
+    end
+
     def initialize(value, position)
       @value = value
       @position = position
