@@ -88,8 +88,8 @@ class Compiler
 
   def collapse_function_overloading(ast = @ast, is_class = false)
     functions = ast
-      .filter { |node| node[:node_type] == :declare }
-      .group_by { |node| node[:sym] }
+      .filter { |node| node.is_a? AST::Declare }
+      .group_by { |node| node.name }
 
     function = ""
     functions.each do |sym, function_group|
@@ -100,12 +100,12 @@ class Compiler
   return Schema.case(List.new(params),
     List.new([
       #{function_group.map do |fn|
-        "List.new([#{eval_expr(fn[:schema])}, #{eval_function(fn[:expr])}])"
+        "List.new([#{eval_expr(fn.schema)}, #{eval_function(fn.expr)}])"
       end.join ",\n"}
     ])
   );\n}\n"
       dedent!
-      ast.filter! { |node| node[:sym] != sym }
+      ast.filter! { |node| !node.is_a?(AST::Declare) || node.name != sym }
     end
     function
   end
@@ -115,7 +115,7 @@ class Compiler
     if nodes.any?
       vars = padding
       vars += "let "
-      vars += nodes.map { |node| sub_q(node[:sym]) }.join(", ")
+      vars += nodes.map { |node| sub_q(node.name) }.join(", ")
       vars += ";" << "\n"
     end
     vars || ""
@@ -125,86 +125,88 @@ class Compiler
     names = Parser::computed_files
     module_defs = @ast
       .filter { |node|
-      node[:node_type] == :assign &&
-      node[:expr][:node_type] == :function_call &&
-      node[:expr][:expr][:node_type] == :function
+      node.is_a?(AST::Assign) &&
+      node.expr.is_a?(AST::FnCall) &&
+      node.expr.expr.is_a?(AST::Fn)
     }
-      .flat_map { |node| node[:expr][:expr][:body] }
-      .filter { |node| node[:node_type] == :assign && names.include?(node[:sym]) }
+      .flat_map { |node| node.expr.expr.body }
+      .filter { |node| node.is_a?(AST::Assign) && names.include?(node.name) }
     @ast
       .flat_map { |node|
-      if node[:node_type] == :if
-        node[:pass] + node[:fail]
+      if node.is_a?(AST::If)
+        node.pass + node.fail
       else
         [node]
       end
     }
-      .filter { |node| node[:node_type] == :assign && !names.include?(node[:sym]) }
-      .uniq { |node| node[:sym] } + module_defs
+      .filter { |node| node.is_a?(AST::Assign) && !names.include?(node.name) }
+      .uniq { |node| node.name } + module_defs
   end
 
   def eval_expr(node)
-    case node[:node_type]
-    when :declare
+    case node
+    when AST::Declare
       eval_declaration node
-    when :assign
+    when AST::Assign
       eval_assignment node
-    when :property_lookup
+    when AST::PropertyLookup
       eval_property_lookup node
-    when :array_lit
-      eval_array node
-    when :record_lit
+    when AST::List
+      eval_list node
+    when AST::Record
       eval_record node
-    when :bool_lit
+    when AST::Bool
       eval_bool node
-    when :int_lit
+    when AST::Int
       eval_int node
-    when :float_lit
+    when AST::Float
       eval_float node
-    when :str_lit
+    when AST::Str
       eval_str node
-    when :nil_lit
+    when AST::Nil
       eval_nil node
-    when :function
+    when AST::Fn
       eval_function node
-    when :return
+    when AST::Return
       eval_return node
-    when :function_call
+    when AST::FnCall
       eval_function_call node
-    when :identifier_lookup
+    when AST::IdLookup
       eval_identifier_lookup node
-    when :instance_lookup, :instance_method_lookup
+    when AST::InstanceLookup, AST::InstanceMethodLookup
       eval_instance_lookup node
-    when :paren_expr
+    when AST::ParenExpr
       eval_paren_expr node
-    when :if
+    when AST::If
       eval_if_expression node
-    when :symbol
+    when AST::Sym
       eval_symbol node
-    when :throw
+    when AST::Throw
       eval_throw node
-    when :class
+    when AST::Class
       eval_class_definition node
-    when :html_tag
+    when AST::HtmlTag
       eval_html_tag node
-    when :html_text_node
+    when AST::HtmlText
       eval_html_text_node node
-    when :case
+    when AST::Case
       eval_case_expression node
-    when :naked_or
+    when AST::NakedOr
       eval_naked_or node
-    when :instance_assign
+    when AST::InstanceAssign
       eval_instance_assign node
+    when AST::TryLookup
+      eval_try_lookup node
     else
-      puts "no case matched node_type: #{node[:node_type]}"
+      puts "no case matched node_type: #{node.class}"
       assert { false }
     end
   end
 
   def eval_if_expression(node)
-    cond = eval_expr(node[:expr])
-    pass_body = Compiler.new(node[:pass], @indent + 2).eval_without_variable_declarations
-    fail_body = Compiler.new(node[:fail], @indent + 2).eval_without_variable_declarations
+    cond = eval_expr(node.value)
+    pass_body = Compiler.new(node.pass, @indent + 2).eval_without_variable_declarations
+    fail_body = Compiler.new(node.fail, @indent + 2).eval_without_variable_declarations
 
     "#{padding}if (#{cond}.to_b().to_js()) {\n" \
     "#{pass_body}\n" \
@@ -214,68 +216,72 @@ class Compiler
   end
 
   def eval_throw(node)
-    "throw #{eval_expr(node[:expr])}"
+    "throw #{eval_expr(node.expr)}"
   end
 
   def eval_paren_expr(node)
-    "(#{eval_expr node[:expr]})"
+    "(#{eval_expr node.value})"
   end
 
   def eval_symbol(node)
-    "\"#{node[:value]}\""
+    "Sym.new(\"#{node.value}\")"
   end
 
   def eval_str(node)
-    "`#{node[:value]}`"
+    "Str.new(`#{node.value}`)"
   end
 
   def eval_int(node)
-    "#{node[:value]}"
+    "Int.new(#{node.value})"
+  end
+
+  def eval_try_lookup(node)
+    "__try(() => eval('#{node.value.name}'))"
   end
 
   def eval_naked_or(node)
-    "(#{eval_expr node[:lhs]} || #{eval_expr node[:rhs]})"
+    "(#{eval_expr node.lhs} || #{eval_expr node.rhs})"
   end
 
   def eval_html_tag(node)
-    "DomNode.new(#{eval_expr(node[:name])}, #{eval_expr(node[:attributes])}, #{eval_expr(node[:children])})"
+    "DomNode.new(#{eval_expr(node.name)}, #{eval_expr(node.attributes)}, #{eval_expr(node.children)})"
   end
 
   def eval_html_text_node(node)
-    "DomTextNode.new(#{eval_expr(node[:value])})"
+    "DomTextNode.new(#{eval_expr(node.value)})"
   end
 
   def eval_float(node)
-    "#{node[:value]}"
+    "Float.new(#{node.value})"
   end
 
   def eval_nil(node)
-    "null"
+    "Nil.new()"
   end
 
   def eval_bool(node)
-    "#{node[:value]}"
+    "Bool.new(#{node.value})"
   end
 
-  def eval_array(node)
-    elements = node[:value].map { |n| eval_expr n }.join(", ")
-    "[#{elements}]"
+  def eval_list(node)
+    elements = node.value.map { |n| eval_expr n }.join(", ")
+    "List.new([#{elements}])"
   end
 
   def eval_record(node)
     indent!
-    record = "[\n"
-    record += node[:value].map do |key, value|
+    record = "Record.new([\n"
+    record += node.value.map do |key, value|
       "#{padding}[#{eval_expr(key)}, #{eval_expr(value)}]"
     end.join(",\n")
     dedent!
-    record += "\n#{padding}]"
+    record += "\n#{padding}], #{eval_list(node.splats)})"
   end
 
   def eval_property_lookup(node)
-    lhs, key = eval_expr(node[:lhs_expr]), eval_expr(node[:property])
-    if key =~ /`[a-zA-Z\_][a-zA-Z1-9\_?]*`/
-      "#{lhs}.#{sub_q(key[1...-1])}"
+    lhs, key = eval_expr(node.lhs_expr), node.property
+    if key =~ /[a-zA-Z\_][a-zA-Z1-9\_?]*/
+      "#{lhs}.#{sub_q(key)}"
     else
       "#{lhs}[#{sub_q(key)}]"
     end
@@ -288,61 +294,62 @@ class Compiler
   end
 
   def eval_declaration(node)
-    "const #{sub_q(node[:sym])} = #{eval_expr(node[:expr])}"
+    "const #{sub_q(node.name)} = #{eval_expr(node.expr)}"
   end
 
   def eval_instance_assign(node)
-    "this.#{sub_q(node[:sym])} = #{eval_expr(node[:expr])}"
+    "#{sub_q(eval_expr(node.lhs))} = #{eval_expr(node.expr)}"
   end
 
   def eval_assignment(node)
-    "#{sub_q(node[:sym])} = #{eval_expr(node[:expr])}"
+    "#{sub_q(node.name)} = #{eval_expr(node.expr)}"
   end
 
   def eval_function(node)
-    body = Compiler.new(node[:body], @indent + 2).eval
-    args = node[:args].map { |arg| arg[:sym] }.join(", ")
+    body = Compiler.new(node.body, @indent + 2).eval
+    args = node.args.join(", ")
     fn = "((#{args}) => {\n#{body}\n"
-    fn += "return Nil.new();\n" unless node[:body].last[:node_type] == :return
+    fn += "return Nil.new();\n" unless node.body.last.is_a? AST::Return
     fn += "#{padding}})"
   end
 
   def eval_instance_lookup(node)
-    "this.#{sub_q(node[:sym])}"
+    "this.#{sub_q(node.name)}"
   end
 
   def eval_return(node)
-    "return #{eval_expr node[:expr]}"
+    "return #{eval_expr node.value}"
   end
 
   def eval_function_call(node)
-    args = node[:args].map { |arg| eval_expr arg }.join ", "
-    fn = eval_expr node[:expr]
+    # binding.pry
+    args = node.args.map { |arg| eval_expr arg }.join ", "
+    fn = eval_expr node.expr
     "#{fn}(#{args})"
   end
 
   def eval_identifier_lookup(node)
-    assert { node[:sym] }
-    sub_q(node[:sym])
+    assert { node.value }
+    sub_q(node.value)
   end
 
   def eval_class_definition(node)
-    class_name, method_nodes = node[:sym], node[:methods]
+    class_name, method_nodes = node.name, node.methods
 
     def method_body(node)
-      body = Compiler.new(node[:body], @indent + 2).eval
+      body = Compiler.new(node.body, @indent + 2).eval
     end
 
     def constructor(node, class_name, method_nodes)
       con = "  constructor(...args) {"
-      con += "super(...args);" if node[:super_class]
+      con += "super(...args);" if node.super_class
       con += method_nodes.map { |n|
-        name = sub_q(n[:sym])
+        name = sub_q(n.name)
         "this.#{name} = this.#{name}.bind(this);"
       }.join("\n").strip()
       con += "this.init && this.init(...args);"
       con += "}"
-      if !node[:super_class]
+      if !node.super_class
         con += "
   static [\"new\"](...args) {
     return new this(...args);
@@ -352,11 +359,10 @@ class Compiler
     end
 
     def extends(node)
-      return "" if node[:super_class].nil?
-      "extends #{node[:super_class]}"
+      return "" if node.super_class.nil?
+      "extends #{node.super_class}"
     end
 
-    # binding.pry
     class_def = <<-EOF
 class #{class_name} #{extends node} {
   #{constructor(node, class_name, method_nodes)}
@@ -367,6 +373,6 @@ EOF
   end
 
   def eval_case_expression(node)
-    "Schema.case(#{eval_expr(node[:expr])}, #{eval_expr(node[:cases])})"
+    "Schema.case(#{eval_expr(node.expr)}, #{eval_expr(node.cases)})"
   end
 end

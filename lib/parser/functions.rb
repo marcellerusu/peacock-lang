@@ -2,7 +2,7 @@ module Functions
   def parse_bang!
     consume! :bang
     expr = parse_expr!
-    AST::function_call [], AST::dot(expr, "bang")
+    expr.dot("bang").call
   end
 
   def property_accessor?
@@ -10,12 +10,10 @@ module Functions
       end_of_last_token == current_token.position
   end
 
-  def function_call?(sym_expr)
+  def function_call?(node)
     return true if current_token&.is_a? :open_parenthesis
-    is_dot_expr = sym_expr[:node_type] == :property_lookup ||
-                  sym_expr[:node_type] == :instance_method_lookup
-    return false if !is_dot_expr
-    return true if is_dot_expr && end_of_expr?
+    return false if !node.lookup?
+    return true if node.lookup? && end_of_expr?
     cloned = clone
     begin
       cloned.parse_function_call_args_without_paren!
@@ -30,21 +28,20 @@ module Functions
     fn_start_token = consume! :anon_short_fn_start
     # binding.pry
     expr = parse_expr!
-    assert { expr[:node_type] != :return }
-    expr = AST::return(expr, fn_start_token.position) unless expr[:node_type] == :if
+    assert { !expr.is_a?(AST::Return) }
+    expr = expr.to_return unless expr.is_a? AST::If
     consume! :close_brace
-    args = [AST::function_argument(ANON_SHORTHAND_ID, fn_start_token.position)]
-    AST::function args, [expr], fn_start_token.position
+    AST::Fn.new [ANON_SHORTHAND_ID], [expr], fn_start_token.position
   end
 
   def parse_anon_short_id!
     id_token = consume! :anon_short_id
-    sym_expr = AST::identifier_lookup(ANON_SHORTHAND_ID, id_token.position)
+    sym_expr = AST::IdLookup.new ANON_SHORTHAND_ID, id_token.position
     parse_id_modifier_if_exists!(sym_expr)
   end
 
   def parse_function_args_schema!
-    args = []
+    args = AST::List.new([])
     matches = []
     # in case of
     # def f = 0
@@ -53,23 +50,21 @@ module Functions
     #   function_code()
     # end
     if current_token.is_a?(:"=") || new_line?
-      args_schema = function_call [AST::array(args)], schema_for
-      return args_schema, matches
+      return args.to_schema, matches
     end
     list_schema_index = 0
     consume! :open_parenthesis
     expr_context.push! :declare
     while current_token.is_not_a?(:close_parenthesis)
       schema, new_matches = parse_schema_literal! list_schema_index
-      args.push schema
+      args.push! schema
       consume! :comma if current_token.is_not_a? :close_parenthesis
       matches += new_matches
       list_schema_index += 1
     end
     expr_context.pop! :declare
     consume! :close_parenthesis
-    args_schema = function_call [AST::array(args)], schema_for
-    return args_schema, matches
+    return args.to_schema, matches
   end
 
   def parse_function_def!
@@ -88,17 +83,19 @@ module Functions
       consume! :end
     else
       expr = parse_expr!
-      body = [AST::return(expr)]
+      body = [expr.to_return]
     end
     body = matches.map do |path_and_sym|
       sym, path = path_and_sym.last, path_and_sym[0...-1]
-      AST::assignment(
+      AST::Assign.new(
         sym,
-        eval_path_on_expr(path, AST::identifier_lookup("__VALUE"))
+        eval_path_on_expr(path, AST::IdLookup.new("__VALUE", id_token.position)),
+        id_token.position
       )
     end + body
-    function = AST::function([AST::function_argument("__VALUE")], body, id_token.position)
-    AST::declare(id_token.value, args_schema, function, id_token.position)
+
+    AST::Fn.new(["__VALUE"], body, id_token.position)
+      .declare_with(id_token.value, args_schema)
   end
 
   def parse_anon_function_def!
@@ -108,14 +105,14 @@ module Functions
       consume! :"|"
       while current_token.is_not_a?(:"|")
         id_token = consume! :identifier
-        args.push AST::function_argument(id_token.value, id_token.position)
+        args.push id_token.value
         consume! :comma if current_token.is_not_a? :"|"
       end
       consume! :"|"
     end
     @token_index, body = clone(parser_context: parser_context.push(:function)).parse_with_position!
     consume! :end
-    AST::function args, body, do_token.position
+    AST::Fn.new args, body, do_token.position
   end
 
   def parse_function_call_args_with_paren!
@@ -148,8 +145,9 @@ module Functions
       else
         parse_function_call_args_without_paren!
       end
-    return AST::or_lookup(fn_expr, args) if fn_expr[:node_type] == :instance_method_lookup
+    # TODO: I think this is the problem right here AST::InstanceMethodLookup
+    return fn_expr.or_lookup(args) if fn_expr.is_a? AST::InstanceMethodLookup
     return parse_match_assignment!(fn_expr, args[0]) if args.size == 1 && current_token&.is_a?(:assign)
-    AST::function_call args, fn_expr, fn_expr[:position]
+    fn_expr.call(args)
   end
 end

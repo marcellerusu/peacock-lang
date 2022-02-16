@@ -7,6 +7,11 @@ Spec.new List do |c|
     expect([10] - [10]).to eq([])
   end
 
+  c.xit "#__minus__" do
+    expect([10] - [20]).to eq([10])
+  end
+
+
   c.it "#to_r" do
     expect([[:a, 1]].to_r).to eq({ a: 1 })
   end

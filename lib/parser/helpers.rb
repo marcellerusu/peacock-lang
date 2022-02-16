@@ -84,6 +84,7 @@ module Helpers
   end
 
   def operator?(type = current_token.type)
+    # TODO: remove, look at operator? in Parser
     OPERATORS.include?(type)
   end
 

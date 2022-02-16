@@ -15,7 +15,7 @@ when "-t"
   pp tokens
 when /-a*/
   ast = parser.parse!
-  pp AST::remove_numbers(ast) unless ARGV[1].include? "n"
+  pp ast.map(&:to_h)
 when "-n"
 else
   ast = parser.parse!

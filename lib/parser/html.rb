@@ -12,10 +12,10 @@ module HTML
       close_tag_token = consume! :close_html_tag
       assert { open_tag_token.value == close_tag_token.value }
     end
-    AST::html_tag(
-      AST::str(open_tag_token.value),
-      AST::record(attributes),
-      AST::array(children || []),
+    AST::HtmlTag.new(
+      AST::Str.new(open_tag_token.value, open_tag_token.position),
+      attributes,
+      AST::List.new(children || [], attributes.position),
       open_tag_token.position
     )
   end
@@ -27,36 +27,37 @@ module HTML
       children = parse_html_children!
       close_tag_token = consume! :close_custom_element_tag
       assert { open_tag_token.value == close_tag_token.value }
-      assert { !attributes.has_key?(AST::sym("children")) }
-      attributes[AST::sym("children")] = AST::array(children)
+      assert { attributes.does_not_have_sym? "children" }
+      attributes.insert_sym!(
+        "children",
+        AST::List.new(children, close_tag_token.position)
+      )
     end
-    AST::function_call(
-      [AST::record(attributes)],
-      AST::dot(
-        AST::identifier_lookup(open_tag_token.value, open_tag_token.position),
-        "new"
-      ),
-      open_tag_token.position
-    )
+    AST::IdLookup.new(open_tag_token.value, open_tag_token.position)
+      .dot("new")
+      .call([attributes])
   end
 
   def parse_html_attributes!
+    attributes = AST::Record.new [], AST::List.new([]), current_token.position
     if current_token.is_a? :self_close_html_tag
       consume! :self_close_html_tag
-      return true, {}
+      return true, attributes
     end
-    attributes = {}
     while current_token.is_not_one_of?(:>, :self_close_html_tag)
       id_token = consume! :identifier
       if current_token.is_not_a? :"="
-        attributes[AST::sym(id_token.value)] = AST::bool(true)
+        attributes.insert_sym!(
+          id_token.value,
+          AST::Bool.new(true, id_token.position)
+        )
         next
       end
       consume! :"="
       expr_context.push! :html_tag
       value = case current_token.type
         when :str_lit
-          parse_lit! :str_lit
+          parse_str!
         when :anon_short_fn_start
           expr_context.pop! :html_tag
           fn = parse_anon_function_shorthand!
@@ -73,7 +74,7 @@ module HTML
           assert { false }
         end
       expr_context.pop! :html_tag
-      attributes[AST::sym(id_token.value)] = value
+      attributes.insert_sym! id_token.value, value
     end
     closing_token = consume!
     return closing_token.is_a?(:self_close_html_tag), attributes
@@ -113,7 +114,8 @@ module HTML
     # maybe I'll have to put this in the lexer somehow..
     # Things to think about..
     # ^^ this is starting to be better
-    prev_c = current_token.position
+    original_position = current_token.position
+    prev_pos = original_position
     while current_token.is_not_one_of?(
       :open_html_tag,
       :open_custom_element_tag,
@@ -123,19 +125,19 @@ module HTML
     )
       word_token = consume!
       padding = ""
-      padding = " " if word_token.position - prev_c >= 1
+      padding = " " if word_token.position - prev_pos >= 1
       if word_token.value
         text += padding + word_token.value
-        prev_c = word_token.position + word_token.value.size
+        prev_pos = word_token.position + word_token.value.size
       elsif ID_TO_STR[word_token.type]
         id_str = ID_TO_STR[word_token.type]
         text += padding + id_str
-        prev_c = word_token.position + id_str.size
+        prev_pos = word_token.position + id_str.size
       else
         text += padding + word_token.type.to_s
-        prev_c = word_token.position + word_token.type.to_s.size
+        prev_pos = word_token.position + word_token.type.to_s.size
       end
     end
-    AST::html_text_node(AST::str(text))
+    AST::HtmlText.new(AST::Str.new(text, original_position), original_position)
   end
 end

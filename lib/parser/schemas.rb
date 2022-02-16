@@ -4,28 +4,31 @@ module Schemas
   LITERALS = [:int_lit, :float_lit, :str_lit, :bool_lit, :symbol]
 
   def parse_case_expression!
-    consume! :case
+    case_token = consume! :case
     value = parse_expr!
     cases = []
     match_arg_name = "match_expr"
     while current_token.is_not_a? :end
-      consume! :when
+      when_token = consume! :when
       schema, matches = parse_schema_literal!
       @token_index, body = clone(parser_context: parser_context.push(:function)).parse_with_position! [:when]
-      fn = AST::function(
-        [AST::function_argument(match_arg_name)],
+
+      fn = AST::Fn.new(
+        [match_arg_name],
         matches.map do |path_and_sym|
           sym, path = path_and_sym.last, path_and_sym[0...-1]
-          AST::assignment(
+
+          AST::Assign.new(
             sym,
-            eval_path_on_expr(path, AST::identifier_lookup(match_arg_name))
+            eval_path_on_expr(path, AST::IdLookup.new(match_arg_name, when_token.position))
           )
-        end + body
+        end + body,
+        case_token.position
       )
-      cases.push AST::array([schema, fn])
+      cases.push AST::List.new([schema, fn])
     end
     consume! :end
-    AST::case value, AST::array(cases)
+    AST::Case.new value, AST::List.new(cases), case_token.position
   end
 
   def parse_schema_literal!(index = nil)
@@ -33,228 +36,109 @@ module Schemas
     schema_expr = parse_expr!
     expr_context.pop! :schema
     match_expr = if current_token.is_a? :open_parenthesis
-        assert { schema_expr[:node_type] == :identifier_lookup }
+        assert { schema_expr.is_a? AST::IdLookup }
         consume! :open_parenthesis
         expr_context.push! :schema
         pattern = parse_expr!
         expr_context.pop! :schema
         consume! :close_parenthesis
         pattern
-      elsif schema_expr[:node_type] == :identifier_lookup
+      elsif schema_expr.is_a? AST::IdLookup
         nil
       else
         schema_expr
       end
-    schema = if schema_any?(schema_expr)
+    schema = if schema_expr.schema_any?
         schema_expr
       else
-        function_call([schema_expr], schema_for)
+        schema_expr.to_schema
       end
     assert { current_token.is_not_one_of? *OPERATORS }
     return schema, find_bound_variables(match_expr, index)
   end
 
   def parse_match_assignment_without_schema!(pattern, value_expr = nil)
-    fn_expr = function_call([pattern], schema_for)
-    parse_match_assignment!(fn_expr, pattern, value_expr)
-  end
-
-  def extract_data_from_constructor(pattern)
-    return pattern unless constructor? pattern
-    raw_value = pattern[:args][0]
-    if raw_value[:node_type] == :array_lit
-      # TODO: array splats
-      { **raw_value,
-        value: raw_value[:value].map { |node| extract_data_from_constructor(node) } }
-    elsif raw_value[:node_type] == :record_lit
-      assert { pattern[:args][1][:args].size <= 1 } # only have 1 splat
-      splat = pattern[:args][1][:args][0]
-      { **raw_value,
-        value: raw_value[:value].transform_values { |node| extract_data_from_constructor(node) },
-        splat: splat && splat[:value].map { |node| extract_data_from_constructor(node) } }
-    else
-      raw_value
-    end
-  end
-
-  def collection_lit?(node)
-    [:record_lit, :array_lit].include? node[:node_type]
-  end
-
-  def replace_identifier_lookups_with_schema_any(pattern)
-    def transform_array(array)
-      array.map do |node|
-        if schema_any?(node)
-          node
-        elsif node[:node_type] == :identifier_lookup
-          call_schema_any(node[:sym])
-        elsif collection_lit?(node)
-          replace_identifier_lookups_with_schema_any(node)
-        else
-          node
-        end
-      end
-    end
-
-    def transform_record(record)
-      record.map do |key, node|
-        node = if schema_any?(node)
-            node
-          elsif node[:node_type] == :identifier_lookup
-            call_schema_any(node[:sym])
-          elsif collection_lit?(node)
-            replace_identifier_lookups_with_schema_any(node)
-          else
-            node
-          end
-        [key, node]
-      end.to_h
-    end
-
-    pattern[:value] = if pattern[:node_type] == :record_lit
-        transform_record(pattern[:value])
-      elsif pattern[:node_type] == :array_lit
-        transform_array(pattern[:value])
-      else
-        assert { false }
-      end
-    pattern
-  end
-
-  def replace_literal_values_with_literal_schema(pattern)
-    return call_schema_literal(pattern) if LITERALS.include?(pattern[:node_type])
-
-    def transform_array(array)
-      array.map do |node|
-        if schema_any?(node)
-          node
-        elsif LITERALS.include?(node[:node_type])
-          call_schema_literal(node)
-        else
-          replace_literal_values_with_literal_schema(node)
-        end
-      end
-    end
-
-    def transform_record(record)
-      record.map do |key, node|
-        node = if schema_any?(node)
-            node
-          elsif LITERALS.include?(node[:node_type])
-            call_schema_literal(node)
-          else
-            replace_literal_values_with_literal_schema(node)
-          end
-        [key, node]
-      end.to_h
-    end
-
-    pattern[:value] = if pattern[:node_type] == :record_lit
-        transform_record(pattern[:value])
-      elsif pattern[:node_type] == :array_lit
-        transform_array(pattern[:value])
-      else
-        assert { false }
-      end
-
-    pattern
+    parse_match_assignment!(pattern.to_schema, pattern, value_expr)
   end
 
   def parse_match_assignment!(fn_expr, match_expr, value_expr = nil)
     if value_expr
-      position = value_expr[:position]
+      position = value_expr.position
       expr = value_expr
     else
       assign_token = consume! :assign
       position = assign_token.position
       expr = parse_expr!
     end
-    if_expr = call_schema_valid(fn_expr, expr)
-    value = AST::assignment("__VALUE", expr)
-    value_lookup = AST::identifier_lookup("__VALUE", current_token.position)
+    if_expr = fn_expr.dot("valid_q").call([expr])
+    value = AST::Assign.new("__VALUE", expr)
+    value_lookup = AST::IdLookup.new("__VALUE", current_token.position)
 
     pass_body = [value] + find_bound_variables(match_expr).map do |path_and_sym|
       sym, path = path_and_sym.last, path_and_sym[0...-1]
-      AST::assignment(sym, eval_path_on_expr(path, value_lookup), current_token.position)
+      AST::Assign.new(sym, eval_path_on_expr(path, value_lookup), current_token.position)
     end
     fail_body = [
-      AST::throw(AST::str("Match error", current_token.position), current_token.position),
+      AST::Throw.new(AST::Str.new("Match error", current_token.position), current_token.position),
     ]
-    AST::if if_expr, pass_body, fail_body, position
+    AST::If.new if_expr, pass_body, fail_body, position
   end
 
   def eval_path_on_expr(paths, expr)
     for path in paths
       property = if path.is_a?(String)
-          AST::sym(path)
+          AST::Sym.new(path, expr.position)
         elsif path.is_a?(Integer)
-          AST::int(path)
+          AST::Int.new(path, expr.position)
         elsif path.is_a?(Symbol)
           assert { path == :_self }
           next
         else
           assert { false }
         end
-      expr = AST::lookup(expr, property)
+      expr = expr.lookup(property)
     end
     return expr
   end
 
-  def literal_is_a?(expr, constructor_type)
-    constructor?(expr) &&
-      expr[:expr][:lhs_expr][:sym] == constructor_type
-  end
-
-  def constructor?(expr)
-    constructors = ["List", "Int", "Float", "Str", "Sym", "Record", "Bool", "Nil"]
-
-    constructors.include?(expr.dig(:expr, :lhs_expr, :sym)) &&
-    expr.dig(:expr, :property, :value) == "new"
-  end
-
-  def schema_lookup?(node)
-    return node[:node_type] == :identifier_lookup && schema?(node[:sym])
-  end
-
   def find_bound_variables(match_expr, outer_index = nil)
     return [] if match_expr.nil?
-    if schema_any?(match_expr)
+    if match_expr.schema_any?
       if outer_index
-        return [[outer_index, get_schema_any_name(match_expr)]]
+        return [[outer_index, match_expr.schema_any_name]]
       else
-        return [[get_schema_any_name(match_expr)]]
+        return [[match_expr.schema_any_name]]
       end
     end
-    match_expr = extract_data_from_constructor(match_expr) if constructor?(match_expr)
     assert { match_expr != nil }
     bound_variables = []
-    case match_expr[:node_type]
-    when :identifier_lookup
-      return [[match_expr[:sym]]]
-    when :record_lit
-      match_expr[:value].each do |key, value|
-        key = extract_data_from_constructor(key)[:value]
-        bound_variables += if schema_any?(value) || schema_lookup?(value)
+    case match_expr
+    when AST::IdLookup
+      return [[match_expr.value]]
+    when AST::Record
+      match_expr.each do |key, value|
+        key = key.value
+        bound_variables += if value.schema_any? || value.schema_lookup?
             [[key, key]]
           else
             find_bound_variables(value).map { |path| [key] + path }
           end
       end
-      if match_expr[:splat].size > 0
+      if match_expr.splats.value.size > 0
         # TODO: match_expr[:splat] shouldn't be an array
-        r = match_expr[:splat][0][:value]
-        splat_name = r[AST::sym("splat")][:sym]
+        r = match_expr.splats.value[0]
+        splat_name = r.lookup_sym("splat").value
         bound_variables += [[:_self, splat_name]]
       end
-    when :array_lit
-      match_expr[:value].each_with_index do |node, index|
-        bound_variables += if schema_any?(node)
-            [[index, get_schema_any_name(node)]]
+    when AST::List
+      match_expr.each_with_index do |node, index|
+        bound_variables += if node.schema_any?
+            [[index, node.schema_any_name]]
           else
             find_bound_variables(node).map { |path| [index] + path }
           end
       end
-    when :int_lit, :float_lit, :str_lit, :bool_lit, :nil_lit
+    when AST::Int, AST::Float, AST::Str, AST::Bool, AST::Nil
       # pass
     else
       pp match_expr
@@ -273,46 +157,11 @@ module Schemas
     consume! :"="
     expr_context.push! :schema
     expr = parse_expr!
-    schema = function_call([expr], schema_for)
+    schema = expr.to_schema
     while current_token.is_one_of?(*OPERATORS)
       schema = parse_operator_call!(schema)
     end
     expr_context.pop! :schema
-    AST::assignment(schema_name_token.value, schema, schema_name_token.position)
-  end
-
-  def get_schema_any_name(node)
-    node[:args][0][:args][0][:value]
-  end
-
-  def schema_any?(node)
-    node.is_a?(Hash) &&
-      node[:node_type] == :function_call &&
-      node[:expr][:node_type] == :property_lookup &&
-      node[:expr][:lhs_expr][:sym] == "Schema" &&
-      node[:expr][:property][:value] == "any"
-  end
-
-  def schema
-    AST::identifier_lookup("Schema", prev_token.position)
-  end
-
-  def call_schema_valid(schema_fn, expr)
-    function_call([expr], dot(schema_fn, "valid_q"))
-  end
-
-  def call_schema_literal(literal)
-    function_call([literal], dot(schema, "literal"))
-  end
-
-  def call_schema_any(name)
-    function_call(
-      [AST::sym(name, prev_token.position)],
-      dot(schema, "any")
-    )
-  end
-
-  def schema_for
-    dot(schema, "for")
+    AST::Assign.new(schema_name_token.value, schema, schema_name_token.position)
   end
 end

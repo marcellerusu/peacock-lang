@@ -1,328 +1,531 @@
-AST_LIT_TO_CONSTRUCTOR = {
-  int_lit: "Int",
-  str_lit: "Str",
-  float_lit: "Float",
-  symbol: "Sym",
-}
-
 module AST
-  def self.remove_numbers_single(node)
-    assert { node.is_a? Hash }
-    node.delete(:position)
-    node[:expr] = AST::remove_numbers_single(node[:expr]) if node[:expr]
-    node[:schema] = AST::remove_numbers_single(node[:schema]) if node[:schema]
-    node[:property] = AST::remove_numbers_single(node[:property]) if node[:property]
-    node[:lhs_expr] = AST::remove_numbers_single(node[:lhs_expr]) if node[:lhs_expr]
-    node[:value] = AST::remove_numbers(node[:value]) if node[:value].is_a?(Array)
-    node[:value] = AST::remove_numbers_from_hash(node[:value]) if node[:value].is_a?(Hash)
-    node[:args] = AST::remove_numbers(node[:args]) if node[:args]
-    node[:body] = AST::remove_numbers(node[:body]) if node[:body]
-    node[:methods] = AST::remove_numbers(node[:methods]) if node[:methods]
-    node[:pass] = AST::remove_numbers(node[:pass]) if node[:pass]
-    node[:fail] = AST::remove_numbers(node[:fail]) if node[:fail]
-    node[:cases] = AST::remove_numbers_single(node[:cases]) if node[:cases]
-    node[:lhs] = AST::remove_numbers_single(node[:lhs]) if node[:lhs]
-    node[:rhs] = AST::remove_numbers_single(node[:rhs]) if node[:rhs]
-    return node
+  def self.schema(token)
+    # this is for tests only.. :/
+    if token.is_a? String
+      token = Lexer::Token.new(nil, token, nil)
+    end
+    IdLookup.new("Schema", token.position)
   end
 
-  def self.remove_numbers(nodes)
-    assert { nodes.is_a? Array }
-    nodes.map { |n| AST::remove_numbers_single(n) }
+  def self.schema_any(token)
+    schema(token)
+      .dot("any")
+      .call([AST::Sym.from_token(token)])
   end
 
-  def self.remove_numbers_from_hash(hash)
-    hash.map { |k, n| [k, AST::remove_numbers_single(n)] }.to_h
+  class Node
+    attr_reader :value, :position
+
+    def to_h
+      val = self.value
+      val = value.to_h if value.is_a? Node
+      { value: val }
+    end
+
+    def position=(val)
+      @position = val
+    end
+
+    def sub_symbols
+      sym
+        .sub("?", "_q")
+        .sub("!", "_b")
+    end
+
+    def call(args = [], position = self.position)
+      FnCall.new(args, self, position)
+    end
+
+    def dot(property, position = self.position)
+      PropertyLookup.new(self, property, position)
+    end
+
+    def to_return
+      Return.new(self, position)
+    end
+
+    def schema_lookup?
+      false
+    end
+
+    def to_s
+      "#{self.class}.new(#{value})"
+    end
+
+    def wrap_in_fn
+      wrap_in_fn_with([])
+    end
+
+    def wrap_in_fn_with(ast)
+      AST::Fn.new([], [*ast, self], position)
+    end
+
+    def exportable?
+      false
+    end
+
+    def lookup(expr)
+      dot("__lookup__").call([expr])
+    end
+
+    def lookup?
+      false
+    end
+
+    def plus(expr)
+      dot("__plus__").call([expr])
+    end
+
+    def call_to_s
+      dot("to_s").call
+    end
+
+    def schema_any?
+      false
+    end
+
+    def collection?
+      false
+    end
+
+    def to_schema
+      IdLookup.new("Schema", position)
+        .dot("for")
+        .call([self])
+    end
+
+    def naked_or(rhs)
+      NakedOr.new(self, rhs)
+    end
   end
 
-  def self.int(value, position = nil)
-    AST::literal_constructor(
-      { node_type: :int_lit,
-        value: value,
-        position: position },
-      "Int",
-      position
-    )
+  class NakedOr < Node
+    attr_reader :lhs, :rhs
+
+    def to_h
+      { lhs: lhs.to_h, rhs: rhs.to_h }
+    end
+
+    def initialize(lhs, rhs)
+      @lhs = lhs
+      @rhs = rhs
+    end
   end
 
-  def self.literal(position, type, value)
-    AST::literal_constructor(
-      { node_type: type,
-        position: position,
-        value: value },
-      AST_LIT_TO_CONSTRUCTOR[type],
-      position
-    )
+  class TryLookup < Node
+    def initialize(value, position)
+      @value = value
+      @position = position
+    end
   end
 
-  def self.nil(position = nil)
-    AST::literal_constructor(
-      { node_type: :nil_lit,
-        position: position },
-      "Nil",
-      position
-    )
+  class Int < Node
+    def self.from_token(token)
+      Int.new(token.value, token.position)
+    end
+
+    def initialize(value, position)
+      @value = value
+      @position = position
+    end
   end
 
-  def self.array(value, position = nil)
-    AST::literal_constructor(
-      { node_type: :array_lit,
-        position: position,
-        value: value },
-      "List",
-      position
-    )
+  class Float < Node
+    def self.from_token(token)
+      Float.new(token.value, token.position)
+    end
+
+    def initialize(value, position)
+      @value = value
+      @position = position
+    end
   end
 
-  def self.record(value, splats = AST::array([]), position = nil)
-    AST::literal_constructor(
-      [
-        { node_type: :record_lit,
-          position: position,
-          value: value },
-        splats,
-      ],
-      "Record",
-      position
-    )
+  class Bool < Node
+    def initialize(value, position)
+      @value = value
+      @position = position
+    end
   end
 
-  def self.sym(value, position = nil)
-    AST::literal_constructor(
-      { node_type: :symbol,
-        position: position,
-        value: value },
-      "Sym",
-      position
-    )
+  class Str < Node
+    def initialize(value, position)
+      @value = value
+      @position = position
+    end
   end
 
-  def self.naked_or(lhs, rhs)
-    { node_type: :naked_or,
-      lhs: lhs,
-      rhs: rhs }
+  class Sym < Node
+    def self.from_token(token)
+      if token.is_a? String
+        token = Lexer::Token.new(nil, token, nil)
+      end
+      Sym.new(token.value, token.position)
+    end
+
+    def initialize(value, position)
+      @value = value
+      @position = position
+    end
   end
 
-  def self.bool(value, position = nil)
-    AST::literal_constructor(
-      { node_type: :bool_lit,
-        position: position,
-        value: value },
-      "Bool",
-      position
-    )
+  class Nil < Node
+    def initialize(position)
+      @position = position
+    end
   end
 
-  def self.float(value, position = nil)
-    AST::literal_constructor(
-      { node_type: :float_lit,
-        position: position,
-        value: value },
-      "Float",
-      position
-    )
+  class List < Node
+    def to_h
+      value.map(&:to_h)
+    end
+
+    def initialize(value = [], position = nil)
+      assert { value.is_a? Array }
+      @value = value
+      @position = position
+    end
+
+    def collection?
+      true
+    end
+
+    def each_with_index(&block)
+      @value.each_with_index { |v, i| block.call(v, i) }
+    end
+
+    def replace_id_lookups_with_schema_any
+      new_value = @value.map do |val|
+        if val.is_a?(IdLookup)
+          val = IdLookup.new("Schema").dot("any").call([Sym.new(key)])
+        end
+        val
+      end
+
+      List.new new_value, position
+    end
+
+    def push!(val)
+      @value.push val
+    end
   end
 
-  def self.str(value, position = nil)
-    AST::literal_constructor(
-      { node_type: :str_lit,
-        position: position,
-        value: value },
-      "Str",
-      position
-    )
+  class Record < Node
+    attr_reader :splats
+
+    def to_h
+      { value: value.map { |k, v| [k.to_h, v.to_h] }, splats: splats.to_h }
+    end
+
+    def initialize(value, splats, position)
+      @value = value
+      @splats = splats
+      @position = position
+    end
+
+    def collection?
+      true
+    end
+
+    def replace_id_lookups_with_schema_any
+      new_value = @value.map do |key, val|
+        if val.is_a?(IdLookup)
+          val = IdLookup.new("Schema").dot("any").call([Sym.new(key)])
+        end
+        [key, val]
+      end
+
+      Record.new new_value, @splats, position
+    end
+
+    def each(&block)
+      @value.each { |k, v| block.call(k, v) }
+    end
+
+    def insert_sym!(sym, val)
+      key = Sym.new(sym, val.position)
+      @value.push [key, val]
+    end
+
+    def lookup_sym(sym)
+      _, value = @value.find { |key, _| key.value == sym }
+      value
+    end
+
+    def does_not_have_sym?(sym)
+      @value.none? do |key, value|
+        key.value == sym
+      end
+    end
   end
 
-  def self.paren_expr(expr, position = nil)
-    { node_type: :paren_expr,
-      expr: expr,
-      position: position }
+  class ParenExpr < Node
+    def initialize(value, position)
+      @value = value
+      @position = position
+    end
   end
 
-  def self.return(expr, position = expr[:position])
-    { node_type: :return,
-      position: position,
-      expr: expr }
+  class Return < Node
+    def initialize(value, position = value.position)
+      @value = value
+      @position = position
+    end
   end
 
-  def self.if(expr, pass, _fail, position = nil)
-    { node_type: :if,
-      position: position,
-      expr: expr,
-      pass: pass,
-      fail: _fail }
+  class If < Node
+    attr_reader :pass, :fail, :value
+    attr_writer :pass, :fail
+
+    def to_h
+      { value: value.to_h, pass: pass.map(&:to_h), fail: self.fail.map(&:to_h) }
+    end
+
+    def initialize(value, pass, _fail, position)
+      @value = value
+      @pass = pass
+      @fail = _fail
+      @position = position
+    end
   end
 
-  def self.function_call(args, expr, position = nil)
-    { node_type: :function_call,
-      position: position,
-      args: args,
-      expr: expr }
+  class FnCall < Node
+    attr_reader :expr, :args
+
+    def to_h
+      { args: args.map(&:to_h), expr: expr.to_h }
+    end
+
+    def initialize(args, expr, position)
+      assert { args.is_a? Array }
+      @args = args
+      @expr = expr
+      @position = position
+    end
+
+    def schema_any_name
+      assert { schema_any? }
+      args[0].value
+    end
+
+    def schema_any?
+      expr.is_a?(PropertyLookup) &&
+      expr.lhs_expr.value == "Schema" &&
+      expr.property == "any"
+    end
   end
 
-  def self.function(args, body, position = nil)
-    { node_type: :function,
-      position: position,
-      args: args,
-      body: body }
+  class Fn < Node
+    attr_reader :args, :body
+
+    def to_h
+      { args: args, body: body.map(&:to_h) }
+    end
+
+    def initialize(args, body, position)
+      @args = args
+      @body = body
+      @position = position
+    end
+
+    def declare_with(name, schema)
+      Declare.new(name, schema, self, position)
+    end
   end
 
-  def self.function_argument(sym, position = nil)
-    { node_type: :function_argument,
-      position: position,
-      sym: sym }
+  class IdLookup < Node
+    def initialize(value, position)
+      @value = value
+      @position = position
+    end
+
+    def schema?
+      return false if value[0] == "_"
+      value[0].upcase == value[0]
+    end
+
+    def schema_lookup?
+      schema?
+    end
   end
 
-  def self.identifier_lookup(sym, position = nil)
-    { node_type: :identifier_lookup,
-      position: position,
-      sym: sym }
+  class Declare < Node
+    attr_reader :name, :schema, :expr
+
+    def to_h
+      { name: name, schema: schema.to_h, expr: expr.to_h }
+    end
+
+    def initialize(name, schema, expr, position)
+      @name = name
+      @schema = schema
+      @expr = expr
+      @position = position
+    end
+
+    def exportable?
+      true
+    end
   end
 
-  def self.declare(sym, schema, expr, position = nil)
-    { node_type: :declare,
-      sym: sym,
-      position: position,
-      schema: schema,
-      expr: expr }
+  class InstanceAssign < Node
+    attr_reader :lhs, :expr
+
+    def to_h
+      { lhs: lhs.to_h, expr: expr.to_h }
+    end
+
+    def initialize(lhs, expr)
+      @lhs = lhs
+      @expr = expr
+      @position = expr.position
+    end
   end
 
-  def self.instance_assignment(lhs, expr)
-    { node_type: :instance_assign,
-      sym: lhs[:sym],
-      position: lhs[:position],
-      expr: expr }
+  class Assign < Node
+    attr_reader :name, :expr
+
+    def to_h
+      { name: name, expr: expr.to_h }
+    end
+
+    def initialize(name, expr, position = expr.position)
+      @name = name
+      @expr = expr
+      @position = position || expr.position
+    end
+
+    def exportable?
+      true
+    end
   end
 
-  def self.assignment(sym, expr, position = nil)
-    { node_type: :assign,
-      sym: sym,
-      position: position,
-      expr: expr }
+  class PropertyLookup < Node
+    attr_reader :lhs_expr, :property
+
+    def to_h
+      { lhs_expr: lhs_expr.to_h, property: property }
+    end
+
+    def initialize(lhs_expr, property, position)
+      @lhs_expr = lhs_expr
+      @property = property
+      @position = position
+    end
+
+    def lookup?
+      true
+    end
   end
 
-  def self.property_lookup(position, lhs_expr, property)
-    # just convert to string for now... TODO: idk
-    { node_type: :property_lookup,
-      lhs_expr: lhs_expr,
-      position: position,
-      property: property }
+  class InstanceMethodLookup < Node
+    attr_reader :name
+
+    def to_h
+      { name: name }
+    end
+
+    def initialize(name, position)
+      @name = name
+      @position = position
+    end
+
+    def or_lookup(args)
+      if args.size > 0
+        # __try(() => eval('a') || this.a)(arg1, arg2, ..)
+        TryLookup.new(self, position)
+          .naked_or(self)
+          .call(args, position)
+      else
+        # __try(() => eval('a') || this.a())
+        TryLookup.new(self, position)
+          .naked_or(self.call)
+      end
+    end
+
+    def lookup?
+      true
+    end
   end
 
-  def self.dot(lhs_expr, id, position = nil)
-    id = [id.position, id.value] if id.class == Lexer::Token
-    id = [lhs_expr[:position], id] if id.is_a?(String)
-    lit_position, sym = id
-    property = { position: lit_position, node_type: :str_lit, value: sym }
-    AST::property_lookup position, lhs_expr, property
+  class InstanceLookup < Node
+    attr_reader :name
+
+    def to_h
+      { name: name }
+    end
+
+    def initialize(name, position)
+      @name = name
+      @position = position
+    end
   end
 
-  def self.instance_method_lookup(name, position = nil)
-    { node_type: :instance_method_lookup,
-      sym: name,
-      position: position }
+  class Throw < Node
+    attr_reader :expr
+
+    def to_h
+      { expr: expr.to_h }
+    end
+
+    def initialize(expr, position)
+      @expr = expr
+      @position = position
+    end
   end
 
-  def self.instance_lookup(name, position = nil)
-    { node_type: :instance_lookup,
-      sym: name,
-      position: position }
+  class HtmlTag < Node
+    attr_reader :name, :attributes, :children
+
+    def to_h
+      { name: name.to_h, attributes: attributes.to_h, children: children.to_h }
+    end
+
+    def initialize(name, attributes, children, position)
+      @name = name
+      @attributes = attributes
+      @children = children
+      @position = position
+    end
   end
 
-  def self.lookup(lhs, expr)
-    AST::function_call(
-      [expr],
-      AST::dot(lhs, "__lookup__", lhs[:position])
-    )
+  class HtmlText < Node
+    def initialize(value, position)
+      @value = value
+      @position = position
+    end
   end
 
-  def self.plus(expr_a, expr_b)
-    AST::function_call([expr_b], AST::dot(expr_a, "__plus__"))
+  class Class < Node
+    attr_reader :name, :super_class, :methods
+
+    def to_h
+      { name: name, super_class: super_class, methods: methods.map(&:to_h) }
+    end
+
+    def initialize(name, super_class, methods, position)
+      @name = name
+      @super_class = super_class
+      @methods = methods
+      @position = position
+    end
+
+    def exportable?
+      true
+    end
   end
 
-  def self.to_s(expr)
-    AST::function_call([], AST::dot(expr, "to_s"))
-  end
+  class Case < Node
+    attr_reader :expr, :cases
 
-  def self.throw(expr, position = nil)
-    { node_type: :throw,
-      position: position,
-      expr: expr }
-  end
+    def to_h
+      { expr: expr.to_h, cases: cases.to_h }
+    end
 
-  def self.literal_constructor(args, type_name, position = nil)
-    args = [args] unless args.is_a? Array
-    AST::function_call(
-      args,
-      AST::dot(
-        AST::identifier_lookup(type_name, position),
-        [position, "new"],
-        position
-      ),
-      position
-    )
-  end
-
-  def self.html_tag(name, attributes, children, position = nil)
-    { node_type: :html_tag,
-      name: name,
-      attributes: attributes,
-      children: children,
-      position: position }
-  end
-
-  def self.html_text_node(value, position = nil)
-    { node_type: :html_text_node,
-      value: value,
-      position: position }
-  end
-
-  def self.class(name, super_class, methods, position = nil)
-    { node_type: :class,
-      sym: name,
-      super_class: super_class,
-      methods: methods,
-      position: position }
-  end
-
-  def self.case(expr, cases, position = nil)
-    { node_type: :case,
-      expr: expr,
-      cases: cases,
-      position: position }
-  end
-
-  # TODO Nasty helpers
-
-  def self.try_lookup(sym, position)
-    raw_str = { node_type: :str_lit,
-                position: position,
-                value: sym }
-    AST::function_call(
-      [AST::function(
-        [],
-        [AST::return(AST::function_call([raw_str], AST::identifier_lookup("eval")))]
-      )],
-      AST::identifier_lookup("__try")
-    )
-  end
-
-  def self.or_lookup(node, args)
-    position = node[:position]
-    if args.size == 0
-      AST::naked_or(
-        AST::try_lookup(node[:sym], position),
-        AST::function_call([], node, position)
-      )
-    else
-      AST::function_call(
-        args,
-        AST::naked_or(
-          AST::try_lookup(node[:sym], position),
-          node
-        ),
-        position
-      )
+    def initialize(expr, cases, position)
+      @expr = expr
+      @cases = cases
+      @position = position
     end
   end
 end

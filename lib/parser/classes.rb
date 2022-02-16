@@ -8,9 +8,9 @@ module Classes
     assert { new_line? }
     @token_index, methods = clone(parser_context: parser_context.push(:class)).parse_with_position!
     consume! :end
-    assert { methods.all? { |node| node[:node_type] == :declare } }
+    assert { methods.all? { |node| node.is_a? AST::Declare } }
     expr_context.pop! :class
-    AST::class(
+    AST::Class.new(
       class_name_token.value,
       super_class_name,
       methods,

@@ -113,10 +113,10 @@ class Parser
     end
 
     if parser_context.directly_in_a?(:function)
-      last_node_type = @ast.last[:node_type]
-      if ![:return, :if].include?(last_node_type)
+      last_node_type = @ast.last.class
+      if ![AST::Return, AST::If].include?(last_node_type)
         node = @ast.pop
-        @ast.push AST::return node
+        @ast.push node.to_return
       end
     else
     end
@@ -127,21 +127,25 @@ class Parser
 
   def parse_expr!
     # more complex conditions first
-    if current_token.is_one_of?(:int_lit, :float_lit, :symbol)
-      return parse_lit! current_token.type
-    elsif current_token.is_one_of?(:true, :false)
+    if current_token.is_one_of?(:true, :false)
       return parse_bool! current_token.type
     elsif current_token.is_a?(:identifier) && peek_token&.is_a?(:assign)
       return parse_assignment!
     end
     # simple after
     case current_token.type
+    when :int_lit
+      node = parse_int!
+    when :float_lit
+      parse_float!
+    when :symbol
+      parse_symbol!
     when :str_lit
       parse_str!
     when :nil
       parse_nil!
     when :open_square_bracket
-      parse_array!
+      parse_list!
     when :open_brace
       parse_record!
     when :bang
@@ -183,7 +187,7 @@ class Parser
     token = consume! :open_parenthesis
     expr = parse_expr!
     consume! :close_parenthesis
-    node = AST::paren_expr expr, token.position
+    node = AST::ParenExpr.new expr, token.position
     parse_id_modifier_if_exists! node
   end
 
@@ -228,32 +232,27 @@ class Parser
     consume! :open_square_bracket
     expr = parse_expr!
     consume! :close_square_bracket
-    node = AST::lookup lhs, expr
-    node = AST::function_call(
-      [AST::function([], [AST::return(node)])],
-      dot(lhs, "__and__")
-    )
+    node = lhs.lookup(expr)
+    lhs.dot("__and__").call([node.to_return.wrap_in_fn])
   end
 
   def parse_nil_safe_call!(lhs)
     consume! :&
     consume! :dot
     id_token = consume! :identifier
-    node = parse_function_call! dot(lhs, [id_token.position, id_token.value])
-    node = AST::function_call(
-      [AST::function([], [AST::return(node)])],
-      dot(lhs, "__and__")
-    )
+    node = parse_function_call! lhs.dot(id_token.value, id_token.position)
+    node = lhs.dot("__and__")
+      .call([AST::Fn.new([], [node.to_return], node.position)])
   end
 
   def parse_return!(implicit_return = false)
     return_token = consume! :return unless implicit_return
     expr = parse_expr!
-    node = AST::return expr, return_token.position
+    node = AST::Return.new expr, return_token.position
     if current_token.is_a? :if
       if_token = consume! :if
       cond = parse_expr!
-      AST::if(cond, [node], [], if_token.position)
+      AST::If.new(cond, [node], [], if_token.position)
     else
       node
     end
@@ -264,7 +263,7 @@ class Parser
     expr_context.push! :assignment
     expr = parse_expr!
     expr_context.pop! :assignment
-    AST::instance_assignment lhs, expr
+    AST::InstanceAssign.new lhs, expr
   end
 
   def parse_assignment!
@@ -273,7 +272,7 @@ class Parser
     expr_context.push! :assignment
     expr = parse_expr!
     expr_context.pop! :assignment
-    AST::assignment id_token.value, expr, id_token.position
+    AST::Assign.new id_token.value, expr, id_token.position
   end
 
   def parse_operator_call!(lhs)
@@ -285,11 +284,11 @@ class Parser
     assert { !method_name.nil? }
 
     if op_token.is_one_of?(:&, :|)
-      operator = dot(schema, [op_token.position, method_name])
-      AST::function_call [lhs, rhs_expr], operator, op_token.position
+      AST::schema(op_token).dot(method_name)
+        .call([lhs, rhs_expr])
     else
-      function = dot(lhs, [op_token.position, method_name])
-      node = AST::function_call [rhs_expr], function, op_token.position
+      node = lhs.dot(method_name, op_token.position)
+        .call([rhs_expr], op_token.position)
       parse_id_modifier_if_exists! node
     end
   end
@@ -307,7 +306,7 @@ class Parser
     pass_body = parse_if_body!
     if current_token.is_not_a? :else
       consume! :end
-      return AST::if check, pass_body, [], if_token.position
+      return AST::If.new check, pass_body, [], if_token.position
     end
     consume! :else
     fail_body = if current_token.is_a? :if
@@ -317,16 +316,16 @@ class Parser
         consume! :end
         body
       end
-    AST::if check, pass_body, fail_body, if_token.position
+    AST::If.new check, pass_body, fail_body, if_token.position
   end
 
   def insert_return(body)
     return body if body.size == 0
     last = body.pop
-    new_last = if last[:node_type] == :return
+    new_last = if last.is_a? AST::Return
         last
       else
-        AST::return last
+        last.to_return
       end
     body.push new_last
     body
@@ -334,30 +333,24 @@ class Parser
 
   def modify_if_statement_for_context(if_expr)
     def replace_return(if_expr)
-      { **if_expr,
-        pass: insert_return(if_expr[:pass]),
-        fail: insert_return(if_expr[:fail]) }
+      if_expr.pass = insert_return(if_expr.pass)
+      if_expr.fail = insert_return(if_expr.fail)
+      if_expr
     end
 
     if parser_context.directly_in_a? :str
       assert {
-        !(if_expr[:pass] + if_expr[:fail])
-          .any? { |node| node[:node_type] == :return }
+        !(if_expr.pass + if_expr.fail)
+          .any? { |node| node.is_a? AST::Return }
       }
-      AST::function_call(
-        [],
-        AST::function(
-          [],
-          [replace_return(if_expr)]
-        )
-      )
+      replace_return(if_expr).wrap_in_fn.call
     elsif expr_context.directly_in_a? :assignment
       # TODO: we shouldn't have to create a function here
       # we could do something similar to insert_return, but insert_assignment
       # but that requires expr_context to store the actual node, not just node_type
-      AST::function_call [], AST::function([], [replace_return(if_expr)])
+      replace_return(if_expr).wrap_in_fn.call
     elsif expr_context.directly_in_a? :html_escaped_expr
-      AST::function([], [replace_return(if_expr)])
+      replace_return(if_expr).wrap_in_fn
     elsif parser_context.directly_in_a? :function
       replace_return(if_expr)
     else
@@ -367,31 +360,19 @@ class Parser
 
   def parse_dot_expression!(lhs)
     dot = consume! :dot
-    AST::dot lhs, consume!(:identifier), dot.position
+    token = consume!(:identifier)
+    lhs.dot(token.value, token.position)
   end
 
   def parse_class_properity_expression!(lhs)
-    position = current_token.position
-    AST::dot lhs, consume!(:class_property), position
+    token = consume! :class_property
+    lhs.dot(token.value, token.position)
   end
 
   def parse_dynamic_lookup!(lhs)
     consume! :open_square_bracket
     expr = parse_expr!
     consume! :close_square_bracket
-    # too many possibilities, will leave unchecked for now
-    # assert { [:str_lit, :bool_lit, :symbol, :int_lit, :float_lit].include? expr[:args][0][:node_type] }
-    node = AST::lookup(lhs, expr)
-  end
-
-  # Schema parsing
-
-  def dot(lhs, id)
-    id = [prev_token.position, id] unless id.is_a?(Array)
-    AST::dot lhs, id, prev_token.position
-  end
-
-  def function_call(args, expr)
-    AST::function_call(args, expr, prev_token.position)
+    lhs.lookup(expr)
   end
 end
