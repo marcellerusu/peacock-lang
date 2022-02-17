@@ -1,25 +1,9 @@
 f({ user: User(u) }) = u
 
+# Better Schema error messages 
+
 # top level paren-less calling
 f 3
-
-# TODO
-# [v high] persistant state in Element
-#       -> idea w the array (Element#refresh_children)
-# [high] css diffing
-#       -> issues to work out, but progress is made
-# [low] efficent immutable data-structures
-#       -> need more time
-# [low] build out schema std lib
-#       -> easy, but need time to see whats necessary
-
-# later
-# [] formater
-# [] source-maps
-#    -> need more time
-# [] debugger support
-#    -> doesn't need to be perfect
-# 
 
 # List schema should check bound variables
 schema Same = [id, id]
@@ -56,4 +40,17 @@ print(id, child)
 
 # schemas in anon-functions
 [{ id: 10 }].map do { id } id * 10 end
-# don't use Schema.case!
+# don't use Schema.case !
+
+# classes should be valid schemas, but don't allow destructuring
+
+# think about adding decorators so we could do something like this
+@returns List<User>
+def get_users
+end
+
+# schema params
+schema List<T> = #{%.is_a?(List) && %.every(&T.valid?)}
+
+# optional param naming to #{} syntax
+arr.map #{ |item| item * 10 }
