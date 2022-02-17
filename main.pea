@@ -1,5 +1,1 @@
-schema User = { id, email }
-
-User({ id, *user }) := { id: 10, email: "email" }
-
-print(id, user)
+a := { a: [3, 10] }
