@@ -178,7 +178,7 @@ class Parser
     when :case
       parse_case_expression!
     else
-      puts "no match [parse_expr!] :#{type}"
+      puts "no match [parse_expr!] :#{current_token.type}"
       assert { false }
     end
   end
