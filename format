@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
-
-$LOAD_PATH.push "./lib"
+# IK this sucks, but just to get things working for now
+$LOAD_PATH.push "/Users/marcelrusu/Documents/Projects/peacock/lib"
 
 require "lexer"
 require "parser"

@@ -9,7 +9,7 @@ class Formatter
   def eval
     output = ""
     for node in @ast
-      output += eval_node node
+      output += eval_node(node) + "\n"
     end
     output.strip + "\n"
   end
