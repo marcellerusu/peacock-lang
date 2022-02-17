@@ -89,7 +89,7 @@ module Helpers
   end
 
   def end_of_expr?(*excluding)
-    return true if current_token.nil?
+    return true if end_of_file?
     return false if current_token.is_one_of? *excluding
     closing_tags = [:close_parenthesis, :close_brace, :close_square_bracket, :end, :then]
     new_line? ||
