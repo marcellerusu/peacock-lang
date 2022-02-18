@@ -54,3 +54,5 @@ schema List<T> = #{%.is_a?(List) && %.every(&T.valid?)}
 
 # optional param naming to #{} syntax
 arr.map #{ |item| item * 10 }
+
+# implement Regex

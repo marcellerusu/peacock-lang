@@ -97,12 +97,12 @@ A: I found classes to be very useful for data transformations that produce artif
 ```
 class FormValidator
   def init(fields)
-    @fields = fields
-    @errors = []
+    @fields := fields
+    @errors := []
   end
 
   def push_error!(error)
-    @errors = @errors.push(error)
+    @errors := @errors.push error
   end
 
   def validate!
