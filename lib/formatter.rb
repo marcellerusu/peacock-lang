@@ -1,9 +1,11 @@
 require "ast"
 
 class Formatter
-  def initialize(ast)
+  attr_reader :context
+
+  def initialize(ast, context = Context.new)
     @ast = ast
-    @context = nil
+    @context = context
   end
 
   def eval
@@ -11,7 +13,9 @@ class Formatter
     for node in @ast
       output += eval_node(node) + "\n"
     end
-    output.strip + "\n"
+    output.strip!
+    return output if context.directly_in_a? :short_fn
+    output + "\n"
   end
 
   def eval_node(node)
@@ -26,6 +30,12 @@ class Formatter
       eval_record node
     when AST::Sym
       eval_sym node
+    when AST::ShortFn
+      eval_short_fn node
+    when AST::Return
+      eval_return node
+    when AST::IdLookup
+      eval_id_lookup node
     else
       pp node.class
       assert_not_reached
@@ -38,7 +48,7 @@ class Formatter
   end
 
   def eval_sym(node)
-    assert { @context == :record }
+    assert { context.directly_in_a? :record }
     "#{node.value}"
   end
 
@@ -52,11 +62,25 @@ class Formatter
 
   def eval_record(node)
     r = "{"
-    @context = :record
+    context.push! :record
     node.value.map do |key, value|
       r += " #{eval_node key}: #{eval_node value} "
     end
-    @context = nil
+    context.pop! :record
     r + "}"
+  end
+
+  def eval_id_lookup(node)
+    return "%" if node.value == ANON_SHORTHAND_ID
+    node.value
+  end
+
+  def eval_return(node)
+    return eval_node node.value if context.directly_in_a?(:short_fn)
+    "return #{eval_node node.value}"
+  end
+
+  def eval_short_fn(node)
+    '#{ ' + Formatter.new(node.body, context.push(:short_fn)).eval + " }"
   end
 end

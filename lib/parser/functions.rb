@@ -31,7 +31,7 @@ module Functions
     assert { !expr.is_a?(AST::Return) }
     expr = expr.to_return unless expr.is_a? AST::If
     consume! :close_brace
-    AST::Fn.new [ANON_SHORTHAND_ID], [expr], fn_start_token.position
+    AST::ShortFn.new [ANON_SHORTHAND_ID], [expr], fn_start_token.position
   end
 
   def parse_anon_short_id!

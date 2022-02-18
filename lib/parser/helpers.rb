@@ -1,45 +1,4 @@
 module Helpers
-  # TODO: later we could use this to store the
-  # entire ast parents here
-  # & use this to search local scopes
-  # not have to rely on __try(() => eval('var_name')) || this.var_name())
-  # we could just know if its in scope, or if its a method of parent class..
-  class Context
-    def initialize(contexts = [])
-      @contexts = contexts
-    end
-
-    def push!(context)
-      @contexts.push context
-      self
-    end
-
-    def push(context)
-      clone.push! context
-    end
-
-    def empty?
-      @contexts.size == 0
-    end
-
-    def clone
-      Context.new @contexts.clone
-    end
-
-    def pop!(context)
-      assert { @contexts.last == context }
-      @contexts.pop
-    end
-
-    def directly_in_a?(context)
-      @contexts.last == context
-    end
-
-    def in_a?(context)
-      @contexts.any? { |c| c == context }
-    end
-  end
-
   def schema?(identifier)
     # identifiers starting w uppercase are interpreted as schemas
     return false if identifier[0] == "_"
