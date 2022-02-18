@@ -77,9 +77,9 @@ The core data structures are `List`, `Record`, `Int`, `Float`, `Str`, `Sym`, `Ni
 
 ## Classes
 
-Classes are a useful & powerful tool, in recent years the misuse of power has led many people to believe that classes have no value & turned to things like data-oriented programming.
+Classes are a useful & powerful tool, but in recent years the misuse of power has led many people to believe that classes have no value & turned to things like data-oriented programming.
 
-After years of working in a data-oriented/FP style, I found myself re-inventing something that looks like an immutable class over & over. Throughout the development of this language I started with class-less/minimal design & over time learned how to use classes effectively & in a disciplined manner leading me to gain a appreciation for the abstraction.
+After years of working in a data-oriented/FP style, I found myself re-inventing something that looks like a class over & over. Throughout the development of this language I started with class-less/minimal design & over time learned how to use classes effectively & in a disciplined manner leading me to gain a appreciation for the abstraction.
 
 Here's an example of a Form validator as a class
 
