@@ -1,5 +1,22 @@
 require "ast"
 
+METHOD_TO_OP = {
+  "__and__" => "&&",
+  "__or__" => "||",
+  "__gt_eq__" => ">=",
+  "__lt_eq__" => "<=",
+  "__gt__" => ">",
+  "__lt__" => "<",
+  "__eq__" => "==",
+  "__not_eq__" => "!=",
+  "__plus__" => "+",
+  "__minus__" => "-",
+  "__mult__" => "*",
+  "__div__" => "/",
+  "and" => "&",
+  "or" => "|",
+}
+
 class Formatter
   attr_reader :context
 
@@ -30,6 +47,8 @@ class Formatter
       eval_record node
     when AST::Sym
       eval_sym node
+    when AST::OpCall
+      eval_op_call node
     when AST::ShortFn
       eval_short_fn node
     when AST::Return
@@ -82,5 +101,13 @@ class Formatter
 
   def eval_short_fn(node)
     '#{ ' + Formatter.new(node.body, context.push(:short_fn)).eval + " }"
+  end
+
+  def eval_op_call(node)
+    rhs = node.args.first
+    lhs = node.expr.lhs_expr
+    method = node.expr.property
+
+    "#{eval_node lhs} #{METHOD_TO_OP[method]} #{eval_node rhs}"
   end
 end

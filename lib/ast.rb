@@ -290,7 +290,7 @@ module AST
   end
 
   class FnCall < Node
-    attr_reader :expr, :args
+    attr_reader :args, :expr
 
     def to_h
       { args: args.map(&:to_h), expr: expr.to_h }
@@ -313,6 +313,13 @@ module AST
       expr.lhs_expr.value == "Schema" &&
       expr.property == "any"
     end
+
+    def as_op
+      OpCall.new(args, expr, position)
+    end
+  end
+
+  class OpCall < FnCall
   end
 
   class Fn < Node

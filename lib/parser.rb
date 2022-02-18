@@ -286,9 +286,11 @@ class Parser
     if op_token.is_one_of?(:&, :|)
       AST::schema(op_token).dot(method_name)
         .call([lhs, rhs_expr])
+        .as_op
     else
       node = lhs.dot(method_name, op_token.position)
         .call([rhs_expr], op_token.position)
+        .as_op
       parse_id_modifier_if_exists! node
     end
   end
