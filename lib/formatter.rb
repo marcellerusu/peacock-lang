@@ -20,19 +20,49 @@ METHOD_TO_OP = {
 class Formatter
   attr_reader :context
 
-  def initialize(ast, context = Context.new)
+  def initialize(ast, context = Context.new, indentation = 0)
     @ast = ast
     @context = context
+    @indentation = indentation
+  end
+
+  # maybe take these methods out into an `Indenter` class
+  def indent!
+    @indentation += 2
+  end
+
+  def peek_indent
+    @indentation + 2
+  end
+
+  def indentation
+    " " * @indentation
+  end
+
+  def dedent!
+    assert { @indentation >= 2 }
+    @indentation -= 2
+  end
+
+  def last_node?
+    @is_last_node ||= false
+  end
+
+  def last_node!
+    @is_last_node = true
   end
 
   def eval
     output = ""
+    index = 0
     for node in @ast
-      output += eval_node(node) + "\n"
+      last_node! if index == @ast.size - 1
+      result = indentation + eval_node(node) + "\n"
+      output += result unless result.strip.empty?
+      index += 1
     end
-    output.strip!
-    return output if context.directly_in_a? :short_fn
-    output + "\n"
+    output.strip! if context.directly_in_a?(:short_fn)
+    output
   end
 
   def eval_node(node)
@@ -51,6 +81,8 @@ class Formatter
       eval_op_call node
     when AST::ShortFn
       eval_short_fn node
+    when AST::Fn
+      eval_anon_fn node
     when AST::Return
       eval_return node
     when AST::IdLookup
@@ -95,12 +127,22 @@ class Formatter
   end
 
   def eval_return(node)
-    return eval_node node.value if context.directly_in_a?(:short_fn)
-    "return #{eval_node node.value}"
+    return_val = eval_node node.value
+    if context.directly_in_a?(:short_fn) || (last_node? && context.directly_in_a?(:anon_fn))
+      return_val
+    else
+      "return #{return_val}"
+    end
   end
 
   def eval_short_fn(node)
     '#{ ' + Formatter.new(node.body, context.push(:short_fn)).eval + " }"
+  end
+
+  def eval_anon_fn(node)
+    fn = "do |#{node.args.join(", ").strip}|\n"
+    fn += Formatter.new(node.body, context.push(:anon_fn), peek_indent).eval
+    fn += "end"
   end
 
   def eval_op_call(node)
