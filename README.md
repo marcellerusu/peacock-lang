@@ -1,15 +1,13 @@
 # <img src="https://user-images.githubusercontent.com/7607387/153535569-5c42a9a9-73bb-447a-a0d9-7aa521ebd52f.png" height=50 /> Peacock
 
-A dynamic functional language aimed at bringing joy & control to the front-end
+A beautiful language aimed at bringing joy & control to the front-end
 
 # Core Values
 
+- Readable code > concise code
+- Validate as soon as possible
 - Aesthetics matter
-- Always seek out the minimal use of abstractions
-- Mutation is limited, but not eliminated
-- Application state is best described in plain core data structures like Lists & Records
-- Schemas should rarely be used outside of overloading Element#view or Element#style
-- Classes are used minimally
+- A little WETness is better than too much DRYness
 
 # Core Features
 
@@ -19,11 +17,20 @@ Schemas are the primary method of validating state in our application
 
 At a first glance, schemas will look similar to TypeScript style type definitions. This is intentional.
 
-The difference between types & schemas are that schemas are checked at run-time. At first this may seem like a disadvantage, but this is actually a huge advantage. There is much more information available at runtime & we can leverage this at the most extreme by providing any predicate function as a schema.
+The difference between types & schemas are that schemas are checked at run-time.
 
-In the example below `NewUser` is only valid if the data has a created_at property that has a value within the range `Time::last_week..Time::now`. This is not possible to validate statically (for ex, in a type system).
+Q: Isn't this a huge disadvantage since it impacts runtime performance?
+
+A: That is true, runtime validation will always be slower than static, but all abstractions have pros & cons. The pro for schemas are much strong guarantees & automatic parsing. As an addition to address performance, we can cache validation so we don't revalidate the same information multiple times.
+
+- For example, a schema can be a predicate (function) which takes the data & returns true or false.
+  - Example: `schema OlderThan20 = { age: #{ % > 20 } }`
+
+In the code example below `NewUser` is only valid if the data has a created_at property that has a value within the range `Time::last_week..Time::now`. This is not possible to validate statically.
 
 Another advantage of schemas over types is typically in a statically typed language, you have write both type & the validation code to ensure data fits into that type. In Peacock we can simply do `NewUser(user) := untrusted_data`.
+
+Note: I am not saying schemas are strictly better than type systems, this is a trade off. We lose many benefits, such as compile time correctness & possible optimizations from static analysis. In the future it would be nice to do more static analysis, but the immediate goal is to address the problem of runtime validation.
 
 Here is an example of a common issue in front end, data fetching & handling of unique data responses.
 
@@ -67,21 +74,25 @@ end
 
 ## Immutable data structures
 
-Immutable data structures have HUGE undeniable advantages.
+Strong & first class immutable data structures are extremely beneficial in working in a data-first codebase.
 
-In the modern world of front-end we've seen how effective immutable data structures are for areas such as - props diffing, concurrent systems, unidirectional data flow & unpredictability of globally mutable data.
+They are useful for problems such as concurrency, optimized state diffing algorithms & tracking state flow.
 
-These problems either go away, or get dramatically simpler with strictly immutable data structures.
+The core data structures in Peacock are `List`, `Record`, `Int`, `Float`, `Str`, `Sym`, `Nil` all of which are immutable.
 
-The core data structures are `List`, `Record`, `Int`, `Float`, `Str`, `Sym`, `Nil` all of which are immutable
+Q: What if I need mutation in my code?
+
+A: Mutation is possible via classes, see below. If you want more, you can directly interface with JavaScript. It is intentionally meant to feel a bit of friction when mutating, since isn't rarely the idiomatic way of programming in Peacock.
 
 ## Classes
 
-Classes are a useful & powerful tool, but in recent years the misuse of power has led many people to believe that classes have no value & turned to things like data-oriented programming.
+Classes are a useful & powerful tool, but can be easily misused. This doesn't eliminate their value though.
 
-After years of working in a data-oriented/FP style, I found myself re-inventing something that looks like a class over & over. Throughout the development of this language I started with class-less design & over time learned how to use classes effectively & in a disciplined manner leading me to gain a appreciation for the abstraction.
+In Peacock, they are the only place where mutation is possible.
 
-Here's an example of a Form validator as a class
+Q: Why not just use pure functions?
+
+A: I found classes to be very useful for data transformations that produce artifacts (errors, tracking context). Its possible to write pure immutable functional code that tracks these artifacts, but I found myself "reinventing the wheel" by writing difficult to read closures, or using abstractions I found complex. Instead I think it is much simpler & elegant to use the provided abstraction of instance variables that classes provide.
 
 ```
 class FormValidator
