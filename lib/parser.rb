@@ -94,7 +94,7 @@ class Parser
     return @ast
   end
 
-  def parse_with_position!(end_tokens = [])
+  def parse_with_position!(*end_tokens)
     @ast = []
     @ast.push module_def if parser_context.empty?
     while more_tokens? && current_token.is_not_a?(:end)
@@ -173,6 +173,10 @@ class Parser
     when :if
       node = parse_if_expression!
       modify_if_statement_for_context node
+    when :while
+      parse_while!
+    when :next
+      parse_next!
     when :schema
       parse_schema!
     when :case
@@ -296,8 +300,9 @@ class Parser
   end
 
   def parse_if_body!
-    end_tokens = [:end, :else]
-    @token_index, body = clone(parser_context: parser_context.push(:if)).parse_with_position! end_tokens
+    @token_index, body = clone(
+      parser_context: parser_context.push(:if),
+    ).parse_with_position! :end, :else
     body
   end
 
@@ -319,6 +324,32 @@ class Parser
         body
       end
     AST::If.new check, pass_body, fail_body, if_token.position
+  end
+
+  def parse_while!
+    while_token = consume! :while
+    cond = parse_expr!
+    if current_token.is_a? :with
+      consume! :with
+      assign = parse_assignment!
+    end
+    @token_index, body = clone(parser_context: parser_context.push(:while)).parse_with_position!
+    consume! :end
+    AST::While.new cond, assign, body, while_token.position
+  end
+
+  def parse_next!
+    assert { parser_context.in_a?(:while) }
+    next_token = consume! :next
+    expr = parse_expr! unless new_line?
+    AST::Next.new expr, next_token.position
+  end
+
+  def parse_break!
+    assert { parser_context.in_a?(:while) }
+    next_token = consume! :break
+    expr = parse_expr! unless new_line?
+    AST::Break.new expr, next_token.position
   end
 
   def insert_return(body)

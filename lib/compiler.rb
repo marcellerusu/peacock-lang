@@ -3,15 +3,17 @@ require "pry"
 require "parser"
 
 class Compiler
+  attr_reader :context
   # TODO: do something better for tests
   @@use_std_lib = true
   def self.use_std_lib=(other)
     @@use_std_lib = other
   end
 
-  def initialize(ast, indent = 0)
+  def initialize(ast, indent = 0, context = Context.new)
     @ast = ast
     @indent = indent
+    @context = context
   end
 
   def eval
@@ -133,7 +135,9 @@ class Compiler
       .filter { |node| node.is_a?(AST::Assign) && names.include?(node.name) }
     @ast
       .flat_map { |node|
-      if node.is_a?(AST::If)
+      if node.is_a?(AST::While)
+        node.body
+      elsif node.is_a?(AST::If)
         node.pass + node.fail
       else
         [node]
@@ -197,6 +201,10 @@ class Compiler
       eval_instance_assign node
     when AST::TryLookup
       eval_try_lookup node
+    when AST::While
+      eval_while node
+    when AST::Next
+      eval_next node
     else
       puts "no case matched node_type: #{node.class}"
       assert { false }
@@ -213,6 +221,24 @@ class Compiler
     "#{padding}} else {\n" \
     "#{fail_body}\n" \
     "#{padding}}"
+  end
+
+  def eval_while(node)
+    assert { context.in_a? :return }
+    cond = eval_expr(node.value)
+    body = Compiler.new(node.body, @indent + 2, context.set_value(node)).eval_without_variable_declarations
+    eval_expr(node.with_assignment) + "\n" \
+    "#{padding}while (#{cond}.to_b().to_js()) {\n" \
+    "#{body}\n" \
+    "#{padding}}\n" \
+    "#{padding}return #{node.with_assignment.name}"
+  end
+
+  def eval_next(node)
+    assert { context.value.is_a? AST::While }
+    name = context.value.with_assignment.name
+    "#{name} = #{eval_expr(node.value)};\n" \
+    "#{padding}continue"
   end
 
   def eval_throw(node)
@@ -318,7 +344,14 @@ class Compiler
   end
 
   def eval_return(node)
-    "return #{eval_expr node.value}"
+    if node.value.is_a? AST::While
+      context.push! :return
+      val = eval_expr(node.value)
+      context.pop! :return
+      val
+    else
+      "return #{eval_expr node.value}"
+    end
   end
 
   def eval_function_call(node)

@@ -8,13 +8,24 @@ end
 # we could just know if its in scope, or if its a method of parent class..
 
 class Context
-  def initialize(contexts = [])
+  attr_reader :value
+
+  def initialize(contexts = [], value = nil)
     @contexts = contexts
+    @value = value
   end
 
   def push!(context)
     @contexts.push context
     self
+  end
+
+  def set_value!(value)
+    @value = value
+  end
+
+  def set_value(value)
+    Context.new @contexts, value
   end
 
   def push(context)

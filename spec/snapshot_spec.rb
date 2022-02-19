@@ -338,4 +338,14 @@ end
 print(Num.new(3).to_s_2)')
     expect(ast).to eq([{ :name => "pea_module", :expr => { :value => [], :splats => [] } }, { :name => "BaseNum", :super_class => nil, :methods => [{ :name => "init", :schema => { :args => [[{ :args => [{ :value => "val" }], :expr => { :lhs_expr => { :value => "Schema" }, :property => "any" } }]], :expr => { :lhs_expr => { :value => "Schema" }, :property => "for" } }, :expr => { :args => ["__VALUE"], :body => [{ :name => "val", :expr => { :args => [{ :value => 0 }], :expr => { :lhs_expr => { :value => "__VALUE" }, :property => "__lookup__" } } }, { :value => { :lhs => { :name => "val" }, :expr => { :lhs => { :value => { :name => "val" } }, :rhs => { :args => [], :expr => { :name => "val" } } } } }] } }, { :name => "to_s", :schema => { :args => [[]], :expr => { :lhs_expr => { :value => "Schema" }, :property => "for" } }, :expr => { :args => ["__VALUE"], :body => [{ :value => { :args => [], :expr => { :lhs_expr => { :name => "val" }, :property => "to_s" } } }] } }] }, { :name => "Num", :super_class => "BaseNum", :methods => [{ :name => "to_s_2", :schema => { :args => [[]], :expr => { :lhs_expr => { :value => "Schema" }, :property => "for" } }, :expr => { :args => ["__VALUE"], :body => [{ :value => { :args => [{ :value => " oh wow" }], :expr => { :lhs_expr => { :args => [], :expr => { :name => "to_s" } }, :property => "__plus__" } } }] } }] }, { :args => [{ :args => [], :expr => { :lhs_expr => { :args => [{ :value => 3 }], :expr => { :lhs_expr => { :value => "Num" }, :property => "new" } }, :property => "to_s_2" } }], :expr => { :value => "print" } }])
   end
+  it "2022-02-18 19:52:16 -0500" do
+    ast = parse('def create_nums
+  while nums.size < 10 with nums := []
+    next nums.push 1
+  end
+end
+
+print(create_nums())')
+    expect(ast).to eq([{:name=>"pea_module", :expr=>{:value=>[], :splats=>[]}}, {:name=>"create_nums", :schema=>{:args=>[[]], :expr=>{:lhs_expr=>{:value=>"Schema"}, :property=>"for"}}, :expr=>{:args=>["__VALUE"], :body=>[{:value=>{:value=>{:args=>[{:value=>10}], :expr=>{:lhs_expr=>{:args=>[], :expr=>{:lhs_expr=>{:value=>"nums"}, :property=>"size"}}, :property=>"__lt__"}}, :with_assignment=>{:name=>"nums", :expr=>[]}, :fail=>[{:value=>{:args=>[{:value=>1}], :expr=>{:lhs_expr=>{:value=>"nums"}, :property=>"push"}}}]}}]}}, {:args=>[{:args=>[], :expr=>{:value=>"create_nums"}}], :expr=>{:value=>"print"}}])
+  end
 end

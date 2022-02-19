@@ -1,5 +1,7 @@
-a := [1, 2, 3]
-b := #{ % > 3 }
-do |a, b, c|
-  a > 4
+def create_nums
+  while nums.size < 10 with nums := []
+    next nums.push 1
+  end
 end
+
+print(create_nums())

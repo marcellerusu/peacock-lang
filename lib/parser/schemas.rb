@@ -11,7 +11,9 @@ module Schemas
     while current_token.is_not_a? :end
       when_token = consume! :when
       schema, matches = parse_schema_literal!
-      @token_index, body = clone(parser_context: parser_context.push(:function)).parse_with_position! [:when]
+      @token_index, body = clone(
+        parser_context: parser_context.push(:function),
+      ).parse_with_position! :when
 
       fn = AST::Fn.new(
         [match_arg_name],

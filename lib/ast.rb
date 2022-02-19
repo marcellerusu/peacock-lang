@@ -289,6 +289,36 @@ module AST
     end
   end
 
+  class While < Node
+    attr_reader :value, :with_assignment, :body
+    attr_writer :body
+
+    def to_h
+      { value: value.to_h, with_assignment: with_assignment.to_h, fail: body.map(&:to_h) }
+    end
+
+    def initialize(value, with_assignment, body, position)
+      @value = value
+      @with_assignment = with_assignment
+      @body = body
+      @position = position
+    end
+  end
+
+  class Next < Node
+    def initialize(value, position)
+      @value = value
+      @position = position
+    end
+  end
+
+  class Break < Node
+    def initialize(value, position)
+      @value = value
+      @position = position
+    end
+  end
+
   class FnCall < Node
     attr_reader :args, :expr
 
