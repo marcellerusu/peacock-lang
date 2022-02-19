@@ -1,7 +1,7 @@
-def create_nums
-  while nums.size < 10 with nums := []
-    next nums.push 1
+def sum(list)
+  while true with sum := 0
+    break sum + 10
   end
 end
 
-print(create_nums())
+print(sum([1, 2, 3]))

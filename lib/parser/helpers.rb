@@ -50,7 +50,7 @@ module Helpers
   def end_of_expr?(*excluding)
     return true if end_of_file?
     return false if current_token.is_one_of? *excluding
-    closing_tags = [:close_parenthesis, :close_brace, :close_square_bracket, :end, :then]
+    closing_tags = [:close_parenthesis, :close_brace, :close_square_bracket, :with, :end, :then]
     new_line? ||
     current_token.is_one_of?(*closing_tags) ||
     property_accessor? ||

@@ -135,8 +135,12 @@ class Compiler
       .filter { |node| node.is_a?(AST::Assign) && names.include?(node.name) }
     @ast
       .flat_map { |node|
-      if node.is_a?(AST::While)
-        node.body
+      # TODO: think about should this be fixed in the parser?
+      if node.is_a?(AST::Return) && node.value.is_a?(AST::While)
+        [node.value.with_assignment] + node.value.body
+      elsif node.is_a?(AST::While)
+        binding.pry
+        [node.with_assignment] + node.body
       elsif node.is_a?(AST::If)
         node.pass + node.fail
       else
@@ -205,6 +209,8 @@ class Compiler
       eval_while node
     when AST::Next
       eval_next node
+    when AST::Break
+      eval_break node
     else
       puts "no case matched node_type: #{node.class}"
       assert { false }
@@ -239,6 +245,13 @@ class Compiler
     name = context.value.with_assignment.name
     "#{name} = #{eval_expr(node.value)};\n" \
     "#{padding}continue"
+  end
+
+  def eval_break(node)
+    assert { context.value.is_a? AST::While }
+    name = context.value.with_assignment.name
+    "#{name} = #{eval_expr(node.value)};\n" \
+    "#{padding}break"
   end
 
   def eval_throw(node)

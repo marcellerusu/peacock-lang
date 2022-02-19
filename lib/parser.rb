@@ -177,6 +177,8 @@ class Parser
       parse_while!
     when :next
       parse_next!
+    when :break
+      parse_break!
     when :schema
       parse_schema!
     when :case
