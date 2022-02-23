@@ -34,10 +34,10 @@ Note: I am not saying schemas are strictly better than type systems, this is a t
 
 Here is an example of a common issue in front end, data fetching & handling of unique data responses.
 
-```
+```ruby
 schema Loading = { loading: true }
-schema Loaded = { loading: false, error: nil }
 schema WebError = { loading: false, error: NotNil }
+schema Loaded<T> = { data: T, loading: false, error: nil }
 
 schema User = { id, email, created_at }
 schema NewUser = User & { created_at: Time::last_week..Time::now }
@@ -52,16 +52,20 @@ class UserAdmin < Element
       Loading user!
     </div>
   end
-  def view(Error, _, _)
+  def view(WebError, _, _)
     <div>
       Error loading user
     </div>
   end
-  def view(User({ email, created_at }), _, _)
+  def view(Loaded<User({ email, created_at })>, _, _)
     <div>
       User details
-      <div>[email = {email}]</div>
-      <div>[created_at = {created_at}]</div>
+      <div>
+        [email = {email}]
+      </div>
+      <div>
+        [created_at = {created_at}]
+      </div>
     </div>
   end
   def view(NewUser(user))
@@ -94,7 +98,7 @@ Q: Why not just use pure functions?
 
 A: I found classes to be very useful for data transformations that produce artifacts (errors, tracking context). Its possible to write pure immutable functional code that tracks these artifacts, but I found myself "reinventing the wheel" by writing difficult to read closures, or using abstractions I found complex. Instead I think it is much simpler & elegant to use the provided abstraction of instance variables that classes provide.
 
-```
+```ruby
 class FormValidator
   def init(fields)
     @fields := fields
