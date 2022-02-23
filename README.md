@@ -60,8 +60,10 @@ class UserAdmin < Element
   def view(Loaded<User({ email, created_at })>, _, _)
     <div>
       User details
-      [email = {email}]
-      [created_at = {created_at}]
+      <div>
+        [email = {email}]
+        [created_at = {created_at}]
+      </div>
     </div>
   end
   def view(Loaded<NewUser(user)>)
