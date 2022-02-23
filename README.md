@@ -62,13 +62,11 @@ class UserAdmin < Element
       User details
       <div>
         [email = {email}]
-      </div>
-      <div>
         [created_at = {created_at}]
       </div>
     </div>
   end
-  def view(NewUser(user))
+  def view(Loaded<NewUser(user)>)
     <div>
       <Tutorial user={user}/>
     </div>
