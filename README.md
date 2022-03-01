@@ -7,7 +7,7 @@ A beautiful language aimed at bringing joy & control to the front-end
 - Readable code > concise code
 - Validate as soon as possible
 - Aesthetics matter
-- A little WETness is better than too much DRYness
+- Be mindful of the costs of abstractions (maintainability & cognitive load)
 
 # Core Features
 
@@ -36,7 +36,7 @@ Here is an example of a common issue in front end, data fetching & handling of u
 
 ```ruby
 schema Loading = { loading: true }
-schema WebError = { loading: false, error: NotNil }
+schema WebError = { loading: false, !error }
 schema Loaded<T> = { data: T, loading: false, error: nil }
 
 schema User = { id, email, created_at }
