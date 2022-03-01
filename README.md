@@ -7,7 +7,8 @@ A beautiful language aimed at bringing joy & control to the front-end
 - Readable code > concise code
 - Validate as soon as possible
 - Aesthetics matter
-- Be mindful of the costs of abstractions (maintainability & cognitive load)
+- Clever code is rarely better
+- Refactoring often fails to reduce complexity
 
 # Core Features
 
