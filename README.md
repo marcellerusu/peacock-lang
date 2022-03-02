@@ -47,7 +47,7 @@ In Peacock, we solve this using Schemas
 
 lets take a look at how this might look in Peacock
 
-```ruby
+```peacock
 schema Error<T> = { error: T }
 schema Success<T> = { data: T }
 schema Loading = { loading: true }
