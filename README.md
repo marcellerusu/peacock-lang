@@ -43,9 +43,7 @@ const Admin = () => {
 };
 ```
 
-In Peacock, we solve this using Schemas
-
-lets take a look at how this might look in Peacock
+Lets take a look at how this might look in Peacock
 
 ```peacock
 schema Error<T> = { error: T }
