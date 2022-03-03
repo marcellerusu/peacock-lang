@@ -95,7 +95,7 @@ Schemas look a little like types, this is intentional to make it more familiar b
 
 An example of this is say we do want to overload the view method once again for the case of there being only 1 user in the list.
 
-```ruby
+```peacock
 def view(_, Success<[user]>, _)
   <div>
     <Banner>Add 5 users to get a discount!</Banner>
@@ -106,7 +106,7 @@ end
 
 What if we only want to show that banner on the first week.
 
-```ruby
+```peacock
 schema WithinThisWeek = date => date > Time.now - 1.week
 def view(_, Success<[{ created_at: WithinThisWeek }]>, _)
   <div>
