@@ -58,7 +58,7 @@ class Admin < Component
       .catch(error => set_state Error(error))
   end
 
-  def view(_, nil, )
+  def view(_, nil, _)
     <div>
       Not loaded yet
     </div>
