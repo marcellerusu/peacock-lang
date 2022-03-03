@@ -49,6 +49,7 @@ Lets take a look at how this might look in Peacock
 schema Error<T> = { error: T }
 schema Success<T> = { data: T }
 schema Loading = { loading: true }
+
 class Admin < Component
   def init
     set_state Loading
