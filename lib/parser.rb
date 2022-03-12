@@ -204,7 +204,10 @@ class Parser
     return sym_expr if expr_context.directly_in_a? :html_tag
     node = case
       when current_token&.is_a?(:assign)
+        # shouldn't this also be in a :class ?
         parse_instance_assignment! sym_expr
+      when arrow_function?
+        parse_arrow_function! sym_expr
       when function_call?(sym_expr)
         parse_function_call! sym_expr
       when end_of_file?

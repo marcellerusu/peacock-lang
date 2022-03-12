@@ -373,6 +373,9 @@ module AST
   class ShortFn < Fn
   end
 
+  class ArrowFn < Fn
+  end
+
   class IdLookup < Node
     def initialize(value, position)
       @value = value

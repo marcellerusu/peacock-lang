@@ -348,4 +348,10 @@ end
 print(create_nums())')
     expect(ast).to eq([{:name=>"pea_module", :expr=>{:value=>[], :splats=>[]}}, {:name=>"create_nums", :schema=>{:args=>[[]], :expr=>{:lhs_expr=>{:value=>"Schema"}, :property=>"for"}}, :expr=>{:args=>["__VALUE"], :body=>[{:value=>{:value=>{:args=>[{:value=>10}], :expr=>{:lhs_expr=>{:args=>[], :expr=>{:lhs_expr=>{:value=>"nums"}, :property=>"size"}}, :property=>"__lt__"}}, :with_assignment=>{:name=>"nums", :expr=>[]}, :fail=>[{:value=>{:args=>[{:value=>1}], :expr=>{:lhs_expr=>{:value=>"nums"}, :property=>"push"}}}]}}]}}, {:args=>[{:args=>[], :expr=>{:value=>"create_nums"}}], :expr=>{:value=>"print"}}])
   end
+  it "2022-03-12 10:40:02 -0500" do
+    ast = parse('mutl_11 := item => item * 11
+
+print(mutl_11(10))')
+    expect(ast).to eq([{:name=>"pea_module", :expr=>{:value=>[], :splats=>[]}}, {:name=>"mutl_11", :expr=>{:args=>["item"], :body=>[{:value=>{:args=>[{:value=>11}], :expr=>{:lhs_expr=>{:value=>"item"}, :property=>"__mult__"}}}]}}, {:args=>[{:args=>[{:value=>10}], :expr=>{:value=>"mutl_11"}}], :expr=>{:value=>"print"}}])
+  end
 end

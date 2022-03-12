@@ -37,6 +37,25 @@ module Helpers
     @program_string[prev_token.position..current_token.position].include? "\n"
   end
 
+  def line_has?(token)
+    # end of file
+    return false if current_token.nil?
+    # no more new lines
+    if @program_string[current_token.position..].index("\n") == nil
+      return @tokens[@token_index..].any? { |t| t.is_a?(token) }
+    end
+    # somewhere in the file
+    new_line_index = @program_string[current_token.position..].index("\n") + current_token.position
+    index = @token_index
+    while @tokens[index] && @tokens[index].position < new_line_index
+      if @tokens[index].is_a?(token)
+        return true
+      end
+      index += 1
+    end
+    return false
+  end
+
   def end_of_last_token
     assert { prev_token.is_a? :identifier }
     prev_token.position + prev_token.value.size

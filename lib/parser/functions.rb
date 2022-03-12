@@ -10,6 +10,18 @@ module Functions
       end_of_last_token == current_token.position
   end
 
+  def arrow_function?
+    line_has? :"=>"
+  end
+
+  def parse_arrow_function!(sym_expr)
+    args = [sym_expr.value]
+    consume! :"=>"
+    expr = parse_expr!
+    expr = expr.to_return unless expr.is_a? AST::Return
+    AST::ArrowFn.new(args, [expr], sym_expr.position)
+  end
+
   def function_call?(node)
     return true if current_token&.is_a? :open_parenthesis
     return false if !node.lookup?

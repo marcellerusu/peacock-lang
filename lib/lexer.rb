@@ -232,7 +232,7 @@ module Lexer
         tokens.push Token.new(:symbol, scanner.matched[1..])
       when scanner.scan(/:/)
         tokens.push Token.new(:colon)
-      when scanner.scan(/[a-zA-Z][a-zA-Z1-9\_!?]*/)
+      when scanner.scan(/[a-zA-Z][a-zA-Z0-9\_!?]*/)
         tokens.push Token.new(:identifier, scanner.matched)
       else
         raise AssertionError
