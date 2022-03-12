@@ -59,29 +59,33 @@ module HTML
       end
       consume! :"="
       expr_context.push! :html_tag
-      value = case current_token.type
-        when :str_lit
-          parse_str!
-        when :anon_short_fn_start
-          expr_context.pop! :html_tag
-          fn = parse_anon_function_shorthand!
-          expr_context.push! :html_tag
-          fn
-        when :open_brace
-          expr_context.pop! :html_tag
-          consume! :open_brace
-          val = parse_expr!
-          consume! :close_brace
-          expr_context.push! :html_tag
-          val
-        else
-          assert { false }
-        end
+      value = parse_html_attribute!
       expr_context.pop! :html_tag
       attributes.insert_sym! id_token.value, value
     end
     closing_token = consume!
     return closing_token.is_a?(:self_close_html_tag), attributes
+  end
+
+  def parse_html_attribute!
+    case current_token.type
+    when :str_lit
+      parse_str!
+    when :anon_short_fn_start
+      expr_context.pop! :html_tag
+      fn = parse_anon_function_shorthand!
+      expr_context.push! :html_tag
+      fn
+    when :open_brace
+      expr_context.pop! :html_tag
+      consume! :open_brace
+      val = parse_expr!
+      consume! :close_brace
+      expr_context.push! :html_tag
+      val
+    else
+      assert { false }
+    end
   end
 
   def parse_html_children!
