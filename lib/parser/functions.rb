@@ -39,7 +39,7 @@ module Functions
     position = current_token.position
     args = parse_arrow_args!
     consume! :"=>"
-    body = parse_function_body!(one_liner: true)
+    body = parse_function_body! one_liner: true
     AST::ArrowFn.new(args, body, position)
   end
 
@@ -116,7 +116,7 @@ module Functions
       consume! :"="
     end
 
-    body = parse_function_body!(one_liner: is_single_expr)
+    body = parse_function_body! one_liner: is_single_expr
     consume! :end if !is_single_expr
 
     arg_lookup = AST::IdLookup.new("__VALUE", id_token.position)
@@ -127,19 +127,25 @@ module Functions
       .declare_with(id_token.value, args_schema)
   end
 
+  def parse_do_fn_args!
+    args = []
+    return args if current_token.is_not_a? :"|"
+
+    consume! :"|"
+    while current_token.is_not_a?(:"|")
+      id_token = consume! :identifier
+      args.push id_token.value
+      consume! :comma if current_token.is_not_a? :"|"
+    end
+    consume! :"|"
+
+    args
+  end
+
   def parse_anon_function_def!
     do_token = consume! :do
-    args = []
-    if current_token.is_a? :"|"
-      consume! :"|"
-      while current_token.is_not_a?(:"|")
-        id_token = consume! :identifier
-        args.push id_token.value
-        consume! :comma if current_token.is_not_a? :"|"
-      end
-      consume! :"|"
-    end
-    body = parse_function_body!(check_new_line: false)
+    args = parse_do_fn_args!
+    body = parse_function_body! check_new_line: false
     consume! :end
     AST::Fn.new args, body, do_token.position
   end
