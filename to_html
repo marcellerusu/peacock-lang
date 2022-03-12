@@ -18,6 +18,7 @@ while true
   output = output.split("\n")
     .filter { |line| !["module.exports", "require"].any? { |k| line.include? k } }.join "\n"
   html = <<-EOS
+  <!DOCTYPE html>
   <html>
     <head>
       <link id="favicon" rel="shortcut icon" type="image/png" href="public/favicon.png" />
@@ -39,6 +40,6 @@ while true
   EOS
 
   File.write(HTML_OUTPUT_FILENAME, html)
-  sleep 0.5
+  sleep 1
   # break
 end
