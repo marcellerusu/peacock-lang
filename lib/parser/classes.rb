@@ -4,7 +4,7 @@ module Classes
     class_token = consume! :class
     assert { !new_line? }
     class_name_token = consume! :identifier
-    super_class_name = parse_super_class!
+    super_class_name = parse_super_class! if current_token.is_a? :<
     assert { new_line? }
     @token_index, methods = clone(parser_context: parser_context.push(:class)).parse_with_position!
     consume! :end
@@ -19,14 +19,8 @@ module Classes
   end
 
   def parse_super_class!
-    return unless extends?
     consume! :<
     id_token = consume! :identifier
     id_token.value
-  end
-
-  def extends?
-    return false unless expr_context.directly_in_a? :class
-    current_token.is_a? :<
   end
 end
