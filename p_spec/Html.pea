@@ -5,7 +5,7 @@ Spec.new "Html" do |c|
   end
 
   c.xit "child element" do
-    class User < Element
+    class User < Component
       def view(_, _, _)
         <div>
           {props[:name]}
@@ -13,7 +13,7 @@ Spec.new "Html" do |c|
       end
     end
 
-    class Main < Element
+    class Main < Component
       def view(_, _, _)
         <div>
           <User name="marcelle" />
@@ -25,7 +25,7 @@ Spec.new "Html" do |c|
   end
 
   c.it "symbols inside dom node" do
-    class Main < Element
+    class Main < Component
       def view(_, _, _)
         <div>
           this is my home page.&yo
@@ -36,7 +36,7 @@ Spec.new "Html" do |c|
   end
 
   c.it "props[:children] should render" do
-    class Child < Element
+    class Child < Component
       def view({ children }, _, _)
         <div>
           {children}
@@ -44,7 +44,7 @@ Spec.new "Html" do |c|
       end
     end
       
-    class Main < Element
+    class Main < Component
       def view(_, _, _)
         <div>
           <Child>
@@ -60,7 +60,7 @@ Spec.new "Html" do |c|
   end
 
   c.it "string interpolation" do
-    class Main < Element
+    class Main < Component
       def style(_, _, _) = "
         background: black;
         color: white;
@@ -81,7 +81,7 @@ Spec.new "Html" do |c|
   end
 
   c.it "if expr" do
-    class Main < Element
+    class Main < Component
       def view(_, _, _)
         <div>
           {if true then "ok" end}
@@ -91,4 +91,8 @@ Spec.new "Html" do |c|
 
     expect(Main.new.inner_text).to eq("ok ")
   end
+
+  # c.it "weird interpoplation" do
+  #   <div>Let's</div>
+  # end
 end
