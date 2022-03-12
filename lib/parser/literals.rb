@@ -72,7 +72,7 @@ module Literals
 
   def str_before_captures(str_token)
     # in example "oh shit #{1} something #{2}"
-    # we're parsing "oh shit " with this condition
+    # we're parsing "oh shit "
     start_index = 0
     # - 2 is to ignore `#{`
     end_index = str_token.captures[0][:start] - 2
@@ -82,11 +82,37 @@ module Literals
   def str_between_escape(str_token, i)
     return nil if i + 1 == str_token.captures.size
     # in example "oh shit #{1} something #{2}"
-    # we're parsing " something " with this condition
+    # we're parsing " something "
     start_index = str_token.captures[i][:end] + 1
     # - 2 is to ignore `#{`
     end_index = str_token.captures[i + 1][:start] - 2
     AST::Str.new(str_token.value[start_index...end_index], str_token.position)
+  end
+
+  def parse_record!
+    open_brace = consume! :open_brace
+    record = []
+    splats = []
+    # this is only being used for splat index
+    i = 0
+    while current_token.is_not_a? :close_brace
+      splats.push(try_parse_record_splat!(i))
+      i += 1
+      consume! :comma if current_token.is_a? :comma
+      break if current_token.is_a? :close_brace
+      key = parse_record_key!
+      value = parse_record_value! key
+      record.push [key, value]
+      consume! :comma if current_token.is_not_a? :close_brace
+    end
+    consume! :close_brace
+    node = AST::Record.new(
+      record,
+      AST::List.new(splats.compact),
+      open_brace.position
+    )
+    return parse_match_assignment_without_schema!(node) if current_token&.is_a? :assign
+    parse_id_modifier_if_exists!(node)
   end
 
   def parse_record_key!
@@ -105,6 +131,19 @@ module Literals
     end
   end
 
+  def parse_record_value!(key)
+    if current_token.is_a? :colon
+      consume! :colon
+      parse_expr!
+    elsif expr_context.in_a? :schema
+      AST::schema_any(key)
+    elsif key.is_a?(AST::Sym)
+      AST::IdLookup.new key.value, key.position
+    else
+      assert_not_reached
+    end
+  end
+
   def try_parse_record_splat!(index)
     return nil if current_token.is_not_a? :*
     splat_token = consume! :*
@@ -117,42 +156,6 @@ module Literals
       AST::List.new([]),
       splat_token.position
     )
-  end
-
-  def parse_record!
-    open_brace = consume! :open_brace
-    record = []
-    splats = []
-    i = 0
-    while current_token.is_not_a? :close_brace
-      splat = try_parse_record_splat!(i)
-      i += 1
-      if splat
-        splats.push splat
-      else
-        key = parse_record_key!
-        value = if current_token.is_a? :colon
-            consume! :colon
-            parse_expr!
-          elsif expr_context.in_a? :schema
-            AST::schema_any(key)
-          elsif key.is_a?(AST::Sym)
-            AST::IdLookup.new key.value, key.position
-          else
-            assert_not_reached
-          end
-        record.push [key, value]
-      end
-      consume! :comma if current_token.is_not_a? :close_brace
-    end
-    consume! :close_brace
-    node = AST::Record.new(
-      record,
-      AST::List.new(splats.compact),
-      open_brace.position
-    )
-    return parse_match_assignment_without_schema!(node) if current_token&.is_a? :assign
-    parse_id_modifier_if_exists!(node)
   end
 
   def parse_list!
