@@ -39,9 +39,8 @@ module Functions
     position = current_token.position
     args = parse_arrow_args!
     consume! :"=>"
-    expr = parse_expr!
-    expr = expr.to_return unless expr.is_a? AST::Return
-    AST::ArrowFn.new(args, [expr], position)
+    body = parse_function_body!(one_liner: true)
+    AST::ArrowFn.new(args, body, position)
   end
 
   def function_call?(node)
@@ -96,6 +95,17 @@ module Functions
     return args.to_schema, matches
   end
 
+  def parse_function_body!(one_liner: false, check_new_line: false)
+    if one_liner
+      expr = parse_expr!
+      [expr.to_return]
+    else
+      assert { new_line? } if check_new_line
+      @token_index, body = clone(parser_context: parser_context.push(:function)).parse_with_position!
+      body
+    end
+  end
+
   def parse_function_def!
     consume! :def
     id_token = consume! :identifier
@@ -106,22 +116,12 @@ module Functions
       consume! :"="
     end
 
-    if new_line?
-      assert { !is_single_expr }
-      @token_index, body = clone(parser_context: parser_context.push(:function)).parse_with_position!
-      consume! :end
-    else
-      expr = parse_expr!
-      body = [expr.to_return]
-    end
-    body = matches.map do |path_and_sym|
-      sym, path = path_and_sym.last, path_and_sym[0...-1]
-      AST::Assign.new(
-        sym,
-        eval_path_on_expr(path, AST::IdLookup.new("__VALUE", id_token.position)),
-        id_token.position
-      )
-    end + body
+    body = parse_function_body!(one_liner: is_single_expr)
+    consume! :end if !is_single_expr
+
+    arg_lookup = AST::IdLookup.new("__VALUE", id_token.position)
+    decalartions = declare_variables_from(matches, arg_lookup)
+    body = decalartions + body
 
     AST::Fn.new(["__VALUE"], body, id_token.position)
       .declare_with(id_token.value, args_schema)
@@ -139,7 +139,7 @@ module Functions
       end
       consume! :"|"
     end
-    @token_index, body = clone(parser_context: parser_context.push(:function)).parse_with_position!
+    body = parse_function_body!(check_new_line: false)
     consume! :end
     AST::Fn.new args, body, do_token.position
   end

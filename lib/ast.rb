@@ -275,6 +275,10 @@ module AST
       @value = value
       @position = position
     end
+
+    def to_return
+      self
+    end
   end
 
   class If < Node
