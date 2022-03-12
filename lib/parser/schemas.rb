@@ -79,10 +79,11 @@ module Schemas
       expr = parse_expr!
     end
     if_expr = fn_expr.dot("valid_q").call([expr])
+    # declare __VALUE and then deconstruct variables from it
     value = AST::Assign.new("__VALUE", expr)
     value_lookup = AST::IdLookup.new("__VALUE", current_token.position)
-    matches = find_bound_variables(match_expr)
-    declarations = declare_variables_from(matches, value_lookup)
+
+    declarations = declare_variables_from(find_bound_variables(match_expr), value_lookup)
     pass_body = [value] + declarations
     fail_body = [
       AST::Throw.new(AST::Str.new("Match error", current_token.position), current_token.position),
