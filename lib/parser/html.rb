@@ -1,5 +1,9 @@
 ID_TO_STR = {
   dot: ".",
+  comma: ",",
+  open_parenthesis: "(",
+  close_parenthesis: ")",
+  colon: ":",
 }
 
 module HTML

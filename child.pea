@@ -1,3 +1,0 @@
-export class Child < Element =
-  style _ is_on = "cursor: pointer;"
-  view = <div>child tests!</div>
