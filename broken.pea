@@ -10,7 +10,7 @@ schema Same = [id, id]
 Same(a) := [1, 2] # fails
 
 # rendering custom elements at base line
-class Main < Element
+class Main < Component
   def view(_, _, _)
     <User name="marcelle" />
   end
@@ -34,12 +34,12 @@ schema User = { id, email, child }
 
 User({ id, child: { *child } }) := { id: 10, email: "email", child: { id: 11 } }
 
-print(id, child)
+print id, child
 
 # splats for arrays
 
 # schemas in anon-functions
-[{ id: 10 }].map do { id } id * 10 end
+[{ id: 10 }].map { id } => id * 10
 # don't use Schema.case !
 
 # classes should be valid schemas, but don't allow destructuring
@@ -50,9 +50,72 @@ def get_users
 end
 
 # schema params
-schema List<T> = #{%.is_a?(List) && %.every(&T.valid?)}
+schema List<T> = l => l.is_a?(List) && l.every(&T.valid?)
 
+#{ % > 0 }
+
+arr.map &Array.prototype.map($1)
 # optional param naming to #{} syntax
-arr.map #{ |item| item * 10 }
+arr.map item => item * 10
+# arrow functions are allowed to be multi-line if they are in parens/braces
+arr.map(item =>
+  console.log(item)
+  item * 10
+)
 
 # implement Regex
+
+# Think about!
+# 1. MutableRecord & MutableList
+#   to think about.. should we add a mutable API to all records?
+#   we could make it like MutableRecord < Record
+#   & MutableRecords are not usable in Component state or props
+# 2. use = instead of := !!!
+
+# Use Component instead of Component
+
+# use arrow functions for one liners instead of #{}
+
+# schema constructors when they have a param
+schema Success<T> = { data: T }
+
+successful_response = Success(10)
+
+assert! successful_response == { data: 10 }
+
+# tuples? maybe - idk, immutable lists are good enough
+
+# schemas should be able to be in class definitions
+
+class User < Component
+  schema State = { id, created_at }
+  def data_source = "/api/users"
+end
+
+# maybe User could use this?
+# Idk, it just looks pretty
+
+# Int & Float should fake being objects
+
+a + b
+# should turn into 
+_plus(a, b)
+
+1.to_i
+# turn into
+_send(1, "to_i")
+
+# hash shorthand when calling
+def fun({ x, y })
+  x * y
+end
+
+fun(x: 10, y: 10)
+
+# doc strings would be sick
+
+def learning
+  """
+  How to read things
+  """
+end
