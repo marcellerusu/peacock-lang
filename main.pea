@@ -1,1 +1,6 @@
-(a, b) => a * b
+schema User = { id }
+
+case { id: 4 }
+when User(u)
+  u
+end

@@ -1,18 +1,10 @@
 module Literals
-  def parse_sym!
-    id_token = consume! :identifier
-    AST::IdLookup.new(id_token.value, id_token.position)
-      .to_schema_any_depending_on(expr_context)
-  end
-
   def parse_identifier!
-    return parse_sym! if expr_context.in_a? :schema
-    expr = if parser_context.in_a?(:class)
-        id_token = consume! :identifier
-        AST::InstanceMethodLookup.new id_token.value, id_token.position
-      else
-        parse_sym!
-      end
+    id_token = consume! :identifier
+    expr = AST::IdLookup.new(id_token.value, id_token.position)
+      .to_schema_any_depending_on(expr_context)
+      .to_instance_method_lookup_depending_on(parser_context)
+    return expr if expr_context.in_a? :schema
     parse_id_modifier_if_exists!(expr)
   end
 
