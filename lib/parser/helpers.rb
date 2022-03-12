@@ -21,6 +21,17 @@ module Helpers
     !end_of_file?
   end
 
+  def can_parse?
+    cloned_parser = clone
+    begin
+      yield cloned_parser
+    rescue AssertionError
+      return false
+    else
+      return true
+    end
+  end
+
   def consume!(token_type = nil)
     # puts "#{token_type} #{current_token.type}"
     # binding.pry if token_type && token_type != current_token.type

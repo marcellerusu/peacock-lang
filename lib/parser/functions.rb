@@ -12,14 +12,9 @@ module Functions
 
   def arrow_function?
     return false if line_does_not_have?(:"=>")
-    cloned = clone
-    begin
-      cloned.parse_arrow_args!
-      assert { cloned.current_token.is_a? :"=>" }
-    rescue AssertionError
-      return false
-    else
-      return true
+    can_parse? do |parser|
+      parser.parse_arrow_args!
+      assert { parser.current_token.is_a? :"=>" }
     end
   end
 
@@ -53,13 +48,8 @@ module Functions
     return true if current_token&.is_a? :open_parenthesis
     return false if !node.lookup?
     return true if node.lookup? && end_of_expr?
-    cloned = clone
-    begin
-      cloned.parse_function_call_args_without_paren!
-    rescue AssertionError
-      return false
-    else
-      return true
+    can_parse? do |parser|
+      parser.parse_function_call_args_without_paren!
     end
   end
 
