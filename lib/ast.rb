@@ -342,6 +342,14 @@ module AST
       args[0].value
     end
 
+    def to_schema
+      if schema_any?
+        self
+      else
+        super.to_schema
+      end
+    end
+
     def schema_any?
       expr.is_a?(PropertyLookup) &&
       expr.lhs_expr.value == "Schema" &&

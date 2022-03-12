@@ -12,10 +12,10 @@ module Modules
     pattern = parse_expr!
     expr_context.pop! :schema
     consume! :from
-    str_token = consume! :str_lit
-    file_name = str_token.value
+    file_name_token = consume! :str_lit
+    assert { file_name_token.captures.size == 0 }
+    file_name = file_name_token.value
     file_name = "#{file_name}.pea" if !file_name.end_with? ".pea"
-    assert { str_token.captures.size == 0 }
     program = File.read(file_name)
     # when we start doing hot reloading
     # we should use a mutation of the file name as the variable

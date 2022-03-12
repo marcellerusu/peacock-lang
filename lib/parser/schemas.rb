@@ -7,56 +7,62 @@ module Schemas
     case_token = consume! :case
     value = parse_expr!
     cases = []
-    match_arg_name = "match_expr"
     while current_token.is_not_a? :end
       when_token = consume! :when
       schema, matches = parse_schema_literal!
       @token_index, body = clone(
         parser_context: parser_context.push(:function),
       ).parse_with_position! :when
-
-      fn = AST::Fn.new(
-        [match_arg_name],
-        matches.map do |path_and_sym|
-          sym, path = path_and_sym.last, path_and_sym[0...-1]
-
-          AST::Assign.new(
-            sym,
-            eval_path_on_expr(path, AST::IdLookup.new(match_arg_name, when_token.position))
-          )
-        end + body,
-        case_token.position
-      )
+      fn = case_fn(matches, body, when_token)
       cases.push AST::List.new([schema, fn])
     end
     consume! :end
     AST::Case.new value, AST::List.new(cases), case_token.position
   end
 
+  def case_fn(matches, body, when_token)
+    match_arg_token = AST::IdLookup.new("match_expr", when_token.position)
+    fn = AST::Fn.new(
+      [match_arg_token.value],
+      declare_variables_from(matches, match_arg_token) + body,
+      when_token.position
+    )
+  end
+
+  def declare_variables_from(matches, expr)
+    matches.map do |path_and_sym|
+      sym, path = path_and_sym.last, path_and_sym[0...-1]
+      AST::Assign.new(
+        sym,
+        eval_path_on_expr(path, expr)
+      )
+    end
+  end
+
   def parse_schema_literal!(index = nil)
     expr_context.push! :schema
     schema_expr = parse_expr!
     expr_context.pop! :schema
-    match_expr = if current_token.is_a? :open_parenthesis
-        assert { schema_expr.is_a? AST::IdLookup }
-        consume! :open_parenthesis
-        expr_context.push! :schema
-        pattern = parse_expr!
-        expr_context.pop! :schema
-        consume! :close_parenthesis
-        pattern
-      elsif schema_expr.is_a? AST::IdLookup
-        nil
-      else
-        schema_expr
-      end
-    schema = if schema_expr.schema_any?
-        schema_expr
-      else
-        schema_expr.to_schema
-      end
+    match_expr = parse_schema_literal_deconstruction! schema_expr
+    schema = schema_expr.to_schema
     assert { current_token.is_not_one_of? *OPERATORS }
     return schema, find_bound_variables(match_expr, index)
+  end
+
+  def parse_schema_literal_deconstruction!(schema_expr)
+    if current_token.is_a? :open_parenthesis
+      assert { schema_expr.is_a? AST::IdLookup }
+      consume! :open_parenthesis
+      expr_context.push! :schema
+      pattern = parse_expr!
+      expr_context.pop! :schema
+      consume! :close_parenthesis
+      pattern
+    elsif schema_expr.is_a? AST::IdLookup
+      nil
+    else
+      schema_expr
+    end
   end
 
   def parse_match_assignment_without_schema!(pattern, value_expr = nil)
@@ -75,11 +81,9 @@ module Schemas
     if_expr = fn_expr.dot("valid_q").call([expr])
     value = AST::Assign.new("__VALUE", expr)
     value_lookup = AST::IdLookup.new("__VALUE", current_token.position)
-
-    pass_body = [value] + find_bound_variables(match_expr).map do |path_and_sym|
-      sym, path = path_and_sym.last, path_and_sym[0...-1]
-      AST::Assign.new(sym, eval_path_on_expr(path, value_lookup), current_token.position)
-    end
+    matches = find_bound_variables(match_expr)
+    declarations = declare_variables_from(matches, value_lookup)
+    pass_body = [value] + declarations
     fail_body = [
       AST::Throw.new(AST::Str.new("Match error", current_token.position), current_token.position),
     ]
