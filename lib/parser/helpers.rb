@@ -1,10 +1,4 @@
 module Helpers
-  def schema?(identifier)
-    # identifiers starting w uppercase are interpreted as schemas
-    return false if identifier[0] == "_"
-    identifier[0].upcase == identifier[0]
-  end
-
   def current_token
     @tokens[@token_index]
   end

@@ -382,6 +382,14 @@ module AST
       @position = position
     end
 
+    def to_schema_any_depending_on(expr_context)
+      if expr_context.directly_in_a?(:schema) && !schema?
+        AST::schema_any(self)
+      else
+        self
+      end
+    end
+
     def schema?
       return false if value[0] == "_"
       value[0].upcase == value[0]

@@ -1,10 +1,8 @@
 module Literals
   def parse_sym!
     id_token = consume! :identifier
-    if expr_context.directly_in_a?(:schema) && !schema?(id_token.value)
-      return AST::schema_any(id_token)
-    end
-    AST::IdLookup.new id_token.value, id_token.position
+    AST::IdLookup.new(id_token.value, id_token.position)
+      .to_schema_any_depending_on(expr_context)
   end
 
   def parse_identifier!

@@ -160,7 +160,7 @@ module Schemas
     expr_context.push! :schema
     expr = parse_expr!
     schema = expr.to_schema
-    while current_token.is_one_of?(*OPERATORS)
+    while current_token&.is_one_of?(*OPERATORS)
       schema = parse_operator_call!(schema)
     end
     expr_context.pop! :schema
