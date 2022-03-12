@@ -11,15 +11,42 @@ module Functions
   end
 
   def arrow_function?
-    line_has? :"=>"
+    return false if line_does_not_have?(:"=>")
+    cloned = clone
+    begin
+      cloned.parse_arrow_args!
+      assert { cloned.current_token.is_a? :"=>" }
+    rescue AssertionError
+      return false
+    else
+      return true
+    end
   end
 
-  def parse_arrow_function!(sym_expr)
-    args = [sym_expr.value]
+  def parse_arrow_args!
+    if current_token.is_a?(:open_parenthesis)
+      consume! :open_parenthesis
+      args = []
+      while current_token.is_not_a?(:close_parenthesis) && !new_line?
+        args.push consume!(:identifier).value
+        consume! :comma if current_token.is_not_a?(:close_parenthesis)
+      end
+      consume! :close_parenthesis
+      return args
+    else
+      arg = consume! :identifier
+      args = [arg.value]
+      return args
+    end
+  end
+
+  def parse_arrow_function!
+    position = current_token.position
+    args = parse_arrow_args!
     consume! :"=>"
     expr = parse_expr!
     expr = expr.to_return unless expr.is_a? AST::Return
-    AST::ArrowFn.new(args, [expr], sym_expr.position)
+    AST::ArrowFn.new(args, [expr], position)
   end
 
   def function_call?(node)

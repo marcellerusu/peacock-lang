@@ -56,6 +56,10 @@ module Helpers
     return false
   end
 
+  def line_does_not_have?(token)
+    !line_has?(token)
+  end
+
   def end_of_last_token
     assert { prev_token.is_a? :identifier }
     prev_token.position + prev_token.value.size

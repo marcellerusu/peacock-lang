@@ -354,4 +354,8 @@ print(create_nums())')
 print(mutl_11(10))')
     expect(ast).to eq([{:name=>"pea_module", :expr=>{:value=>[], :splats=>[]}}, {:name=>"mutl_11", :expr=>{:args=>["item"], :body=>[{:value=>{:args=>[{:value=>11}], :expr=>{:lhs_expr=>{:value=>"item"}, :property=>"__mult__"}}}]}}, {:args=>[{:args=>[{:value=>10}], :expr=>{:value=>"mutl_11"}}], :expr=>{:value=>"print"}}])
   end
+  it "2022-03-12 12:18:35 -0500" do
+    ast = parse('(a, b) => a * b')
+    expect(ast).to eq([{:name=>"pea_module", :expr=>{:value=>[], :splats=>[]}}, {:args=>["a", "b"], :body=>[{:value=>{:args=>[{:value=>"b"}], :expr=>{:lhs_expr=>{:value=>"a"}, :property=>"__mult__"}}}]}])
+  end
 end

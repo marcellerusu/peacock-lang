@@ -49,6 +49,7 @@ class Parser
     @token_index = token_index
     @parser_context = parser_context
     @expr_context = expr_context
+    @first_run = first_run
     if first_run
       @@computed_files = []
     end
@@ -131,6 +132,10 @@ class Parser
       return parse_bool! current_token.type
     elsif current_token.is_a?(:identifier) && peek_token&.is_a?(:assign)
       return parse_assignment!
+    elsif arrow_function?
+      return parse_arrow_function!
+    elsif paren_expr?
+      return parse_paren_expr!
     end
     # simple after
     case current_token.type
@@ -150,8 +155,6 @@ class Parser
       parse_record!
     when :bang
       parse_bang!
-    when :open_parenthesis
-      parse_paren_expr!
     when :identifier
       parse_identifier!
     when :property
@@ -189,9 +192,15 @@ class Parser
     end
   end
 
+  def paren_expr?
+    current_token.is_a?(:open_parenthesis)
+  end
+
   def parse_paren_expr!
     token = consume! :open_parenthesis
+    expr_context.push! :paren
     expr = parse_expr!
+    expr_context.pop! :paren
     consume! :close_parenthesis
     node = AST::ParenExpr.new expr, token.position
     parse_id_modifier_if_exists! node
@@ -206,8 +215,6 @@ class Parser
       when current_token&.is_a?(:assign)
         # shouldn't this also be in a :class ?
         parse_instance_assignment! sym_expr
-      when arrow_function?
-        parse_arrow_function! sym_expr
       when function_call?(sym_expr)
         parse_function_call! sym_expr
       when end_of_file?
