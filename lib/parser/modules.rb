@@ -8,9 +8,9 @@ module Modules
 
   def parse_import!
     import = consume! :import
-    expr_context.push! :schema
+    context.push! :schema
     pattern = parse_expr!
-    expr_context.pop! :schema
+    context.pop! :schema
     consume! :from
     file_name_token = consume! :str_lit
     assert { file_name_token.captures.size == 0 }
@@ -29,7 +29,7 @@ module Modules
     else
       computed_files.push var_name
       tokens = Lexer::tokenize program
-      ast = Parser.new(tokens, program, 0, nil, nil, false).parse!
+      ast = Parser.new(tokens, program, 0, nil, false).parse!
       file_expr = AST::IdLookup.new("pea_module", import.position)
         .to_return
         .wrap_in_fn_with(ast)

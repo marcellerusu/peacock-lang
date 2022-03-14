@@ -2,9 +2,9 @@ module Literals
   def parse_identifier!
     id_token = consume! :identifier
     expr = AST::IdLookup.new(id_token.value, id_token.position)
-      .to_schema_any_depending_on(expr_context)
-      .to_instance_method_lookup_depending_on(parser_context)
-    return expr if expr_context.in_a? :schema
+      .to_schema_any_depending_on(context)
+      .to_instance_method_lookup_depending_on(context)
+    return expr if context.in_a? :schema
     parse_id_modifier_if_exists! expr
   end
 
@@ -57,7 +57,7 @@ module Literals
       ast = clone(
         tokens: group[:tokens],
         token_index: 0,
-        parser_context: parser_context.push(:str),
+        context: context.push(:str),
       ).parse!
       assert { ast.size == 1 }
       strings.push ast.first.call_to_s
@@ -121,7 +121,7 @@ module Literals
       id_token = consume! :identifier
       AST::Sym.new id_token.value, id_token.position
     when :"["
-      assert { !expr_context.directly_in_a?(:schema) }
+      assert { !context.directly_in_a?(:schema) }
       consume! :"["
       val = parse_expr!
       consume! :"]"
@@ -135,7 +135,7 @@ module Literals
     if current_token.is_a? :colon
       consume! :colon
       parse_expr!
-    elsif expr_context.in_a? :schema
+    elsif context.in_a? :schema
       AST::schema_any(key)
     elsif key.is_a?(AST::Sym)
       AST::IdLookup.new key.value, key.position

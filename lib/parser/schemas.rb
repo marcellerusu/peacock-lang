@@ -10,9 +10,7 @@ module Schemas
     while current_token.is_not_a? :end
       when_token = consume! :when
       schema, matches = parse_schema_literal!
-      @token_index, body = clone(
-        parser_context: parser_context.push(:function),
-      ).parse_with_position! :when
+      @token_index, body = clone(context: context.push(:function)).parse_with_position! :when
       fn = case_fn(matches, body, when_token)
       cases.push AST::List.new([schema, fn])
     end
@@ -40,9 +38,9 @@ module Schemas
   end
 
   def parse_schema_literal!(index = nil)
-    expr_context.push! :schema
+    context.push! :schema
     schema_expr = parse_expr!
-    expr_context.pop! :schema
+    context.pop! :schema
     match_expr = parse_schema_literal_deconstruction! schema_expr
     schema = schema_expr.to_schema
     assert { current_token.is_not_one_of? *OPERATORS }
@@ -53,9 +51,9 @@ module Schemas
     if current_token.is_a? :"("
       assert { schema_expr.is_a? AST::IdLookup }
       consume! :"("
-      expr_context.push! :schema
+      context.push! :schema
       pattern = parse_expr!
-      expr_context.pop! :schema
+      context.pop! :schema
       consume! :")"
       pattern
     elsif schema_expr.is_a? AST::IdLookup
@@ -162,13 +160,13 @@ module Schemas
     consume! :schema
     schema_name_token = consume! :identifier
     consume! :"="
-    expr_context.push! :schema
+    context.push! :schema
     expr = parse_expr!
     schema = expr.to_schema
     while current_token&.is_one_of?(*OPERATORS)
       schema = parse_operator_call!(schema)
     end
-    expr_context.pop! :schema
+    context.pop! :schema
     AST::Assign.new(schema_name_token.value, schema, schema_name_token.position)
   end
 end

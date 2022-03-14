@@ -82,7 +82,7 @@ module Functions
     end
     list_schema_index = 0
     consume! :"("
-    expr_context.push! :declare
+    context.push! :declare
     while current_token.is_not_a?(:")")
       schema, new_matches = parse_schema_literal! list_schema_index
       args.push! schema
@@ -90,7 +90,7 @@ module Functions
       matches += new_matches
       list_schema_index += 1
     end
-    expr_context.pop! :declare
+    context.pop! :declare
     consume! :")"
     return args.to_schema, matches
   end
@@ -101,7 +101,7 @@ module Functions
       [expr.to_return]
     else
       assert { new_line? } if check_new_line
-      @token_index, body = clone(parser_context: parser_context.push(:function)).parse_with_position!
+      @token_index, body = clone(context: context.push(:function)).parse_with_position!
       body
     end
   end

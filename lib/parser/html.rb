@@ -56,9 +56,9 @@ module HTML
         next
       end
       consume! :"="
-      expr_context.push! :html_tag
+      context.push! :html_tag
       value = parse_html_attribute!
-      expr_context.pop! :html_tag
+      context.pop! :html_tag
       attributes.insert_sym! id_token.value, value
     end
     closing_token = consume!
@@ -70,16 +70,16 @@ module HTML
     when :str_lit
       parse_str!
     when :"#\{"
-      expr_context.pop! :html_tag
+      context.pop! :html_tag
       fn = parse_anon_function_shorthand!
-      expr_context.push! :html_tag
+      context.push! :html_tag
       fn
     when :"{"
-      expr_context.pop! :html_tag
+      context.pop! :html_tag
       consume! :"{"
       val = parse_expr!
       consume! :"}"
-      expr_context.push! :html_tag
+      context.push! :html_tag
       val
     else
       assert { false }
@@ -107,9 +107,9 @@ module HTML
 
   def parse_html_expr_node!
     consume! :"{"
-    expr_context.push! :html_escaped_expr
+    context.push! :html_escaped_expr
     expr = parse_expr!
-    expr_context.pop! :html_escaped_expr
+    context.pop! :html_escaped_expr
     consume! :"}"
     expr
   end

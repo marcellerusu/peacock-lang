@@ -43,12 +43,11 @@ class Parser
     @@computed_files ||= []
   end
 
-  def initialize(tokens, program_string, token_index = 0, parser_context = nil, expr_context = nil, first_run = true)
+  def initialize(tokens, program_string, token_index = 0, context = nil, first_run = true)
     @tokens = tokens
     @program_string = program_string
     @token_index = token_index
-    @parser_context = parser_context
-    @expr_context = expr_context
+    @context = context
     @first_run = first_run
     if first_run
       @@computed_files = []
@@ -71,23 +70,18 @@ class Parser
     @@unused_count = 0
   end
 
-  def clone(tokens: nil, program_string: nil, token_index: nil, parser_context: nil, expr_context: nil)
+  def clone(tokens: nil, program_string: nil, token_index: nil, context: nil)
     Parser.new(
       tokens || @tokens,
       program_string || @program_string,
       token_index || @token_index,
-      parser_context || @parser_context,
-      expr_context || @expr_context,
+      context || @context,
       false
     )
   end
 
-  def parser_context
-    @parser_context ||= Context.new
-  end
-
-  def expr_context
-    @expr_context ||= Context.new
+  def context
+    @context ||= Context.new
   end
 
   def parse!
@@ -97,7 +91,7 @@ class Parser
 
   def parse_with_position!(*end_tokens)
     @ast = []
-    @ast.push module_def if parser_context.empty?
+    @ast.push module_def if context.empty?
     while more_tokens? && current_token.is_not_a?(:end)
       break if current_token.is_one_of?(*end_tokens)
       case current_token.type
@@ -106,7 +100,7 @@ class Parser
       when :import
         @ast.push(*parse_import!)
       when :return
-        assert { parser_context.directly_in_a?(:function) }
+        assert { context.directly_in_a?(:function) }
         @ast.push parse_return!
       else
         @ast.push parse_expr!
@@ -119,7 +113,7 @@ class Parser
   end
 
   def wrap_last_expr_in_return!
-    return if !parser_context.directly_in_a?(:function)
+    return if !context.directly_in_a?(:function)
     return if !@ast.last.is_not_one_of?(AST::Return, AST::If)
 
     @ast[-1] = @ast[-1].to_return
@@ -199,9 +193,9 @@ class Parser
 
   def parse_paren_expr!
     token = consume! :"("
-    expr_context.push! :paren
+    context.push! :paren
     expr = parse_expr!
-    expr_context.pop! :paren
+    context.pop! :paren
     consume! :")"
     node = AST::ParenExpr.new expr, token.position
     parse_id_modifier_if_exists! node
@@ -211,7 +205,7 @@ class Parser
     # TODO: kinda hacky.. :/
     # This is because all the tokens (text nodes)
     # of html child aren't tokenized as raw text
-    return sym_expr if expr_context.directly_in_a? :html_tag
+    return sym_expr if context.directly_in_a? :html_tag
     node = case
       when current_token&.is_a?(:assign)
         # shouldn't this also be in a :class ?
@@ -239,7 +233,7 @@ class Parser
   end
 
   def operator?
-    current_token.is_one_of?(*OPERATORS) && !expr_context.directly_in_a?(:operator)
+    current_token.is_one_of?(*OPERATORS) && !context.directly_in_a?(:operator)
   end
 
   # Individual parsers
@@ -277,26 +271,26 @@ class Parser
 
   def parse_instance_assignment!(lhs)
     consume! :assign
-    expr_context.push! :assignment
+    context.push! :assignment
     expr = parse_expr!
-    expr_context.pop! :assignment
+    context.pop! :assignment
     AST::InstanceAssign.new lhs, expr
   end
 
   def parse_assignment!
     id_token = consume! :identifier
     consume! :assign
-    expr_context.push! :assignment
+    context.push! :assignment
     expr = parse_expr!
-    expr_context.pop! :assignment
+    context.pop! :assignment
     AST::Assign.new id_token.value, expr, id_token.position
   end
 
   def parse_operator_call!(lhs)
     op_token = consume!
-    expr_context.push! :operator
+    context.push! :operator
     rhs_expr = parse_expr!
-    expr_context.pop! :operator
+    context.pop! :operator
     method_name = OP_TO_METHOD_NAME[op_token.type]
     assert { !method_name.nil? }
 
@@ -313,9 +307,7 @@ class Parser
   end
 
   def parse_if_body!
-    @token_index, body = clone(
-      parser_context: parser_context.push(:if),
-    ).parse_with_position! :end, :else
+    @token_index, body = clone(context: context.push(:if)).parse_with_position! :end, :else
     body
   end
 
@@ -346,20 +338,20 @@ class Parser
       consume! :with
       assign = parse_assignment!
     end
-    @token_index, body = clone(parser_context: parser_context.push(:while)).parse_with_position!
+    @token_index, body = clone(context: context.push(:while)).parse_with_position!
     consume! :end
     AST::While.new cond, assign, body, while_token.position
   end
 
   def parse_next!
-    assert { parser_context.in_a?(:while) }
+    assert { context.in_a?(:while) }
     next_token = consume! :next
     expr = parse_expr! unless new_line?
     AST::Next.new expr, next_token.position
   end
 
   def parse_break!
-    assert { parser_context.in_a?(:while) }
+    assert { context.in_a?(:while) }
     next_token = consume! :break
     expr = parse_expr! unless new_line?
     AST::Break.new expr, next_token.position
@@ -379,17 +371,17 @@ class Parser
       if_expr
     end
 
-    if parser_context.directly_in_a? :str
+    if context.directly_in_a? :str
       assert { !if_expr.has_return? }
       replace_return!(if_expr).wrap_in_fn.call
-    elsif expr_context.directly_in_a? :assignment
+    elsif context.directly_in_a? :assignment
       # TODO: we shouldn't have to create a function here
       # we could do something similar to insert_return!, but insert_assignment
-      # but that requires expr_context to store the actual node, not just node_type
+      # but that requires context to store the actual node, not just node_type
       replace_return!(if_expr).wrap_in_fn.call
-    elsif expr_context.directly_in_a? :html_escaped_expr
+    elsif context.directly_in_a? :html_escaped_expr
       replace_return!(if_expr).wrap_in_fn
-    elsif parser_context.directly_in_a? :function
+    elsif context.directly_in_a? :function
       replace_return!(if_expr)
     else
       if_expr
