@@ -176,7 +176,7 @@ class Parser
       parse_anon_short_id!
     when :if
       node = parse_if_expression!
-      modify_if_statement_for_context node
+      modify_if_statement_for_context! node
     when :while
       parse_while!
     when :next
@@ -372,28 +372,25 @@ class Parser
     body
   end
 
-  def modify_if_statement_for_context(if_expr)
-    def replace_return(if_expr)
+  def modify_if_statement_for_context!(if_expr)
+    def replace_return!(if_expr)
       insert_return!(if_expr.pass)
       insert_return!(if_expr.fail)
       if_expr
     end
 
     if parser_context.directly_in_a? :str
-      assert {
-        !(if_expr.pass + if_expr.fail)
-          .any? { |node| node.is_a? AST::Return }
-      }
-      replace_return(if_expr).wrap_in_fn.call
+      assert { !if_expr.has_return? }
+      replace_return!(if_expr).wrap_in_fn.call
     elsif expr_context.directly_in_a? :assignment
       # TODO: we shouldn't have to create a function here
       # we could do something similar to insert_return!, but insert_assignment
       # but that requires expr_context to store the actual node, not just node_type
-      replace_return(if_expr).wrap_in_fn.call
+      replace_return!(if_expr).wrap_in_fn.call
     elsif expr_context.directly_in_a? :html_escaped_expr
-      replace_return(if_expr).wrap_in_fn
+      replace_return!(if_expr).wrap_in_fn
     elsif parser_context.directly_in_a? :function
-      replace_return(if_expr)
+      replace_return!(if_expr)
     else
       if_expr
     end

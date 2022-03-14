@@ -303,6 +303,11 @@ module AST
       @fail = _fail
       @position = position
     end
+
+    def has_return?
+      (self.pass + self.fail)
+        .any? { |node| node.is_a? AST::Return }
+    end
   end
 
   class While < Node
