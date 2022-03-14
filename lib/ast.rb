@@ -20,6 +20,10 @@ module AST
       klasses.none? { |klass| self.is_a? klass }
     end
 
+    def is_not_a?(klass)
+      !is_a?(klass)
+    end
+
     def to_h
       val = self.value
       val = value.to_h if value.is_a? Node

@@ -106,18 +106,23 @@ class Parser
       when :import
         @ast.push(*parse_import!)
       when :return
-        assert { parser_context.in_a?(:function) }
+        assert { parser_context.directly_in_a?(:function) }
         @ast.push parse_return!
       else
         @ast.push parse_expr!
       end
     end
 
-    if parser_context.directly_in_a?(:function) &&
-       @ast.last.is_not_one_of?(AST::Return, AST::If)
-      @ast[-1] = @ast[-1].to_return
-    end
+    wrap_last_expr_in_return!
+
     return @token_index, @ast
+  end
+
+  def wrap_last_expr_in_return!
+    return if !parser_context.directly_in_a?(:function)
+    return if !@ast.last.is_not_one_of?(AST::Return, AST::If)
+
+    @ast[-1] = @ast[-1].to_return
   end
 
   # Parsing begins!
@@ -360,22 +365,17 @@ class Parser
     AST::Break.new expr, next_token.position
   end
 
-  def insert_return(body)
+  def insert_return!(body)
     return body if body.size == 0
-    last = body.pop
-    new_last = if last.is_a? AST::Return
-        last
-      else
-        last.to_return
-      end
-    body.push new_last
+    return body if body.last.is_a? AST::Return
+    body[-1] = body[-1].to_return
     body
   end
 
   def modify_if_statement_for_context(if_expr)
     def replace_return(if_expr)
-      if_expr.pass = insert_return(if_expr.pass)
-      if_expr.fail = insert_return(if_expr.fail)
+      insert_return!(if_expr.pass)
+      insert_return!(if_expr.fail)
       if_expr
     end
 
@@ -387,7 +387,7 @@ class Parser
       replace_return(if_expr).wrap_in_fn.call
     elsif expr_context.directly_in_a? :assignment
       # TODO: we shouldn't have to create a function here
-      # we could do something similar to insert_return, but insert_assignment
+      # we could do something similar to insert_return!, but insert_assignment
       # but that requires expr_context to store the actual node, not just node_type
       replace_return(if_expr).wrap_in_fn.call
     elsif expr_context.directly_in_a? :html_escaped_expr
