@@ -13,10 +13,11 @@ parser = Parser.new(tokens, content)
 case ARGV[1]
 when "-t"
   pp tokens
-when /-a*/
+when /-a+/
   ast = parser.parse!
   pp ast.map(&:to_h)
 when "-n"
+  ast = parser.parse!
 else
   ast = parser.parse!
   js = Compiler.new(ast).eval
