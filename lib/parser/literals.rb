@@ -111,7 +111,7 @@ module Literals
       AST::List.new(splats.compact),
       open_brace.position
     )
-    return parse_match_assignment_without_schema!(node) if current_token&.is_a? :":="
+    return parse_match_assignment_without_schema!(node) if current_token&.is_a? :assign
     parse_id_modifier_if_exists!(node)
   end
 
@@ -167,7 +167,7 @@ module Literals
     end
     consume! :"]"
     node = AST::List.new elements, sq_bracket.position
-    return parse_match_assignment_without_schema!(node) if current_token&.is_a? :":="
+    return parse_match_assignment_without_schema!(node) if current_token&.is_a? :assign
     parse_id_modifier_if_exists!(node)
   end
 end

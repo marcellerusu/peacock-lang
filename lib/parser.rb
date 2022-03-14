@@ -113,13 +113,9 @@ class Parser
       end
     end
 
-    if parser_context.directly_in_a?(:function)
-      last_node_type = @ast.last.class
-      if ![AST::Return, AST::If].include?(last_node_type)
-        node = @ast.pop
-        @ast.push node.to_return
-      end
-    else
+    if parser_context.directly_in_a?(:function) &&
+       @ast.last.is_not_one_of?(AST::Return, AST::If)
+      @ast[-1] = @ast[-1].to_return
     end
     return @token_index, @ast
   end
@@ -130,7 +126,7 @@ class Parser
     # more complex conditions first
     if current_token.is_one_of?(:true, :false)
       return parse_bool! current_token.type
-    elsif current_token.is_a?(:identifier) && peek_token&.is_a?(:":=")
+    elsif current_token.is_a?(:identifier) && peek_token&.is_a?(:assign)
       return parse_assignment!
     elsif arrow_function?
       return parse_arrow_function!
@@ -212,7 +208,7 @@ class Parser
     # of html child aren't tokenized as raw text
     return sym_expr if expr_context.directly_in_a? :html_tag
     node = case
-      when current_token&.is_a?(:":=")
+      when current_token&.is_a?(:assign)
         # shouldn't this also be in a :class ?
         parse_instance_assignment! sym_expr
       when function_call?(sym_expr)
@@ -275,7 +271,7 @@ class Parser
   end
 
   def parse_instance_assignment!(lhs)
-    consume! :":="
+    consume! :assign
     expr_context.push! :assignment
     expr = parse_expr!
     expr_context.pop! :assignment
@@ -284,7 +280,7 @@ class Parser
 
   def parse_assignment!
     id_token = consume! :identifier
-    consume! :":="
+    consume! :assign
     expr_context.push! :assignment
     expr = parse_expr!
     expr_context.pop! :assignment

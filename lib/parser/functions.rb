@@ -182,7 +182,7 @@ module Functions
       end
     # TODO: I think this is the problem right here AST::InstanceMethodLookup
     return fn_expr.or_lookup(args) if fn_expr.is_a? AST::InstanceMethodLookup
-    return parse_match_assignment!(fn_expr, args[0]) if args.size == 1 && current_token&.is_a?(:":=")
+    return parse_match_assignment!(fn_expr, args[0]) if args.size == 1 && current_token&.is_a?(:assign)
     fn_expr.call(args)
   end
 end

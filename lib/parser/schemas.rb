@@ -74,7 +74,7 @@ module Schemas
       position = value_expr.position
       expr = value_expr
     else
-      assign_token = consume! :":="
+      assign_token = consume! :assign
       position = assign_token.position
       expr = parse_expr!
     end

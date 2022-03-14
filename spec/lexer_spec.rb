@@ -43,7 +43,7 @@ describe Lexer, "#tokenize" do
     it ":=" do
       res = Lexer::tokenize(":=")
       expect(res).to eq([
-        Lexer::Token.new(:":="),
+        Lexer::Token.new(:assign),
       ])
     end
 
@@ -96,7 +96,7 @@ describe Lexer, "#tokenize" do
       res = Lexer::tokenize("a := 3")
       expect(res).to eq([
         Lexer::Token.new(:identifier, "a"),
-        Lexer::Token.new(:":="),
+        Lexer::Token.new(:assign),
         Lexer::Token.new(:int_lit, 3),
       ])
     end
@@ -104,7 +104,7 @@ describe Lexer, "#tokenize" do
       res = Lexer::tokenize("a := 3 == 4.0")
       expect(res).to eq([
         Lexer::Token.new(:identifier, "a"),
-        Lexer::Token.new(:":="),
+        Lexer::Token.new(:assign),
         Lexer::Token.new(:int_lit, 3),
         Lexer::Token.new(:"=="),
         Lexer::Token.new(:float_lit, 4.0),
@@ -114,7 +114,7 @@ describe Lexer, "#tokenize" do
       res = Lexer::tokenize("a := 3 == \"4\"")
       expect(res).to eq([
         Lexer::Token.new(:identifier, "a"),
-        Lexer::Token.new(:":="),
+        Lexer::Token.new(:assign),
         Lexer::Token.new(:int_lit, 3),
         Lexer::Token.new(:"=="),
         Lexer::Token.new(:str_lit, "4", []),

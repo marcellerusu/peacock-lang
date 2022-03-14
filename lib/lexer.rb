@@ -153,7 +153,7 @@ module Lexer
       when scanner.scan(/\!/)
         tokens.push Token.new(:"!")
       when scanner.scan(/:=/)
-        tokens.push Token.new(:":=")
+        tokens.push Token.new(:assign)
       when scanner.scan(/\(/)
         tokens.push Token.new(:"(")
       when scanner.scan(/\)/)
