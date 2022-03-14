@@ -7,7 +7,7 @@ module Schemas
     case_token = consume! :case
     value = parse_expr!
     cases = []
-    while current_token.is_not_a? :end
+    while current_token.is_not? :end
       when_token = consume! :when
       schema, matches = parse_schema_literal!
       @token_index, body = clone(context: context.push(:function)).parse_with_position! :when
@@ -48,7 +48,7 @@ module Schemas
   end
 
   def parse_schema_literal_deconstruction!(schema_expr)
-    if current_token.is_a? :"("
+    if current_token.is? :"("
       assert { schema_expr.is_a? AST::IdLookup }
       consume! :"("
       context.push! :schema

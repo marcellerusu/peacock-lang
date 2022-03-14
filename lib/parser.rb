@@ -92,7 +92,7 @@ class Parser
   def parse_with_position!(*end_tokens)
     @ast = []
     @ast.push module_def if context.empty?
-    while more_tokens? && current_token.is_not_a?(:end)
+    while more_tokens? && current_token.is_not?(:end)
       break if current_token.is_one_of?(*end_tokens)
       case current_token.type
       when :export
@@ -125,7 +125,7 @@ class Parser
     # more complex conditions first
     if current_token.is_one_of?(:true, :false)
       return parse_bool! current_token.type
-    elsif current_token.is_a?(:identifier) && peek_token&.is_a?(:assign)
+    elsif current_token.is?(:identifier) && peek_token&.is?(:assign)
       return parse_assignment!
     elsif arrow_function?
       return parse_arrow_function!
@@ -188,7 +188,7 @@ class Parser
   end
 
   def paren_expr?
-    current_token.is_a?(:"(")
+    current_token.is?(:"(")
   end
 
   def parse_paren_expr!
@@ -207,22 +207,22 @@ class Parser
     # of html child aren't tokenized as raw text
     return sym_expr if context.directly_in_a? :html_tag
     node = case
-      when current_token&.is_a?(:assign)
+      when current_token&.is?(:assign)
         # shouldn't this also be in a :class ?
         parse_instance_assignment! sym_expr
       when function_call?(sym_expr)
         parse_function_call! sym_expr
       when end_of_file?
         return sym_expr
-      when current_token.is_a?(:"[")
+      when current_token.is?(:"[")
         parse_dynamic_lookup! sym_expr
-      when current_token.is_a?(:&) && peek_token.is_a?(:"[")
+      when current_token.is?(:&) && peek_token.is?(:"[")
         parse_nil_safe_lookup! sym_expr
-      when current_token.is_a?(:&) && peek_token.is_a?(:dot)
+      when current_token.is?(:&) && peek_token.is?(:dot)
         parse_nil_safe_call! sym_expr
-      when current_token.is_a?(:dot)
+      when current_token.is?(:dot)
         parse_dot_expression! sym_expr
-      when current_token.is_a?(:class_property)
+      when current_token.is?(:class_property)
         parse_class_properity_expression! sym_expr
       when operator?
         return parse_operator_call! sym_expr
@@ -260,7 +260,7 @@ class Parser
     return_token = consume! :return unless implicit_return
     expr = parse_expr!
     node = AST::Return.new expr, return_token.position
-    if current_token.is_a? :if
+    if current_token.is? :if
       if_token = consume! :if
       cond = parse_expr!
       AST::If.new(cond, [node], [], if_token.position)
@@ -314,14 +314,14 @@ class Parser
   def parse_if_expression!
     if_token = consume! :if
     check = parse_expr!
-    consume! :then if current_token.is_a? :then
+    consume! :then if current_token.is? :then
     pass_body = parse_if_body!
-    if current_token.is_not_a? :else
+    if current_token.is_not? :else
       consume! :end
       return AST::If.new check, pass_body, [], if_token.position
     end
     consume! :else
-    fail_body = if current_token.is_a? :if
+    fail_body = if current_token.is? :if
         [parse_if_expression!]
       else
         body = parse_if_body!
@@ -334,7 +334,7 @@ class Parser
   def parse_while!
     while_token = consume! :while
     cond = parse_expr!
-    if current_token.is_a? :with
+    if current_token.is? :with
       consume! :with
       assign = parse_assignment!
     end

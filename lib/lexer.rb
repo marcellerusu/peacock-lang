@@ -23,12 +23,12 @@ module Lexer
       @value = value
     end
 
-    def is_a?(type)
+    def is?(type)
       type == @type
     end
 
-    def is_not_a?(type)
-      !is_a?(type)
+    def is_not?(type)
+      !is?(type)
     end
 
     def is_one_of?(*types)

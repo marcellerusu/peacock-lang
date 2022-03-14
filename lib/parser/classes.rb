@@ -4,7 +4,7 @@ module Classes
     class_token = consume! :class
     assert { !new_line? }
     class_name_token = consume! :identifier
-    super_class_name = parse_super_class! if current_token.is_a? :<
+    super_class_name = parse_super_class! if current_token.is? :<
     assert { new_line? }
     @token_index, methods = clone(context: context.push(:class)).parse_with_position!
     consume! :end

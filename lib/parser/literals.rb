@@ -95,15 +95,15 @@ module Literals
     splats = []
     # this is only being used for splat index
     i = 0
-    while current_token.is_not_a? :"}"
+    while current_token.is_not? :"}"
       splats.push(try_parse_record_splat!(i))
       i += 1
-      consume! :comma if current_token.is_a? :comma
-      break if current_token.is_a? :"}"
+      consume! :comma if current_token.is? :comma
+      break if current_token.is? :"}"
       key = parse_record_key!
       value = parse_record_value! key
       record.push [key, value]
-      consume! :comma if current_token.is_not_a? :"}"
+      consume! :comma if current_token.is_not? :"}"
     end
     consume! :"}"
     node = AST::Record.new(
@@ -111,7 +111,7 @@ module Literals
       AST::List.new(splats.compact),
       open_brace.position
     )
-    return parse_match_assignment_without_schema!(node) if current_token&.is_a? :assign
+    return parse_match_assignment_without_schema!(node) if current_token&.is? :assign
     parse_id_modifier_if_exists!(node)
   end
 
@@ -132,7 +132,7 @@ module Literals
   end
 
   def parse_record_value!(key)
-    if current_token.is_a? :colon
+    if current_token.is? :colon
       consume! :colon
       parse_expr!
     elsif context.in_a? :schema
@@ -145,7 +145,7 @@ module Literals
   end
 
   def try_parse_record_splat!(index)
-    return nil if current_token.is_not_a? :*
+    return nil if current_token.is_not? :*
     splat_token = consume! :*
     splat = parse_expr!
     AST::Record.new(
@@ -161,13 +161,13 @@ module Literals
   def parse_list!
     sq_bracket = consume! :"["
     elements = []
-    while current_token.is_not_a? :"]"
+    while current_token.is_not? :"]"
       elements.push parse_expr!
-      consume! :comma if current_token.is_not_a? :"]"
+      consume! :comma if current_token.is_not? :"]"
     end
     consume! :"]"
     node = AST::List.new elements, sq_bracket.position
-    return parse_match_assignment_without_schema!(node) if current_token&.is_a? :assign
+    return parse_match_assignment_without_schema!(node) if current_token&.is? :assign
     parse_id_modifier_if_exists!(node)
   end
 end

@@ -30,7 +30,7 @@ module Helpers
     # puts "#{token_type} #{current_token.type}"
     # binding.pry if token_type && token_type != current_token.type
     assert { token_type == current_token.type } unless token_type.nil?
-    if current_token.is_a?(:identifier) && current_token.value == "_"
+    if current_token.is?(:identifier) && current_token.value == "_"
       current_token.value += unused_count.to_s
       increment_unused_count!
     end
@@ -47,13 +47,13 @@ module Helpers
     return false if current_token.nil?
     # no more new lines
     if @program_string[current_token.position..].index("\n") == nil
-      return @tokens[@token_index..].any? { |t| t.is_a?(token) }
+      return @tokens[@token_index..].any? { |t| t.is?(token) }
     end
     # somewhere in the file
     new_line_index = @program_string[current_token.position..].index("\n") + current_token.position
     index = @token_index
     while @tokens[index] && @tokens[index].position < new_line_index
-      if @tokens[index].is_a?(token)
+      if @tokens[index].is?(token)
         return true
       end
       index += 1
@@ -66,7 +66,7 @@ module Helpers
   end
 
   def position_at_end_of_last_token
-    assert { prev_token.is_a? :identifier }
+    assert { prev_token.is? :identifier }
     prev_token.position + prev_token.value.size
   end
 

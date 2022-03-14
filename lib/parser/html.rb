@@ -42,13 +42,13 @@ module HTML
 
   def parse_html_attributes!
     attributes = AST::Record.new [], AST::List.new([]), current_token.position
-    if current_token.is_a? :self_close_html_tag
+    if current_token.is? :self_close_html_tag
       consume! :self_close_html_tag
       return true, attributes
     end
     while current_token.is_not_one_of?(:>, :self_close_html_tag)
       id_token = consume! :identifier
-      if current_token.is_not_a? :"="
+      if current_token.is_not? :"="
         attributes.insert_sym!(
           id_token.value,
           AST::Bool.new(true, id_token.position)
@@ -62,7 +62,7 @@ module HTML
       attributes.insert_sym! id_token.value, value
     end
     closing_token = consume!
-    return closing_token.is_a?(:self_close_html_tag), attributes
+    return closing_token.is?(:self_close_html_tag), attributes
   end
 
   def parse_html_attribute!

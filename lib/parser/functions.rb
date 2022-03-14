@@ -6,7 +6,7 @@ module Functions
   end
 
   def dynamic_lookup?
-    current_token.is_a?(:"[") &&
+    current_token.is?(:"[") &&
       # a[x] works, but a [x] doesn't!
       position_at_end_of_last_token == current_token.position
   end
@@ -15,17 +15,17 @@ module Functions
     return false if line_does_not_have?(:"=>")
     can_parse? do |parser|
       parser.parse_arrow_args!
-      assert { parser.current_token.is_a? :"=>" }
+      assert { parser.current_token.is? :"=>" }
     end
   end
 
   def parse_arrow_args!
-    if current_token.is_a?(:"(")
+    if current_token.is?(:"(")
       consume! :"("
       args = []
-      while current_token.is_not_a?(:")") && !new_line?
+      while current_token.is_not?(:")") && !new_line?
         args.push consume!(:identifier).value
-        consume! :comma if current_token.is_not_a?(:")")
+        consume! :comma if current_token.is_not?(:")")
       end
       consume! :")"
       return args
@@ -45,7 +45,7 @@ module Functions
   end
 
   def function_call?(node)
-    return true if current_token&.is_a? :"("
+    return true if current_token&.is? :"("
     return false if !node.lookup?
     return true if node.lookup? && end_of_expr?
     can_parse? do |parser|
@@ -77,16 +77,16 @@ module Functions
     # def f
     #   function_code()
     # end
-    if current_token.is_a?(:"=") || new_line?
+    if current_token.is?(:"=") || new_line?
       return args.to_schema, matches
     end
     list_schema_index = 0
     consume! :"("
     context.push! :declare
-    while current_token.is_not_a?(:")")
+    while current_token.is_not?(:")")
       schema, new_matches = parse_schema_literal! list_schema_index
       args.push! schema
-      consume! :comma if current_token.is_not_a? :")"
+      consume! :comma if current_token.is_not? :")"
       matches += new_matches
       list_schema_index += 1
     end
@@ -111,7 +111,7 @@ module Functions
     id_token = consume! :identifier
     args_schema, matches = parse_function_args_schema!
     is_single_expr = false
-    if current_token.is_a? :"="
+    if current_token.is? :"="
       is_single_expr = true
       consume! :"="
     end
@@ -129,13 +129,13 @@ module Functions
 
   def parse_do_fn_args!
     args = []
-    return args if current_token.is_not_a? :"|"
+    return args if current_token.is_not? :"|"
 
     consume! :"|"
-    while current_token.is_not_a?(:"|")
+    while current_token.is_not?(:"|")
       id_token = consume! :identifier
       args.push id_token.value
-      consume! :comma if current_token.is_not_a? :"|"
+      consume! :comma if current_token.is_not? :"|"
     end
     consume! :"|"
 
@@ -153,9 +153,9 @@ module Functions
   def parse_function_call_args_with_paren!
     consume! :"("
     args = []
-    while current_token.is_not_a? :")"
+    while current_token.is_not? :")"
       args.push parse_expr!
-      consume! :comma if current_token.is_not_a? :")"
+      consume! :comma if current_token.is_not? :")"
     end
     consume! :")"
     args
@@ -163,11 +163,11 @@ module Functions
 
   def parse_function_call_args_without_paren!
     args = []
-    return args if current_token&.is_a? :comma
+    return args if current_token&.is? :comma
     until end_of_expr?
       args.push parse_expr!
       # TODO: shouldn't this be a break?
-      next if current_token&.is_a? :do
+      next if current_token&.is? :do
       break if end_of_expr?(:comma)
       consume! :comma
     end
@@ -175,14 +175,14 @@ module Functions
   end
 
   def parse_function_call!(fn_expr)
-    args = if current_token&.is_a? :"("
+    args = if current_token&.is? :"("
         parse_function_call_args_with_paren!
       else
         parse_function_call_args_without_paren!
       end
     # TODO: I think this is the problem right here AST::InstanceMethodLookup
     return fn_expr.or_lookup(args) if fn_expr.is_a? AST::InstanceMethodLookup
-    return parse_match_assignment!(fn_expr, args[0]) if args.size == 1 && current_token&.is_a?(:assign)
+    return parse_match_assignment!(fn_expr, args[0]) if args.size == 1 && current_token&.is?(:assign)
     fn_expr.call(args)
   end
 end
