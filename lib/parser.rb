@@ -188,15 +188,15 @@ class Parser
   end
 
   def paren_expr?
-    current_token.is?(:"(")
+    current_token.is?(:open_paren)
   end
 
   def parse_paren_expr!
-    token = consume! :"("
+    token = consume! :open_paren
     context.push! :paren
     expr = parse_expr!
     context.pop! :paren
-    consume! :")"
+    consume! :close_paren
     node = AST::ParenExpr.new expr, token.position
     parse_id_modifier_if_exists! node
   end

@@ -20,14 +20,14 @@ module Functions
   end
 
   def parse_arrow_args!
-    if current_token.is?(:"(")
-      consume! :"("
+    if current_token.is?(:open_paren)
+      consume! :open_paren
       args = []
-      while current_token.is_not?(:")") && !new_line?
+      while current_token.is_not?(:close_paren) && !new_line?
         args.push consume!(:identifier).value
-        consume! :comma if current_token.is_not?(:")")
+        consume! :comma if current_token.is_not?(:close_paren)
       end
-      consume! :")"
+      consume! :close_paren
       return args
     else
       arg = consume! :identifier
@@ -45,7 +45,7 @@ module Functions
   end
 
   def function_call?(node)
-    return true if current_token&.is? :"("
+    return true if current_token&.is? :open_paren
     return false if !node.lookup?
     return true if node.lookup? && end_of_expr?
     can_parse? do |parser|
@@ -81,17 +81,17 @@ module Functions
       return args.to_schema, matches
     end
     list_schema_index = 0
-    consume! :"("
+    consume! :open_paren
     context.push! :declare
-    while current_token.is_not?(:")")
+    while current_token.is_not?(:close_paren)
       schema, new_matches = parse_schema_literal! list_schema_index
       args.push! schema
-      consume! :comma if current_token.is_not? :")"
+      consume! :comma if current_token.is_not? :close_paren
       matches += new_matches
       list_schema_index += 1
     end
     context.pop! :declare
-    consume! :")"
+    consume! :close_paren
     return args.to_schema, matches
   end
 
@@ -151,13 +151,13 @@ module Functions
   end
 
   def parse_function_call_args_with_paren!
-    consume! :"("
+    consume! :open_paren
     args = []
-    while current_token.is_not? :")"
+    while current_token.is_not? :close_paren
       args.push parse_expr!
-      consume! :comma if current_token.is_not? :")"
+      consume! :comma if current_token.is_not? :close_paren
     end
-    consume! :")"
+    consume! :close_paren
     args
   end
 
@@ -175,7 +175,7 @@ module Functions
   end
 
   def parse_function_call!(fn_expr)
-    args = if current_token&.is? :"("
+    args = if current_token&.is? :open_paren
         parse_function_call_args_with_paren!
       else
         parse_function_call_args_without_paren!

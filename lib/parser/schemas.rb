@@ -48,13 +48,13 @@ module Schemas
   end
 
   def parse_schema_literal_deconstruction!(schema_expr)
-    if current_token.is? :"("
+    if current_token.is? :open_paren
       assert { schema_expr.is_a? AST::IdLookup }
-      consume! :"("
+      consume! :open_paren
       context.push! :schema
       pattern = parse_expr!
       context.pop! :schema
-      consume! :")"
+      consume! :close_paren
       pattern
     elsif schema_expr.is_a? AST::IdLookup
       nil
