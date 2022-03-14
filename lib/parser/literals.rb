@@ -90,28 +90,28 @@ module Literals
   end
 
   def parse_record!
-    open_brace = consume! :open_brace
+    open_brace = consume! :"{"
     record = []
     splats = []
     # this is only being used for splat index
     i = 0
-    while current_token.is_not_a? :close_brace
+    while current_token.is_not_a? :"}"
       splats.push(try_parse_record_splat!(i))
       i += 1
       consume! :comma if current_token.is_a? :comma
-      break if current_token.is_a? :close_brace
+      break if current_token.is_a? :"}"
       key = parse_record_key!
       value = parse_record_value! key
       record.push [key, value]
-      consume! :comma if current_token.is_not_a? :close_brace
+      consume! :comma if current_token.is_not_a? :"}"
     end
-    consume! :close_brace
+    consume! :"}"
     node = AST::Record.new(
       record,
       AST::List.new(splats.compact),
       open_brace.position
     )
-    return parse_match_assignment_without_schema!(node) if current_token&.is_a? :assign
+    return parse_match_assignment_without_schema!(node) if current_token&.is_a? :":="
     parse_id_modifier_if_exists!(node)
   end
 
@@ -120,11 +120,11 @@ module Literals
     when :identifier
       id_token = consume! :identifier
       AST::Sym.new id_token.value, id_token.position
-    when :open_square_bracket
+    when :"["
       assert { !expr_context.directly_in_a?(:schema) }
-      consume! :open_square_bracket
+      consume! :"["
       val = parse_expr!
-      consume! :close_square_bracket
+      consume! :"]"
       val
     else
       assert_not_reached
@@ -159,15 +159,15 @@ module Literals
   end
 
   def parse_list!
-    sq_bracket = consume! :open_square_bracket
+    sq_bracket = consume! :"["
     elements = []
-    while current_token.is_not_a? :close_square_bracket
+    while current_token.is_not_a? :"]"
       elements.push parse_expr!
-      consume! :comma if current_token.is_not_a? :close_square_bracket
+      consume! :comma if current_token.is_not_a? :"]"
     end
-    consume! :close_square_bracket
+    consume! :"]"
     node = AST::List.new elements, sq_bracket.position
-    return parse_match_assignment_without_schema!(node) if current_token&.is_a? :assign
+    return parse_match_assignment_without_schema!(node) if current_token&.is_a? :":="
     parse_id_modifier_if_exists!(node)
   end
 end

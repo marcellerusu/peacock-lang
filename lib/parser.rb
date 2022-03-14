@@ -130,7 +130,7 @@ class Parser
     # more complex conditions first
     if current_token.is_one_of?(:true, :false)
       return parse_bool! current_token.type
-    elsif current_token.is_a?(:identifier) && peek_token&.is_a?(:assign)
+    elsif current_token.is_a?(:identifier) && peek_token&.is_a?(:":=")
       return parse_assignment!
     elsif arrow_function?
       return parse_arrow_function!
@@ -149,11 +149,11 @@ class Parser
       parse_str!
     when :nil
       parse_nil!
-    when :open_square_bracket
+    when :"["
       parse_list!
-    when :open_brace
+    when :"{"
       parse_record!
-    when :bang
+    when :"!"
       parse_bang!
     when :identifier
       parse_identifier!
@@ -169,9 +169,9 @@ class Parser
       parse_function_def!
     when :do
       parse_anon_function_def!
-    when :anon_short_fn_start
+    when :"#\{"
       parse_anon_function_shorthand!
-    when :anon_short_id
+    when :%
       parse_anon_short_id!
     when :if
       node = parse_if_expression!
@@ -193,15 +193,15 @@ class Parser
   end
 
   def paren_expr?
-    current_token.is_a?(:open_parenthesis)
+    current_token.is_a?(:"(")
   end
 
   def parse_paren_expr!
-    token = consume! :open_parenthesis
+    token = consume! :"("
     expr_context.push! :paren
     expr = parse_expr!
     expr_context.pop! :paren
-    consume! :close_parenthesis
+    consume! :")"
     node = AST::ParenExpr.new expr, token.position
     parse_id_modifier_if_exists! node
   end
@@ -212,16 +212,16 @@ class Parser
     # of html child aren't tokenized as raw text
     return sym_expr if expr_context.directly_in_a? :html_tag
     node = case
-      when current_token&.is_a?(:assign)
+      when current_token&.is_a?(:":=")
         # shouldn't this also be in a :class ?
         parse_instance_assignment! sym_expr
       when function_call?(sym_expr)
         parse_function_call! sym_expr
       when end_of_file?
         return sym_expr
-      when current_token.is_a?(:open_square_bracket)
+      when current_token.is_a?(:"[")
         parse_dynamic_lookup! sym_expr
-      when current_token.is_a?(:&) && peek_token.is_a?(:open_square_bracket)
+      when current_token.is_a?(:&) && peek_token.is_a?(:"[")
         parse_nil_safe_lookup! sym_expr
       when current_token.is_a?(:&) && peek_token.is_a?(:dot)
         parse_nil_safe_call! sym_expr
@@ -245,9 +245,9 @@ class Parser
 
   def parse_nil_safe_lookup!(lhs)
     consume! :&
-    consume! :open_square_bracket
+    consume! :"["
     expr = parse_expr!
-    consume! :close_square_bracket
+    consume! :"]"
     node = lhs.lookup(expr)
     lhs.dot("__and__").call([node.to_return.wrap_in_fn])
   end
@@ -275,7 +275,7 @@ class Parser
   end
 
   def parse_instance_assignment!(lhs)
-    consume! :assign
+    consume! :":="
     expr_context.push! :assignment
     expr = parse_expr!
     expr_context.pop! :assignment
@@ -284,7 +284,7 @@ class Parser
 
   def parse_assignment!
     id_token = consume! :identifier
-    consume! :assign
+    consume! :":="
     expr_context.push! :assignment
     expr = parse_expr!
     expr_context.pop! :assignment
@@ -415,9 +415,9 @@ class Parser
   end
 
   def parse_dynamic_lookup!(lhs)
-    consume! :open_square_bracket
+    consume! :"["
     expr = parse_expr!
-    consume! :close_square_bracket
+    consume! :"]"
     lhs.lookup(expr)
   end
 end

@@ -1,8 +1,6 @@
 ID_TO_STR = {
   dot: ".",
   comma: ",",
-  open_parenthesis: "(",
-  close_parenthesis: ")",
   colon: ":",
 }
 
@@ -71,16 +69,16 @@ module HTML
     case current_token.type
     when :str_lit
       parse_str!
-    when :anon_short_fn_start
+    when :"#\{"
       expr_context.pop! :html_tag
       fn = parse_anon_function_shorthand!
       expr_context.push! :html_tag
       fn
-    when :open_brace
+    when :"{"
       expr_context.pop! :html_tag
-      consume! :open_brace
+      consume! :"{"
       val = parse_expr!
-      consume! :close_brace
+      consume! :"}"
       expr_context.push! :html_tag
       val
     else
@@ -98,7 +96,7 @@ module HTML
         children.push parse_custom_element!
       when :open_html_tag
         children.push parse_html_tag!
-      when :open_brace
+      when :"{"
         children.push parse_html_expr_node!
       else
         assert { false }
@@ -108,11 +106,11 @@ module HTML
   end
 
   def parse_html_expr_node!
-    consume! :open_brace
+    consume! :"{"
     expr_context.push! :html_escaped_expr
     expr = parse_expr!
     expr_context.pop! :html_escaped_expr
-    consume! :close_brace
+    consume! :"}"
     expr
   end
 
@@ -129,7 +127,7 @@ module HTML
       :open_custom_element_tag,
       :close_custom_element_tag,
       :close_html_tag,
-      :open_brace,
+      :"{",
     )
       word_token = consume!
       padding = ""

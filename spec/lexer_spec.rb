@@ -43,7 +43,7 @@ describe Lexer, "#tokenize" do
     it ":=" do
       res = Lexer::tokenize(":=")
       expect(res).to eq([
-        Lexer::Token.new(:assign),
+        Lexer::Token.new(:":="),
       ])
     end
 
@@ -96,7 +96,7 @@ describe Lexer, "#tokenize" do
       res = Lexer::tokenize("a := 3")
       expect(res).to eq([
         Lexer::Token.new(:identifier, "a"),
-        Lexer::Token.new(:assign),
+        Lexer::Token.new(:":="),
         Lexer::Token.new(:int_lit, 3),
       ])
     end
@@ -104,7 +104,7 @@ describe Lexer, "#tokenize" do
       res = Lexer::tokenize("a := 3 == 4.0")
       expect(res).to eq([
         Lexer::Token.new(:identifier, "a"),
-        Lexer::Token.new(:assign),
+        Lexer::Token.new(:":="),
         Lexer::Token.new(:int_lit, 3),
         Lexer::Token.new(:"=="),
         Lexer::Token.new(:float_lit, 4.0),
@@ -114,7 +114,7 @@ describe Lexer, "#tokenize" do
       res = Lexer::tokenize("a := 3 == \"4\"")
       expect(res).to eq([
         Lexer::Token.new(:identifier, "a"),
-        Lexer::Token.new(:assign),
+        Lexer::Token.new(:":="),
         Lexer::Token.new(:int_lit, 3),
         Lexer::Token.new(:"=="),
         Lexer::Token.new(:str_lit, "4", []),
@@ -124,17 +124,17 @@ describe Lexer, "#tokenize" do
       it "[1]" do
         res = Lexer::tokenize("[1]")
         expect(res).to eq([
-          Lexer::Token.new(:open_square_bracket),
+          Lexer::Token.new(:"["),
           Lexer::Token.new(:int_lit, 1),
-          Lexer::Token.new(:close_square_bracket),
+          Lexer::Token.new(:"]"),
         ])
       end
       it "[ 1 ]" do
         res = Lexer::tokenize("[ 1 ]")
         expect(res).to eq([
-          Lexer::Token.new(:open_square_bracket),
+          Lexer::Token.new(:"["),
           Lexer::Token.new(:int_lit, 1),
-          Lexer::Token.new(:close_square_bracket),
+          Lexer::Token.new(:"]"),
         ])
       end
     end
@@ -142,22 +142,22 @@ describe Lexer, "#tokenize" do
       it "{a: 3}" do
         res = Lexer::tokenize("{a: 3}")
         expect(res).to eq([
-          Lexer::Token.new(:open_brace),
+          Lexer::Token.new(:"{"),
           Lexer::Token.new(:identifier, "a"),
           Lexer::Token.new(:colon),
           Lexer::Token.new(:int_lit, 3),
-          Lexer::Token.new(:close_brace),
+          Lexer::Token.new(:"}"),
         ])
       end
       it "{   a   :  3, }" do
         res = Lexer::tokenize("{   a   :  3, }")
         expect(res).to eq([
-          Lexer::Token.new(:open_brace),
+          Lexer::Token.new(:"{"),
           Lexer::Token.new(:identifier, "a"),
           Lexer::Token.new(:colon),
           Lexer::Token.new(:int_lit, 3),
           Lexer::Token.new(:comma),
-          Lexer::Token.new(:close_brace),
+          Lexer::Token.new(:"}"),
         ])
       end
     end

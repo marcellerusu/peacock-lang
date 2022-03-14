@@ -1,13 +1,14 @@
 module Functions
   def parse_bang!
-    consume! :bang
+    consume! :"!"
     expr = parse_expr!
     expr.dot("bang").call
   end
 
-  def property_accessor?
-    current_token.is_a?(:open_square_bracket) &&
-      end_of_last_token == current_token.position
+  def dynamic_lookup?
+    current_token.is_a?(:"[") &&
+      # a[x] works, but a [x] doesn't!
+      position_at_end_of_last_token == current_token.position
   end
 
   def arrow_function?
@@ -19,14 +20,14 @@ module Functions
   end
 
   def parse_arrow_args!
-    if current_token.is_a?(:open_parenthesis)
-      consume! :open_parenthesis
+    if current_token.is_a?(:"(")
+      consume! :"("
       args = []
-      while current_token.is_not_a?(:close_parenthesis) && !new_line?
+      while current_token.is_not_a?(:")") && !new_line?
         args.push consume!(:identifier).value
-        consume! :comma if current_token.is_not_a?(:close_parenthesis)
+        consume! :comma if current_token.is_not_a?(:")")
       end
-      consume! :close_parenthesis
+      consume! :")"
       return args
     else
       arg = consume! :identifier
@@ -44,7 +45,7 @@ module Functions
   end
 
   def function_call?(node)
-    return true if current_token&.is_a? :open_parenthesis
+    return true if current_token&.is_a? :"("
     return false if !node.lookup?
     return true if node.lookup? && end_of_expr?
     can_parse? do |parser|
@@ -53,17 +54,16 @@ module Functions
   end
 
   def parse_anon_function_shorthand!
-    fn_start_token = consume! :anon_short_fn_start
-    # binding.pry
+    fn_start_token = consume! :"#\{"
     expr = parse_expr!
     assert { !expr.is_a?(AST::Return) }
     expr = expr.to_return unless expr.is_a? AST::If
-    consume! :close_brace
+    consume! :"}"
     AST::ShortFn.new [ANON_SHORTHAND_ID], [expr], fn_start_token.position
   end
 
   def parse_anon_short_id!
-    id_token = consume! :anon_short_id
+    id_token = consume! :%
     sym_expr = AST::IdLookup.new ANON_SHORTHAND_ID, id_token.position
     parse_id_modifier_if_exists!(sym_expr)
   end
@@ -81,17 +81,17 @@ module Functions
       return args.to_schema, matches
     end
     list_schema_index = 0
-    consume! :open_parenthesis
+    consume! :"("
     expr_context.push! :declare
-    while current_token.is_not_a?(:close_parenthesis)
+    while current_token.is_not_a?(:")")
       schema, new_matches = parse_schema_literal! list_schema_index
       args.push! schema
-      consume! :comma if current_token.is_not_a? :close_parenthesis
+      consume! :comma if current_token.is_not_a? :")"
       matches += new_matches
       list_schema_index += 1
     end
     expr_context.pop! :declare
-    consume! :close_parenthesis
+    consume! :")"
     return args.to_schema, matches
   end
 
@@ -151,13 +151,13 @@ module Functions
   end
 
   def parse_function_call_args_with_paren!
-    consume! :open_parenthesis
+    consume! :"("
     args = []
-    while current_token.is_not_a? :close_parenthesis
+    while current_token.is_not_a? :")"
       args.push parse_expr!
-      consume! :comma if current_token.is_not_a? :close_parenthesis
+      consume! :comma if current_token.is_not_a? :")"
     end
-    consume! :close_parenthesis
+    consume! :")"
     args
   end
 
@@ -175,14 +175,14 @@ module Functions
   end
 
   def parse_function_call!(fn_expr)
-    args = if current_token&.is_a? :open_parenthesis
+    args = if current_token&.is_a? :"("
         parse_function_call_args_with_paren!
       else
         parse_function_call_args_without_paren!
       end
     # TODO: I think this is the problem right here AST::InstanceMethodLookup
     return fn_expr.or_lookup(args) if fn_expr.is_a? AST::InstanceMethodLookup
-    return parse_match_assignment!(fn_expr, args[0]) if args.size == 1 && current_token&.is_a?(:assign)
+    return parse_match_assignment!(fn_expr, args[0]) if args.size == 1 && current_token&.is_a?(:":=")
     fn_expr.call(args)
   end
 end

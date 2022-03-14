@@ -65,7 +65,7 @@ module Helpers
     !line_has?(token)
   end
 
-  def end_of_last_token
+  def position_at_end_of_last_token
     assert { prev_token.is_a? :identifier }
     prev_token.position + prev_token.value.size
   end
@@ -78,10 +78,10 @@ module Helpers
   def end_of_expr?(*excluding)
     return true if end_of_file?
     return false if current_token.is_one_of? *excluding
-    closing_tags = [:close_parenthesis, :close_brace, :close_square_bracket, :with, :end, :then]
+    closing_tags = [:")", :"}", :"]", :with, :end, :then]
     new_line? ||
     current_token.is_one_of?(*closing_tags) ||
-    property_accessor? ||
+    dynamic_lookup? ||
     operator? ||
     current_token.type == :dot ||
     current_token.type == :comma
