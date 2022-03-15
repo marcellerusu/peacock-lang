@@ -7,7 +7,7 @@ module Functions
 
   def dynamic_lookup?
     current_token.is?(:"[") &&
-      # a[x] works, but a [x] doesn't!
+      # a[x] should parse, but a [x] shouldn't!
       position_at_end_of_last_token == current_token.position
   end
 
@@ -21,6 +21,7 @@ module Functions
 
   def parse_arrow_args!
     if current_token.is?(:open_paren)
+      # (x, y) => ...
       consume! :open_paren
       args = []
       while current_token.is_not?(:close_paren) && !new_line?
@@ -30,6 +31,7 @@ module Functions
       consume! :close_paren
       return args
     else
+      # x => ...
       arg = consume! :identifier
       args = [arg.value]
       return args
