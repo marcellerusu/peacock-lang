@@ -7,12 +7,6 @@ module AST
     IdLookup.new("Schema", token.position)
   end
 
-  def self.schema_any(token)
-    schema(token)
-      .dot("any")
-      .call([AST::Sym.from_token(token)])
-  end
-
   class Node
     attr_reader :value, :position
 
@@ -32,10 +26,6 @@ module AST
 
     def position=(val)
       @position = val
-    end
-
-    def to_instance_method_lookup_depending_on(context)
-      self
     end
 
     def sub_symbols
@@ -76,34 +66,16 @@ module AST
       false
     end
 
-    def lookup(expr)
-      dot("__lookup__").call([expr])
-    end
-
     def lookup?
       false
     end
 
     def plus(expr)
-      dot("__plus__").call([expr])
-    end
-
-    def call_to_s
-      dot("to_s").call
-    end
-
-    def schema_any?
-      false
+      Add.new(self, expr, self.position)
     end
 
     def collection?
       false
-    end
-
-    def to_schema
-      IdLookup.new("Schema", position)
-        .dot("for")
-        .call([self])
     end
   end
 
@@ -131,9 +103,20 @@ module AST
     end
   end
 
+  class None < Node
+  end
+
   class Int < Node
     def self.from_token(token)
       Int.new(token.value, token.position)
+    end
+
+    def from_schema
+      None.new
+    end
+
+    def to_schema
+      self
     end
 
     def initialize(value, position)
@@ -160,24 +143,24 @@ module AST
     end
   end
 
+  class StrTemplate < Node
+    def initialize(strings)
+      @strings = strings
+    end
+  end
+
   class Str < Node
     def initialize(value, position)
       @value = value
       @position = position
     end
-  end
 
-  class Sym < Node
-    def self.from_token(token)
-      if token.is_a? String
-        token = Lexer::Token.new(nil, token, nil)
-      end
-      Sym.new(token.value, token.position)
+    def alpha_numeric?
+      !!(value =~ /^[a-zA-Z_]+$/)
     end
 
-    def initialize(value, position)
-      @value = value
-      @position = position
+    def captures
+      []
     end
   end
 
@@ -187,9 +170,18 @@ module AST
     end
   end
 
-  class List < Node
+  class ArrayLiteral < Node
     def to_h
       value.map(&:to_h)
+    end
+
+    def from_schema
+      ArrayLiteral.new(value.map(&:from_schema), position)
+    end
+
+    def to_schema
+      # Maybe we should create ArraySchema?
+      ArrayLiteral.new(value.map(&:to_schema), position)
     end
 
     def initialize(value = [], position = nil)
@@ -206,15 +198,12 @@ module AST
       @value.each_with_index { |v, i| block.call(v, i) }
     end
 
-    def replace_id_lookups_with_schema_any
-      new_value = @value.map do |val|
-        if val.is_a?(IdLookup)
-          val = IdLookup.new("Schema").dot("any").call([Sym.new(key)])
-        end
-        val
+    def captures
+      list = []
+      @value.each do |val|
+        list.concat val.captures
       end
-
-      List.new new_value, position
+      list
     end
 
     def push!(val)
@@ -222,16 +211,16 @@ module AST
     end
   end
 
-  class Record < Node
+  class ObjectLiteral < Node
     attr_reader :splats
 
     def to_h
       { value: value.map { |k, v| [k.to_h, v.to_h] }, splats: splats.to_h }
     end
 
-    def initialize(value, splats, position)
+    def initialize(value, spreads, position)
       @value = value
-      @splats = splats
+      @splats = spreads
       @position = position
     end
 
@@ -239,34 +228,36 @@ module AST
       true
     end
 
-    def replace_id_lookups_with_schema_any
-      new_value = @value.map do |key, val|
-        if val.is_a?(IdLookup)
-          val = IdLookup.new("Schema").dot("any").call([Sym.new(key)])
-        end
-        [key, val]
-      end
+    def insert!(key, v)
+      @value.push [key, v]
+    end
 
-      Record.new new_value, @splats, position
+    def to_schema
+      ObjectLiteral.new(value.map do |key, value|
+        [key, value.to_schema]
+      end, splats, position)
+    end
+
+    def captures
+      list = []
+      @value.each do |key, val|
+        list.concat val.captures
+      end
+      list
     end
 
     def each(&block)
       @value.each { |k, v| block.call(k, v) }
     end
 
-    def insert_sym!(sym, val)
-      key = Sym.new(sym, val.position)
-      @value.push [key, val]
-    end
-
-    def lookup_sym(sym)
-      _, value = @value.find { |key, _| key.value == sym }
+    def lookup_key(_key)
+      _, value = @value.find { |key, _| key.value == _key }
       value
     end
 
-    def does_not_have_sym?(sym)
+    def does_not_have_key?(_key)
       @value.none? do |key, value|
-        key.value == sym
+        key.value == _key
       end
     end
   end
@@ -310,36 +301,6 @@ module AST
     end
   end
 
-  class While < Node
-    attr_reader :value, :with_assignment, :body
-    attr_writer :body
-
-    def to_h
-      { value: value.to_h, with_assignment: with_assignment.to_h, fail: body.map(&:to_h) }
-    end
-
-    def initialize(value, with_assignment, body, position)
-      @value = value
-      @with_assignment = with_assignment
-      @body = body
-      @position = position
-    end
-  end
-
-  class Next < Node
-    def initialize(value, position)
-      @value = value
-      @position = position
-    end
-  end
-
-  class Break < Node
-    def initialize(value, position)
-      @value = value
-      @position = position
-    end
-  end
-
   class FnCall < Node
     attr_reader :args, :expr
 
@@ -352,25 +313,6 @@ module AST
       @args = args
       @expr = expr
       @position = position
-    end
-
-    def schema_any_name
-      assert { schema_any? }
-      args[0].value
-    end
-
-    def to_schema
-      if schema_any?
-        self
-      else
-        super.to_schema
-      end
-    end
-
-    def schema_any?
-      expr.is_a?(PropertyLookup) &&
-      expr.lhs_expr.value == "Schema" &&
-      expr.property == "any"
     end
 
     def as_op
@@ -411,25 +353,41 @@ module AST
       @position = position
     end
 
-    def to_schema_any_depending_on(context)
+    def to_schema
+      SchemaCapture.new(value, position)
+    end
+
+    def to_schema_capture_depending_on(context)
       if context.in_a?(:schema) && !schema_lookup?
-        AST::schema_any(self)
+        to_schema
       else
         self
       end
     end
 
-    def to_instance_method_lookup_depending_on(context)
-      if context.in_a?(:class)
-        AST::InstanceMethodLookup.new value, position
-      else
-        self
-      end
+    def captures
+      []
     end
 
     def schema_lookup?
       return false if value[0] == "_"
       value[0].upcase == value[0]
+    end
+  end
+
+  class ArgsSchema < Node
+    attr_reader :args
+
+    def to_h
+      { args: args }
+    end
+
+    def from_schema
+      self
+    end
+
+    def initialize(args)
+      @args = args
     end
   end
 
@@ -452,17 +410,133 @@ module AST
     end
   end
 
-  class InstanceAssign < Node
-    attr_reader :lhs, :expr
+  class SchemaCapture < Node
+    attr_reader :name
 
     def to_h
-      { lhs: lhs.to_h, expr: expr.to_h }
+      { name: name }
     end
 
-    def initialize(lhs, expr)
-      @lhs = lhs
+    def to_schema
+      self
+    end
+
+    def from_schema
+      IdLookup.new(name, position)
+    end
+
+    def initialize(name, position)
+      @name = name
+      @position = position
+    end
+
+    def captures
+      [name]
+    end
+  end
+
+  class Import < Node
+    attr_reader :pattern, :file_name
+
+    def to_h
+      { pattern: pattern.to_h, file_name: file_name }
+    end
+
+    def initialize(pattern, file_name, position)
+      @pattern = pattern
+      @file_name = file_name
+      @position = position
+    end
+  end
+
+  class Export < Node
+    attr_reader :expr
+
+    def to_h
+      { expr: expr.to_h, file_name: file_name }
+    end
+
+    def initialize(expr, position)
       @expr = expr
-      @position = expr.position
+      @position = position
+    end
+  end
+
+  class Op < Node
+    attr_reader :lhs, :rhs
+
+    def to_h
+      { lhs: lhs.to_h, rhs: rhs.to_h }
+    end
+
+    def initialize(lhs, rhs, position)
+      @lhs = lhs
+      @rhs = rhs
+      @position = position
+    end
+  end
+
+  class Add < Op
+  end
+
+  class Minus < Op
+  end
+
+  class Multiply < Op
+  end
+
+  class Divide < Op
+  end
+
+  class AndAnd < Op
+  end
+
+  class OrOr < Op
+  end
+
+  class EqEq < Op
+  end
+
+  class NotEq < Op
+  end
+
+  class Gt < Op
+  end
+
+  class Lt < Op
+  end
+
+  class GtEq < Op
+  end
+
+  class LtEq < Op
+  end
+
+  class CombineSchemas < Op
+  end
+
+  class EitherSchemas < Op
+  end
+
+  class In < Op
+  end
+
+  class MatchAssignment < Node
+    attr_reader :schema, :pattern, :value
+
+    def to_h
+      { schema: schema.to_h, pattern: pattern.to_h, value: value.to_h }
+    end
+
+    def initialize(schema, pattern, value)
+      @schema = schema
+      @pattern = pattern
+      @value = value
+      @position = schema.position
+    end
+
+    def captures
+      pattern.to_schema.captures
     end
   end
 
@@ -502,49 +576,6 @@ module AST
     end
   end
 
-  class InstanceMethodLookup < Node
-    attr_reader :name
-
-    def to_h
-      { name: name }
-    end
-
-    def initialize(name, position)
-      @name = name
-      @position = position
-    end
-
-    def or_lookup(args)
-      if args.size > 0
-        # __try(() => eval('a') || this.a)(arg1, arg2, ..)
-        TryLookup.new(self, position)
-          .naked_or(self)
-          .call(args, position)
-      else
-        # __try(() => eval('a') || this.a())
-        TryLookup.new(self, position)
-          .naked_or(self.call)
-      end
-    end
-
-    def lookup?
-      true
-    end
-  end
-
-  class InstanceLookup < Node
-    attr_reader :name
-
-    def to_h
-      { name: name }
-    end
-
-    def initialize(name, position)
-      @name = name
-      @position = position
-    end
-  end
-
   class Throw < Node
     attr_reader :expr
 
@@ -563,6 +594,21 @@ module AST
 
     def to_h
       { name: name.to_h, attributes: attributes.to_h, children: children.to_h }
+    end
+
+    def initialize(name, attributes, children, position)
+      @name = name
+      @attributes = attributes
+      @children = children
+      @position = position
+    end
+  end
+
+  class CustomTag < Node
+    attr_reader :name, :attributes, :children
+
+    def to_h
+      { name: name, attributes: attributes.to_h, children: children.to_h }
     end
 
     def initialize(name, attributes, children, position)

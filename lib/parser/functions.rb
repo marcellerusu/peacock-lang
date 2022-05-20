@@ -48,8 +48,7 @@ module Functions
 
   def function_call?(node)
     return true if current_token&.is? :open_paren
-    return false if !node.lookup?
-    return true if node.lookup? && end_of_expr?
+    return false if !context.directly_in_a? :identifier
     can_parse? do |parser|
       parser.parse_function_call_args_without_paren!
     end
@@ -71,7 +70,7 @@ module Functions
   end
 
   def parse_function_args_schema!
-    args = AST::List.new([])
+    args = AST::ArrayLiteral.new([])
     matches = []
     # in case of
     # def f = 0
@@ -86,15 +85,14 @@ module Functions
     consume! :open_paren
     context.push! :declare
     while current_token.is_not?(:close_paren)
-      schema, new_matches = parse_schema_literal! list_schema_index
+      schema = parse_schema_literal! list_schema_index
       args.push! schema
       consume! :comma if current_token.is_not? :close_paren
-      matches += new_matches
       list_schema_index += 1
     end
     context.pop! :declare
     consume! :close_paren
-    return args.to_schema, matches
+    return args.to_schema
   end
 
   def parse_function_body!(one_liner: false, check_new_line: false)
@@ -111,7 +109,7 @@ module Functions
   def parse_function_def!
     consume! :def
     id_token = consume! :identifier
-    args_schema, matches = parse_function_args_schema!
+    args_schema = parse_function_args_schema!
     is_single_expr = false
     if current_token.is? :"="
       is_single_expr = true
@@ -122,8 +120,7 @@ module Functions
     consume! :end if !is_single_expr
 
     arg_lookup = AST::IdLookup.new("__VALUE", id_token.position)
-    decalartions = declare_variables_from(matches, arg_lookup)
-    body = decalartions + body
+    body = body
 
     AST::Fn.new(["__VALUE"], body, id_token.position)
       .declare_with(id_token.value, args_schema)
@@ -173,6 +170,7 @@ module Functions
       break if end_of_expr?(:comma)
       consume! :comma
     end
+    assert { args.size > 0 }
     args
   end
 
@@ -182,9 +180,7 @@ module Functions
       else
         parse_function_call_args_without_paren!
       end
-    # TODO: I think this is the problem right here AST::InstanceMethodLookup
-    return fn_expr.or_lookup(args) if fn_expr.is_a? AST::InstanceMethodLookup
-    return parse_match_assignment!(fn_expr, args[0]) if args.size == 1 && current_token&.is?(:assign)
+    return parse_fn_match_assignment!(fn_expr, args[0]) if args.size == 1 && current_token&.is?(:assign)
     fn_expr.call(args)
   end
 end

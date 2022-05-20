@@ -4,29 +4,10 @@ require "parser/literals"
 require "parser/helpers"
 require "parser/functions"
 require "parser/schemas"
-require "parser/classes"
 require "parser/html"
 require "parser/modules"
-# require "pry"
 
-OPERATORS = [:+, :-, :*, :/, :"&&", :"||", :&, :|, :"==", :"!=", :>, :<, :">=", :"<="]
-
-OP_TO_METHOD_NAME = {
-  :"&&" => "__and__",
-  :"||" => "__or__",
-  :">=" => "__gt_eq__",
-  :"<=" => "__lt_eq__",
-  :> => "__gt__",
-  :< => "__lt__",
-  :"==" => "__eq__",
-  :"!=" => "__not_eq__",
-  :+ => "__plus__",
-  :- => "__minus__",
-  :* => "__mult__",
-  :/ => "__div__",
-  :& => "and",
-  :| => "or",
-}
+OPERATORS = [:+, :-, :*, :/, :in, :"&&", :"||", :"==", :"!=", :>, :<, :">=", :"<="]
 
 ANON_SHORTHAND_ID = "__ANON_SHORT_ID"
 
@@ -35,27 +16,14 @@ class Parser
   include Helpers
   include Literals
   include Schemas
-  include Classes
   include HTML
   include Modules
 
-  def computed_files
-    @@computed_files ||= []
-  end
-
-  def initialize(tokens, program_string, token_index = 0, context = nil, first_run = true)
+  def initialize(tokens, program_string, token_index = 0, context = nil)
     @tokens = tokens
     @program_string = program_string
     @token_index = token_index
     @context = context
-    @first_run = first_run
-    if first_run
-      @@computed_files = []
-    end
-  end
-
-  def self.computed_files
-    @@computed_files
   end
 
   def unused_count
@@ -75,8 +43,7 @@ class Parser
       tokens || @tokens,
       program_string || @program_string,
       token_index || @token_index,
-      context || @context,
-      false
+      context || @context
     )
   end
 
@@ -91,14 +58,13 @@ class Parser
 
   def parse_with_position!(*end_tokens)
     @ast = []
-    @ast.push module_def if context.empty?
     while more_tokens? && current_token.is_not?(:end)
       break if current_token.is_one_of?(*end_tokens)
       case current_token.type
       when :export
-        @ast.push(*parse_export!)
+        @ast.push parse_export!
       when :import
-        @ast.push(*parse_import!)
+        @ast.push parse_import!
       when :return
         assert { context.directly_in_a?(:function) }
         @ast.push parse_return!
@@ -138,16 +104,14 @@ class Parser
       node = parse_int!
     when :float_lit
       parse_float!
-    when :symbol
-      parse_symbol!
     when :str_lit
       parse_str!
     when :nil
       parse_nil!
     when :"["
-      parse_list!
+      parse_array_literal!
     when :"{"
-      parse_record!
+      parse_object_literal!
     when :"!"
       parse_bang!
     when :identifier
@@ -158,8 +122,6 @@ class Parser
       parse_html_tag!
     when :open_custom_element_tag
       parse_custom_element!
-    when :class
-      parse_class_definition!
     when :def
       parse_function_def!
     when :do
@@ -171,18 +133,12 @@ class Parser
     when :if
       node = parse_if_expression!
       modify_if_statement_for_context! node
-    when :while
-      parse_while!
-    when :next
-      parse_next!
-    when :break
-      parse_break!
     when :schema
       parse_schema!
     when :case
       parse_case_expression!
     else
-      puts "no match [parse_expr!] :#{current_token.type}"
+      # binding.pry
       assert { false }
     end
   end
@@ -201,34 +157,31 @@ class Parser
     parse_id_modifier_if_exists! node
   end
 
-  def parse_id_modifier_if_exists!(sym_expr)
+  def parse_id_modifier_if_exists!(expr)
     # TODO: kinda hacky.. :/
     # This is because all the tokens (text nodes)
     # of html child aren't tokenized as raw text
-    return sym_expr if context.directly_in_a? :html_tag
+    return expr if context.directly_in_a? :html_tag
     node = case
-      when current_token&.is?(:assign)
-        # shouldn't this also be in a :class ?
-        parse_instance_assignment! sym_expr
-      when function_call?(sym_expr)
-        parse_function_call! sym_expr
+      when function_call?(expr)
+        parse_function_call! expr
       when end_of_file?
-        return sym_expr
-      when current_token.is?(:"[")
-        parse_dynamic_lookup! sym_expr
+        return expr
+      when current_token.is?(:"[") && !new_line?
+        parse_dynamic_lookup! expr
       when current_token.is?(:&) && peek_token.is?(:"[")
-        parse_nil_safe_lookup! sym_expr
+        parse_nil_safe_lookup! expr
       when current_token.is?(:&) && peek_token.is?(:dot)
-        parse_nil_safe_call! sym_expr
+        parse_nil_safe_call! expr
       when current_token.is?(:dot)
-        parse_dot_expression! sym_expr
-      when current_token.is?(:class_property)
-        parse_class_properity_expression! sym_expr
+        parse_dot_expression! expr
       when operator?
-        return parse_operator_call! sym_expr
+        return parse_operator_call! expr
       else
-        return sym_expr
+        return expr
       end
+
+    return node if node == expr
     parse_id_modifier_if_exists! node
   end
 
@@ -239,21 +192,20 @@ class Parser
   # Individual parsers
 
   def parse_nil_safe_lookup!(lhs)
-    consume! :&
+    and_t = consume! :&
     consume! :"["
     expr = parse_expr!
     consume! :"]"
-    node = lhs.lookup(expr)
-    lhs.dot("__and__").call([node.to_return.wrap_in_fn])
+    assert { false }
+    AST::AndDot.new(lhs, expr)
   end
 
   def parse_nil_safe_call!(lhs)
-    consume! :&
+    and_t = consume! :&
     consume! :dot
     id_token = consume! :identifier
     node = parse_function_call! lhs.dot(id_token.value, id_token.position)
-    node = lhs.dot("__and__")
-      .call([AST::Fn.new([], [node.to_return], node.position)])
+    node = AST::AndDot.new(lhs, node)
   end
 
   def parse_return!(implicit_return = false)
@@ -269,14 +221,6 @@ class Parser
     end
   end
 
-  def parse_instance_assignment!(lhs)
-    consume! :assign
-    context.push! :assignment
-    expr = parse_expr!
-    context.pop! :assignment
-    AST::InstanceAssign.new lhs, expr
-  end
-
   def parse_assignment!
     id_token = consume! :identifier
     consume! :assign
@@ -289,21 +233,43 @@ class Parser
   def parse_operator_call!(lhs)
     op_token = consume!
     context.push! :operator
-    rhs_expr = parse_expr!
+    rhs = parse_expr!
     context.pop! :operator
-    method_name = OP_TO_METHOD_NAME[op_token.type]
+
+    method_name = op_token.type.to_s
     assert { !method_name.nil? }
 
-    if op_token.is_one_of?(:&, :|)
-      AST::schema(op_token).dot(method_name)
-        .call([lhs, rhs_expr])
-        .as_op
-    else
-      node = lhs.dot(method_name, op_token.position)
-        .call([rhs_expr], op_token.position)
-        .as_op
-      parse_id_modifier_if_exists! node
-    end
+    node = case op_token.type
+      when :+
+        AST::Add.new(lhs, rhs, op_token.position)
+      when :-
+        AST::Minus.new(lhs, rhs, op_token.position)
+      when :*
+        AST::Multiply.new(lhs, rhs, op_token.position)
+      when :/
+        AST::Divide.new(lhs, rhs, op_token.position)
+      when :"&&"
+        AST::AndAnd.new(lhs, rhs, op_token.position)
+      when :"||"
+        AST::OrOr.new(lhs, rhs, op_token.position)
+      when :"=="
+        AST::EqEq.new(lhs, rhs, op_token.position)
+      when :"!="
+        AST::NotEq.new(lhs, rhs, op_token.position)
+      when :>
+        AST::Gt.new(lhs, rhs, op_token.position)
+      when :<
+        AST::Lt.new(lhs, rhs, op_token.position)
+      when :">="
+        AST::GtEq.new(lhs, rhs, op_token.position)
+      when :"<="
+        AST::LtEq.new(lhs, rhs, op_token.position)
+      when :in
+        AST::In.new(lhs, rhs, op_token.position)
+      else
+        assert { false }
+      end
+    parse_id_modifier_if_exists! node
   end
 
   def parse_if_body!
@@ -329,32 +295,6 @@ class Parser
         body
       end
     AST::If.new check, pass_body, fail_body, if_token.position
-  end
-
-  def parse_while!
-    while_token = consume! :while
-    cond = parse_expr!
-    if current_token.is? :with
-      consume! :with
-      assign = parse_assignment!
-    end
-    @token_index, body = clone(context: context.push(:while)).parse_with_position!
-    consume! :end
-    AST::While.new cond, assign, body, while_token.position
-  end
-
-  def parse_next!
-    assert { context.in_a?(:while) }
-    next_token = consume! :next
-    expr = parse_expr! unless new_line?
-    AST::Next.new expr, next_token.position
-  end
-
-  def parse_break!
-    assert { context.in_a?(:while) }
-    next_token = consume! :break
-    expr = parse_expr! unless new_line?
-    AST::Break.new expr, next_token.position
   end
 
   def insert_return!(body)
@@ -391,11 +331,6 @@ class Parser
   def parse_dot_expression!(lhs)
     dot = consume! :dot
     token = consume!(:identifier)
-    lhs.dot(token.value, token.position)
-  end
-
-  def parse_class_properity_expression!(lhs)
-    token = consume! :class_property
     lhs.dot(token.value, token.position)
   end
 

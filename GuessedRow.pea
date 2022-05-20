@@ -1,0 +1,14 @@
+<script>
+with { word }
+  import Row from "./Row"
+  import { MATCH_STATE, WORD_OF_THE_DAY } from "./shared"
+
+  match :=
+    for word, WORD_OF_THE_DAY of
+      letter, letter => MATCH_STATE.CORRECT
+      #{ % in WORD_OF_THE_DAY }, _ => MATCH_STATE.WRONG_LOCATION
+      else MATCH_STATE.INCORRECT
+    end
+</script>
+
+<Row {word} {match} />

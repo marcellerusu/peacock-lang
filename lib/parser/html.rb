@@ -17,7 +17,7 @@ module HTML
     AST::HtmlTag.new(
       AST::Str.new(open_tag_token.value, open_tag_token.position),
       attributes,
-      AST::List.new(children || [], attributes.position),
+      AST::ArrayLiteral.new(children || [], attributes.position),
       open_tag_token.position
     )
   end
@@ -25,23 +25,28 @@ module HTML
   def parse_custom_element!
     open_tag_token = consume! :open_custom_element_tag
     self_closed, attributes = parse_html_attributes!
+
     if !self_closed
       children = parse_html_children!
       close_tag_token = consume! :close_custom_element_tag
       assert { open_tag_token.value == close_tag_token.value }
-      assert { attributes.does_not_have_sym? "children" }
-      attributes.insert_sym!(
+      assert { attributes.does_not_have_key? "children" }
+      attributes.insert_key!(
         "children",
         AST::List.new(children, close_tag_token.position)
       )
     end
-    AST::IdLookup.new(open_tag_token.value, open_tag_token.position)
-      .dot("new")
-      .call([attributes])
+
+    AST::CustomTag.new(
+      open_tag_token.value,
+      attributes,
+      AST::ArrayLiteral.new(children || [], attributes.position),
+      open_tag_token.position
+    )
   end
 
   def parse_html_attributes!
-    attributes = AST::Record.new [], AST::List.new([]), current_token.position
+    attributes = AST::ObjectLiteral.new([], [], current_token.position)
     if current_token.is? :self_close_html_tag
       consume! :self_close_html_tag
       return true, attributes
@@ -49,7 +54,7 @@ module HTML
     while current_token.is_not_one_of?(:>, :self_close_html_tag)
       id_token = consume! :identifier
       if current_token.is_not? :"="
-        attributes.insert_sym!(
+        attributes.insert!(
           id_token.value,
           AST::Bool.new(true, id_token.position)
         )
@@ -59,8 +64,9 @@ module HTML
       context.push! :html_tag
       value = parse_html_attribute!
       context.pop! :html_tag
-      attributes.insert_sym! id_token.value, value
+      attributes.insert! AST::Str.new(id_token.value, id_token.position), value
     end
+
     closing_token = consume!
     return closing_token.is?(:self_close_html_tag), attributes
   end

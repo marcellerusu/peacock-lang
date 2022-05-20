@@ -1,0 +1,18 @@
+<script>
+  import Row from "./Row"
+  import { MATCH_STATE } from "./shared"
+
+  export declare word
+  declare state := "shaking"
+  once match := Array(5).fill(MATCH_STATE.EMPTY)
+
+  def onKeyDown({ key: !"Enter" })
+    state.set! word.length < 5;
+    setTimeout #{state.set! null}, 200
+  else
+    pass
+  end
+</script>
+
+<~:window @keydown={onKeyDown} />
+<Row {word} {match} {state} />

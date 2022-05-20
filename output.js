@@ -111,7 +111,7 @@ s.match =
         let { patterns } = expr;
         return matchArray(patterns, values.slice(0, patterns.length));
       }
-      throw new NotReached();
+      // throw new NotReached();
     });
     if (!match) return;
     return match.value;
@@ -141,3 +141,4 @@ s.case = (...patterns) => {
     is: (value) => new Case(patterns, value),
   };
 };
+console.log(`Hello, World!`);

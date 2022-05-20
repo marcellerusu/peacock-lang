@@ -1,22 +1,5 @@
 require "ast"
 
-METHOD_TO_OP = {
-  "__and__" => "&&",
-  "__or__" => "||",
-  "__gt_eq__" => ">=",
-  "__lt_eq__" => "<=",
-  "__gt__" => ">",
-  "__lt__" => "<",
-  "__eq__" => "==",
-  "__not_eq__" => "!=",
-  "__plus__" => "+",
-  "__minus__" => "-",
-  "__mult__" => "*",
-  "__div__" => "/",
-  "and" => "&",
-  "or" => "|",
-}
-
 class Formatter
   attr_reader :context
 
@@ -73,10 +56,8 @@ class Formatter
       eval_int node
     when AST::List
       eval_list node
-    when AST::Record
-      eval_record node
-    when AST::Sym
-      eval_sym node
+    when AST::ObjectLiteral
+      eval_object_literal node
     when AST::OpCall
       eval_op_call node
     when AST::ShortFn
@@ -96,11 +77,6 @@ class Formatter
   def eval_assign(node)
     return "" if node.name == "pea_module"
     "#{node.name} := #{eval_node node.expr}"
-  end
-
-  def eval_sym(node)
-    assert { context.directly_in_a? :record }
-    "#{node.value}"
   end
 
   def eval_int(node)

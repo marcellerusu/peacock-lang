@@ -22,13 +22,13 @@ Spec.new Schema do |c|
     expect(a).to eq(1)
   end
 
-  c.it "function overloading - record" do
+  c.it "function overloading - object literal" do
     def f({ a }) = a
     def f([ a ]) = a
     expect(f({ a: 10 })).to eq(10)
   end
 
-  c.it "function overloading - list" do
+  c.it "function overloading - array literal" do
     def f({ a }) = a
     def f([ a ]) = a
     expect(f([10])).to eq(10)
@@ -51,7 +51,7 @@ Spec.new Schema do |c|
   c.it "splat destructuring" do
     schema User = { id, email }
 
-    User({ id, *user }) := { id: 10, email: "email" }
+    User({ id, ...user }) := { id: 10, email: "email" }
 
     expect([id, user]).to eq([10, { id: 10, email: "email" }])
   end

@@ -10,8 +10,15 @@ schema Same = [id, id]
 Same(a) := [1, 2] # fails
 
 # rendering custom elements at base line
+def Main
+  [state, setState] = useState nil
+end
+
+
+
+
 class Main < Component
-  def view(_, _, _)
+  def view(_)
     <User name="marcelle" />
   end
 end
@@ -54,7 +61,7 @@ schema List<T> = l => l.is_a?(List) && l.every(&T.valid?)
 
 #{ % > 0 }
 
-arr.map &Array.prototype.map($1)
+arr.map &.slice ","
 # optional param naming to #{} syntax
 arr.map item => item * 10
 # arrow functions are allowed to be multi-line if they are in parens/braces
@@ -110,6 +117,12 @@ def fun({ x, y })
   x * y
 end
 
+# do we wanna do this too?
+# I think yes, because it makes pattern matching look really nice
+def fun(x:, y:)
+  x * y
+end
+
 fun(x: 10, y: 10)
 
 # doc strings would be sick
@@ -118,4 +131,21 @@ def learning
   """
   How to read things
   """
+end
+
+# multi-line arrow functions if surrounded in parens
+[1, 2, 3].map(x => 
+  y := x * 10
+  y
+)
+
+# Component#view & #style should take records
+class Main < Component
+  def view(state: nil)
+
+  end
+
+  def view(props: [])
+
+  end
 end

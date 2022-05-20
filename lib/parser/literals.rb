@@ -1,17 +1,13 @@
 module Literals
   def parse_identifier!
     id_token = consume! :identifier
+    context.push! :identifier
     expr = AST::IdLookup.new(id_token.value, id_token.position)
-      .to_schema_any_depending_on(context)
-      .to_instance_method_lookup_depending_on(context)
+      .to_schema_capture_depending_on(context)
     return expr if context.in_a? :schema
-    parse_id_modifier_if_exists! expr
-  end
-
-  def parse_property!
-    token = consume! :property
-    node = AST::InstanceLookup.new token.value, token.position
-    parse_id_modifier_if_exists! node
+    res = parse_id_modifier_if_exists! expr
+    context.pop! :identifier
+    res
   end
 
   def parse_int!
@@ -21,11 +17,6 @@ module Literals
 
   def parse_float!
     node = AST::Float.from_token consume!(:float_lit)
-    parse_id_modifier_if_exists! node
-  end
-
-  def parse_symbol!
-    node = AST::Sym.from_token consume!(:symbol)
     parse_id_modifier_if_exists! node
   end
 
@@ -60,14 +51,12 @@ module Literals
         context: context.push(:str),
       ).parse!
       assert { ast.size == 1 }
-      strings.push ast.first.call_to_s
+      strings.push ast.first
       strings.push str_between_escape(str_token, i)
     end
     strings.push AST::Str.new(str_token.value[str_token.captures.last[:end] + 1..], nil)
 
-    strings.compact.reduce do |str, cur|
-      str.plus(cur)
-    end
+    AST::StrTemplate.new strings
   end
 
   def str_before_captures(str_token)
@@ -89,37 +78,37 @@ module Literals
     AST::Str.new(str_token.value[start_index...end_index], str_token.position)
   end
 
-  def parse_record!
+  def parse_object_literal!
     open_brace = consume! :"{"
     record = []
-    splats = []
-    # this is only being used for splat index
+    spreads = []
+    # this is only being used for spread index
     i = 0
     while current_token.is_not? :"}"
-      splats.push(try_parse_record_splat!(i))
+      spreads.push(try_parse_object_literal_spread!(i))
       i += 1
       consume! :comma if current_token.is? :comma
       break if current_token.is? :"}"
-      key = parse_record_key!
-      value = parse_record_value! key
+      key = parse_object_literal_key!
+      value = parse_object_literal_value! key
       record.push [key, value]
       consume! :comma if current_token.is_not? :"}"
     end
     consume! :"}"
-    node = AST::Record.new(
+    node = AST::ObjectLiteral.new(
       record,
-      AST::List.new(splats.compact),
+      spreads.compact,
       open_brace.position
     )
-    return parse_match_assignment_without_schema!(node) if current_token&.is? :assign
+    return parse_match_assignment!(node) if current_token&.is? :assign
     parse_id_modifier_if_exists!(node)
   end
 
-  def parse_record_key!
+  def parse_object_literal_key!
     case current_token.type
     when :identifier
       id_token = consume! :identifier
-      AST::Sym.new id_token.value, id_token.position
+      AST::Str.new id_token.value, id_token.position
     when :"["
       assert { !context.directly_in_a?(:schema) }
       consume! :"["
@@ -131,34 +120,26 @@ module Literals
     end
   end
 
-  def parse_record_value!(key)
+  def parse_object_literal_value!(key)
     if current_token.is? :colon
       consume! :colon
       parse_expr!
     elsif context.in_a? :schema
-      AST::schema_any(key)
-    elsif key.is_a?(AST::Sym)
+      AST::SchemaCapture.new(key.value, key.position)
+    elsif key.is_a?(AST::Str)
       AST::IdLookup.new key.value, key.position
     else
       assert_not_reached
     end
   end
 
-  def try_parse_record_splat!(index)
-    return nil if current_token.is_not? :*
-    splat_token = consume! :*
-    splat = parse_expr!
-    AST::Record.new(
-      [
-        [AST::Sym.new("splat", splat_token.position), splat],
-        [AST::Sym.new("index", splat_token.position), AST::Int.new(index, splat_token.position)],
-      ],
-      AST::List.new([]),
-      splat_token.position
-    )
+  def try_parse_object_literal_spread!(index)
+    return nil if current_token.is_not? :"..."
+    spread_token = consume! :"..."
+    spread = parse_expr!
   end
 
-  def parse_list!
+  def parse_array_literal!
     sq_bracket = consume! :"["
     elements = []
     while current_token.is_not? :"]"
@@ -166,8 +147,8 @@ module Literals
       consume! :comma if current_token.is_not? :"]"
     end
     consume! :"]"
-    node = AST::List.new elements, sq_bracket.position
-    return parse_match_assignment_without_schema!(node) if current_token&.is? :assign
-    parse_id_modifier_if_exists!(node)
+    node = AST::ArrayLiteral.new elements, sq_bracket.position
+    return parse_match_assignment! node if current_token&.is? :assign
+    parse_id_modifier_if_exists! node
   end
 end

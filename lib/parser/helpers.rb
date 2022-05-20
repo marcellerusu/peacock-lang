@@ -70,15 +70,10 @@ module Helpers
     prev_token.position + prev_token.value.size
   end
 
-  def operator?(type = current_token.type)
-    # TODO: remove, look at operator? in Parser
-    OPERATORS.include?(type)
-  end
-
   def end_of_expr?(*excluding)
     return true if end_of_file?
     return false if current_token.is_one_of? *excluding
-    closing_tags = [:close_paren, :"}", :"]", :with, :end, :then]
+    closing_tags = [:close_paren, :"}", :"]", :end, :then]
     new_line? ||
     current_token.is_one_of?(*closing_tags) ||
     dynamic_lookup? ||

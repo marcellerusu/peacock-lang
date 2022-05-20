@@ -13,30 +13,23 @@ def ast_eq(ast)
   eq(ast.map(&:to_h))
 end
 
-def init_module
-  AST::Assign.new("pea_module", AST::Record.new([], AST::List.new([]), nil), nil)
-end
-
 describe Parser do
   context "assignment" do
     it "a := 3" do
       ast = parse("a := 3")
       expect(ast).to ast_eq([
-        init_module,
         AST::Assign.new("a", AST::Int.new(3, nil), nil),
       ])
     end
     it "a := \"3\"" do
       ast = parse("a := \"3\"")
       expect(ast).to ast_eq([
-        init_module,
         AST::Assign.new("a", AST::Str.new("3", nil), nil),
       ])
     end
     it "a := 25.32" do
       ast = parse("a := 25.32")
       expect(ast).to ast_eq([
-        init_module,
         AST::Assign.new("a", AST::Float.new(25.32, nil), nil),
       ])
     end
@@ -45,43 +38,31 @@ describe Parser do
     it "true" do
       ast = parse("true")
       expect(ast).to ast_eq([
-        init_module,
         AST::Bool.new(true, nil),
       ])
     end
     it "false" do
       ast = parse("false")
       expect(ast).to ast_eq([
-        init_module,
         AST::Bool.new(false, nil),
-      ])
-    end
-    it ":symbol" do
-      ast = parse(":symbol")
-      expect(ast).to ast_eq([
-        init_module,
-        AST::Sym.new("symbol", nil),
       ])
     end
     it "[]" do
       ast = parse("[]")
       expect(ast).to ast_eq([
-        init_module,
-        AST::List.new([], nil),
+        AST::ArrayLiteral.new([], nil),
       ])
     end
     it "[false]" do
       ast = parse("[false]")
       expect(ast).to ast_eq([
-        init_module,
-        AST::List.new([AST::Bool.new(false, nil)], nil),
+        AST::ArrayLiteral.new([AST::Bool.new(false, nil)], nil),
       ])
     end
     it "[false, 1, \"3\"]" do
       ast = parse("[false, 1, \"3\"]")
       expect(ast).to ast_eq([
-        init_module,
-        AST::List.new([
+        AST::ArrayLiteral.new([
           AST::Bool.new(false, nil),
           AST::Int.new(1, nil),
           AST::Str.new("3", nil),
@@ -91,34 +72,31 @@ describe Parser do
     it "{ a: 3.5 }" do
       ast = parse("{ a: 3.5 }")
       expect(ast).to ast_eq([
-        init_module,
         # TODO: shouldn't have to specify line & col #s
-        AST::Record.new([
-          [AST::Sym.new("a", 2), AST::Float.new(3.5, nil)],
-        ], AST::List.new([]), nil),
+        AST::ObjectLiteral.new([
+          [AST::Str.new("a", 2), AST::Float.new(3.5, nil)],
+        ], [], 0),
       ])
     end
     it "{a: [false, 1, \"3\"]}" do
       ast = parse("{a: [false, 1, \"3\"]}")
       expect(ast).to ast_eq([
-        init_module,
-        AST::Record.new([
-          [AST::Sym.new("a", 1), AST::List.new([
+        AST::ObjectLiteral.new([
+          [AST::Str.new("a", 1), AST::ArrayLiteral.new([
             AST::Bool.new(false, nil),
             AST::Int.new(1, nil),
             AST::Str.new("3", nil),
           ])],
-        ], AST::List.new([]), nil),
+        ], [], nil),
       ])
     end
     it "[{ a: 3.5 }]" do
       ast = parse("[{ a: 3.5 }]")
       expect(ast).to ast_eq([
-        init_module,
-        AST::List.new([
-          AST::Record.new(
-            [[AST::Sym.new("a", 3), AST::Float.new(3.5, nil)]],
-            AST::List.new([]), nil
+        AST::ArrayLiteral.new([
+          AST::ObjectLiteral.new(
+            [[AST::Str.new("a", 3), AST::Float.new(3.5, nil)]],
+            [], nil
           ),
         ]),
       ])
@@ -129,7 +107,6 @@ describe Parser do
       ast = parse("a := do 1 end")
       fn = AST::Fn.new([], [AST::Return.new(AST::Int.new(1, nil), nil)], nil)
       expect(ast).to ast_eq([
-        init_module,
         AST::Assign.new("a", fn),
       ])
     end
@@ -141,7 +118,6 @@ describe Parser do
         nil
       )
       expect(ast).to ast_eq([
-        init_module,
         AST::Assign.new("id", fn),
       ])
     end
@@ -149,10 +125,9 @@ describe Parser do
     it "a + b" do
       ast = parse("a + b")
       expect(ast).to ast_eq([
-        init_module,
-        AST::FnCall.new(
-          [AST::IdLookup.new("b", nil)],
-          AST::IdLookup.new("a", nil).dot("__plus__"),
+        AST::Add.new(
+          AST::IdLookup.new("a", nil),
+          AST::IdLookup.new("b", nil),
           nil
         ),
       ])
@@ -161,20 +136,21 @@ describe Parser do
     it "1.5 + 2.4" do
       ast = parse("1.5 + 2.4")
       expect(ast).to ast_eq([
-        init_module,
-        AST::Float.new(1.5, nil)
-          .dot("__plus__")
-          .call([AST::Float.new(2.4, nil)]),
+        AST::Add.new(
+          AST::Float.new(1.5, nil),
+          AST::Float.new(2.4, nil),
+          nil
+        ),
+
       ])
     end
 
-    it "def add(a, b) = a + b", :i do
+    it "def add(a, b) = a + b", :f do
       ast = parse("def add(a, b) = a + b")
       expect(ast).to ast_eq([
-        init_module,
         AST::Declare.new(
           "add",
-          AST::List.new([AST::schema_any("a"), AST::schema_any("b")]).to_schema,
+          AST::ArrayLiteral.new([AST::schema_any("a"), AST::schema_any("b")]).to_schema,
           AST::Fn.new(
             ["__VALUE"],
             [
@@ -197,10 +173,9 @@ describe Parser do
           return a + b
         end")
       expect(ast).to ast_eq([
-        init_module,
         AST::Declare.new(
           "add",
-          AST::List.new([AST::schema_any("a"), AST::schema_any("b")]).to_schema,
+          AST::ArrayLiteral.new([AST::schema_any("a"), AST::schema_any("b")]).to_schema,
           AST::Fn.new(
             ["__VALUE"],
             [
@@ -222,7 +197,6 @@ describe Parser do
       ast = parse("add(1, 2)")
       expect(ast).to ast_eq(
         [
-          init_module,
           AST::IdLookup.new("add", nil)
             .call([AST::Int.new(1, nil), AST::Int.new(2, nil)]),
         ]
@@ -235,7 +209,6 @@ describe Parser do
       ast = parse("[a] := [1]")
       arr = AST::array([AST::int(1)])
       expect(ast).to ast_eq([
-        init_module,
         AST::if(
           schema_valid(schema_for(
             AST::array([schema_any("a")])
@@ -249,7 +222,6 @@ describe Parser do
       ast = parse("[a, b] := [1, :two]")
       arr = AST::array([AST::int(1), AST::sym("two")])
       expect(ast).to ast_eq([
-        init_module,
         AST::if(
           schema_valid(schema_for(
             AST::array([schema_any("a"), schema_any("b")])
@@ -266,7 +238,6 @@ describe Parser do
       ast = parse("[[a]] := [[1]]")
       arr = AST::array([AST::array([AST::int(1)])])
       expect(ast).to ast_eq([
-        init_module,
         AST::if(
           schema_valid(schema_for(
             AST::array([AST::array([schema_any("a")])])
@@ -283,7 +254,6 @@ describe Parser do
       ast = parse("{a} := {a: 3}")
       obj = AST::record({ "a" => AST::int(3) })
       expect(ast).to ast_eq([
-        init_module,
         AST::if(
           schema_valid(schema_for(
             AST::record({ "a" => schema_any("a") })
@@ -299,21 +269,18 @@ describe Parser do
     it "if true end" do
       ast = parse("if true end")
       expect(ast).to ast_eq([
-        init_module,
         AST::If.new(AST::Bool.new(true, nil), [], [], nil),
       ])
     end
     it "if true else end" do
       ast = parse("if true else end")
       expect(ast).to ast_eq([
-        init_module,
         AST::If.new(AST::Bool.new(true, nil), [], [], nil),
       ])
     end
     it "if true else if false end" do
       ast = parse("if true else if false end")
       expect(ast).to ast_eq([
-        init_module,
         AST::If.new(
           AST::Bool.new(true, nil),
           [],
@@ -333,7 +300,6 @@ end")
       value =
         expect(ast).to ast_eq(
           [
-            init_module,
             AST::case(
               AST::array([AST::int(1)]),
               AST::array([
