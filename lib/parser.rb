@@ -34,6 +34,11 @@ class Parser
     rest_of_program[0..rest_of_program.index("\n")]
   end
 
+  def new_line?
+    return true if !prev_token || !current_token
+    @program_string[prev_token.pos..current_token.pos].include? "\n"
+  end
+
   def prev_token
     @tokens[@pos - 1]
   end
@@ -289,6 +294,25 @@ class FunctionCallWithArgs < Parser
   end
 end
 
+class FunctionCallWithArgsWithoutParens < Parser
+  def self.can_parse?(_self)
+    end_tokens = [:comma, :"]", :close_paren]
+    _self.current_token&.is_not_one_of?(*end_tokens) &&
+      _self.peek_token&.type != :dot &&
+      !_self.new_line?
+  end
+
+  def parse!(lhs_n)
+    args = []
+    until new_line?
+      args.push consume_parser! ExprParser.from(self)
+      consume! :comma unless new_line?
+    end
+
+    AST::FnCall.new(args, lhs_n, lhs_n.pos)
+  end
+end
+
 class ExprParser < Parser
   # order matters
   ALLOWED_PARSERS = [
@@ -304,7 +328,6 @@ class ExprParser < Parser
     parser_klass = ALLOWED_PARSERS.find { |parser_klass| parser_klass.can_parse?(self) }
 
     if !parser_klass
-      binding.pry
       not_implemented! do
         puts "Not Implemented, only supporting the following parsers - "
         pp ALLOWED_PARSERS
@@ -322,6 +345,8 @@ class ExprParser < Parser
         expr_n = consume_parser! FunctionCallWithoutArgs.from(self), expr_n
       elsif FunctionCallWithArgs.can_parse?(self)
         expr_n = consume_parser! FunctionCallWithArgs.from(self), expr_n
+      elsif FunctionCallWithArgsWithoutParens.can_parse?(self)
+        expr_n = consume_parser! FunctionCallWithArgsWithoutParens.from(self), expr_n
       else
         break
       end
@@ -377,7 +402,7 @@ class ProgramParser < Parser
   end
 
   def parse!
-    while current_token
+    while current_token && current_token.type != :end
       klass = ALLOWED_PARSERS.find { |klass| klass.can_parse?(self) }
 
       if !klass
