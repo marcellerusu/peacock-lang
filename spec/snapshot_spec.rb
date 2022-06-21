@@ -75,4 +75,8 @@ console.log(add(10, 20))")
 console.log add(10, 20)')
     expect(ast).to eq([{"klass"=>"AST::SingleLineDefWithArgs", "name"=>"add", "args"=>["a", "b"], "return_value"=>{"klass"=>"AST::Op", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"a", "pos"=>16}, "type"=>:+, "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"b", "pos"=>20}, "pos"=>16}, "pos"=>0}, {"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::Int", "value"=>10, "pos"=>39}, {"klass"=>"AST::Int", "value"=>20, "pos"=>43}], "expr"=>{"klass"=>"AST::IdLookup", "value"=>"add", "pos"=>35}, "pos"=>38}], "expr"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"console", "pos"=>23}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"log", "pos"=>31}, "pos"=>30}, "pos"=>30}])
   end
+  it "2022-06-21 15:11:16 -0400" do
+    ast = parse('double := #{ % * 2 }')
+    expect(ast).to eq([{"klass"=>"AST::SimpleAssignment", "name"=>"double", "expr"=>#<AST::ShortFn:0x00007f982ca737c8 @return_expr=#<AST::Op:0x00007f982ca73980 @lhs=#<AST::AnonIdLookup:0x00007f983009d060 @pos=13>, @type=:*, @rhs=#<AST::Int:0x00007f982ca73e80 @value=2, @pos=17>, @pos=13>, @pos=10>, "pos"=>0}])
+  end
 end

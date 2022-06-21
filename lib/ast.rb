@@ -321,10 +321,22 @@ module AST
     end
   end
 
-  class ShortFn < Fn
+  class ShortFn
+    attr_reader :return_expr, :pos
+
+    def initialize(return_expr, pos)
+      @return_expr = return_expr
+      @pos = pos
+    end
   end
 
   class ArrowFn < Fn
+  end
+
+  class AnonIdLookup < Node
+    def initialize(pos)
+      @pos = pos
+    end
   end
 
   class IdLookup < Node

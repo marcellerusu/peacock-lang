@@ -296,7 +296,7 @@ end
 
 class FunctionCallWithArgsWithoutParens < Parser
   def self.can_parse?(_self)
-    _self.current_token&.is_not_one_of?(:comma, :"]", :close_paren) &&
+    _self.current_token&.is_not_one_of?(:comma, :"]", :close_paren, :"}") &&
       _self.peek_token&.type != :dot &&
       !_self.new_line?
   end
@@ -336,6 +336,30 @@ class ReturnParser < Parser
   end
 end
 
+class ShortAnonFnParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :"#\{"
+  end
+
+  def parse!
+    open_anon_t = consume! :"#\{"
+    return_expr_n = consume_parser! ExprParser.from(self)
+    consume! :"}"
+    AST::ShortFn.new(return_expr_n, open_anon_t.pos)
+  end
+end
+
+class AnonIdLookupParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :%
+  end
+
+  def parse!
+    id_t = consume! :%
+    AST::AnonIdLookup.new(id_t.pos)
+  end
+end
+
 class ExprParser < Parser
   # order matters
   PRIMARY_PARSERS = [
@@ -344,7 +368,9 @@ class ExprParser < Parser
     SimpleStringParser,
     ArrayParser,
     SimpleObjectParser,
+    AnonIdLookupParser,
     IdentifierLookupParser,
+    ShortAnonFnParser,
   ]
 
   SECONDARY_PARSERS = [
@@ -367,10 +393,10 @@ class ExprParser < Parser
 
     expr_n = consume_parser! parser_klass.from(self)
 
-    while true
-      parser_klass = SECONDARY_PARSERS.find { |parser_klass| parser_klass.can_parse?(self) }
-      break if !parser_klass
-      expr_n = consume_parser! parser_klass.from(self), expr_n
+    loop do
+      secondary_klass = SECONDARY_PARSERS.find { |parser_klass| parser_klass.can_parse?(self) }
+      break if !secondary_klass
+      expr_n = consume_parser! secondary_klass.from(self), expr_n
     end
 
     expr_n
