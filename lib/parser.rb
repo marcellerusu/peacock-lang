@@ -325,11 +325,7 @@ class ProgramParser < Parser
     klass = ALLOWED_PARSERS.find { |klass| klass.can_parse?(self) }
 
     if !klass
-      binding.pry
-      not_implemented! do
-        puts "Not Implemented, only supporting the following parsers - "
-        pp ALLOWED_PARSERS
-      end
+      klass = ExprParser
     end
 
     consume_parser! klass.from(self)
@@ -345,6 +341,8 @@ class FunctionBodyParser < ProgramParser
     last_n = @body[-1]
     if last_n.is_a? AST::SimpleAssignment
       @body.push AST::Return.new(AST::IdLookup.new(last_n.name, last_n.pos), last_n.pos)
+    elsif last_n.is_not_a? AST::Return
+      @body[-1] = AST::Return.new(last_n, last_n.pos)
     end
 
     @body

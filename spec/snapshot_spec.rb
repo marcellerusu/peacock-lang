@@ -52,4 +52,11 @@ end
 ')
     expect(ast).to eq([{"klass"=>"AST::MultilineDefWithArgs", "name"=>"add", "args"=>["a", "b"], "body"=>[{"klass"=>"AST::Return", "value"=>{"klass"=>"AST::Op", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"a", "pos"=>23}, "type"=>:+, "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"b", "pos"=>27}, "pos"=>23}, "pos"=>16}], "pos"=>0}])
   end
+  it "2022-06-20 22:01:23 -0400" do
+    ast = parse('def add(a, b)
+  a + b
+end
+')
+    expect(ast).to eq([{"klass"=>"AST::MultilineDefWithArgs", "name"=>"add", "args"=>["a", "b"], "body"=>[{"klass"=>"AST::Return", "value"=>{"klass"=>"AST::Op", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"a", "pos"=>16}, "type"=>:+, "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"b", "pos"=>20}, "pos"=>16}, "pos"=>16}], "pos"=>0}])
+  end
 end
