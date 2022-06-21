@@ -260,7 +260,7 @@ module AST
     end
   end
 
-  class SingleLineFnWithNoArgs < Node
+  class SingleLineDefWithNoArgs < Node
     attr_reader :return_value, :name
 
     def initialize(name, return_value, pos)
@@ -270,13 +270,23 @@ module AST
     end
   end
 
-  class SingleLineFnWithArgs < Node
+  class SingleLineDefWithArgs < Node
     attr_reader :return_value, :name, :args
 
     def initialize(name, args, return_value, pos)
       @name = name
       @args = args
       @return_value = return_value
+      @pos = pos
+    end
+  end
+
+  class MultilineDefWithoutArgs < Node
+    attr_reader :body, :name
+
+    def initialize(name, body, pos)
+      @name = name
+      @body = body
       @pos = pos
     end
   end

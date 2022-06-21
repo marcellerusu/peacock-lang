@@ -26,16 +26,23 @@ context "snapshot" do
 }")
     expect(ast).to eq([{ "klass" => "AST::SimpleAssignment", "name" => "a", "expr" => [["b", { "klass" => "AST::Int", "value" => 10, "pos" => 12 }]], "pos" => 0 }])
   end
-  it "2022-06-20 16:18:45 -0400" do
-    ast = parse("def a = 10")
-    expect(ast).to eq([{ "klass" => "AST::SingleLineFnWithNoArgs", "name" => "a", "return_value" => { "klass" => "AST::Int", "value" => 10, "pos" => 8 }, "pos" => 0 }])
-  end
   it "2022-06-20 20:06:22 -0400" do
     ast = parse("a := a + 10")
     expect(ast).to eq([{ "klass" => "AST::SimpleAssignment", "name" => "a", "expr" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::IdLookup", "value" => "a", "pos" => 5 }, "type" => :+, "rhs" => { "klass" => "AST::Int", "value" => 10, "pos" => 9 }, "pos" => 5 }, "pos" => 0 }])
   end
-  it "2022-06-20 20:34:33 -0400" do
+  it "2022-06-20 21:32:08 -0400" do
+    ast = parse("def add
+  a := 10
+end
+")
+    expect(ast).to eq([{ "klass" => "AST::MultilineDefWithoutArgs", "name" => "add", "body" => [{ "klass" => "AST::SimpleAssignment", "name" => "a", "expr" => { "klass" => "AST::Int", "value" => 10, "pos" => 15 }, "pos" => 10 }, { "klass" => "AST::Return", "value" => { "klass" => "AST::IdLookup", "value" => "a", "pos" => 10 }, "pos" => 10 }], "pos" => 0 }])
+  end
+  it "2022-06-20 21:32:50 -0400" do
+    ast = parse("def a = 10")
+    expect(ast).to eq([{ "klass" => "AST::SingleLineDefWithNoArgs", "name" => "a", "return_value" => { "klass" => "AST::Int", "value" => 10, "pos" => 8 }, "pos" => 0 }])
+  end
+  it "2022-06-20 21:33:16 -0400" do
     ast = parse("def add(a, b) = a + b")
-    expect(ast).to eq([{ "klass" => "AST::SingleLineFnWithArgs", "name" => "add", "args" => ["a", "b"], "return_value" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::IdLookup", "value" => "a", "pos" => 16 }, "type" => :+, "rhs" => { "klass" => "AST::IdLookup", "value" => "b", "pos" => 20 }, "pos" => 16 }, "pos" => 0 }])
+    expect(ast).to eq([{ "klass" => "AST::SingleLineDefWithArgs", "name" => "add", "args" => ["a", "b"], "return_value" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::IdLookup", "value" => "a", "pos" => 16 }, "type" => :+, "rhs" => { "klass" => "AST::IdLookup", "value" => "b", "pos" => 20 }, "pos" => 16 }, "pos" => 0 }])
   end
 end

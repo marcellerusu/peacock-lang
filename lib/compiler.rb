@@ -151,9 +151,9 @@ class Compiler
       eval_simple_string node
     when AST::Str
       eval_str node
-    when AST::SingleLineFnWithNoArgs
+    when AST::SingleLineDefWithNoArgs
       eval_single_line_fn_with_no_args node
-    when AST::SingleLineFnWithArgs
+    when AST::SingleLineDefWithArgs
       eval_single_line_fn_with_args node
     when AST::Fn
       eval_function node
@@ -173,22 +173,27 @@ class Compiler
       eval_match_assignment node
     when AST::SchemaCapture
       eval_schema_capture node
-    when AST::CombineSchemas
-      eval_combine_schemas node
-    when AST::EitherSchemas
-      eval_either_schemas node
     when AST::Op
       eval_operator node
     when AST::ArgsSchema
       eval_args_schema node
+    when AST::MultilineDefWithoutArgs
+      eval_multiline_def_without_args node
     else
       puts "no case matched node_type: #{node.class}"
-      assert { false }
+      assert_not_reached!
     end
   end
 
   def eval_args_schema(node)
     node.args.join(", ")
+  end
+
+  def eval_multiline_def_without_args(fn_node)
+    fn = "#{padding}function #{fn_node.name}() {\n"
+    fn += Compiler.new(fn_node.body, @indent + 2).eval + "\n"
+    fn += "#{padding}}"
+    fn
   end
 
   def eval_operator(node)
@@ -212,14 +217,6 @@ class Compiler
     dedent!
     fn += "#{padding}}"
     fn
-  end
-
-  def eval_either_schemas(node)
-    "s.oneOf(#{eval_expr(node.lhs)}, #{eval_expr(node.rhs)})"
-  end
-
-  def eval_combine_schemas(node)
-    "Object.assign(#{eval_expr(node.lhs)}, #{eval_expr(node.rhs)})"
   end
 
   def eval_schema_capture(node)

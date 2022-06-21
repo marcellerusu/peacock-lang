@@ -59,7 +59,7 @@ class Parser
   end
 end
 
-class SingleLineFnWithNoArgs < Parser
+class SingleLineDefWithNoArgs < Parser
   def self.can_parse?(_self)
     _self.current_token.type == :def &&
       _self.peek_token.type == :identifier &&
@@ -71,7 +71,7 @@ class SingleLineFnWithNoArgs < Parser
     fn_name_t = consume! :identifier
     consume! :"="
     return_value_n = consume_parser! ExprParser.from(self)
-    AST::SingleLineFnWithNoArgs.new(fn_name_t.value, return_value_n, def_t.pos)
+    AST::SingleLineDefWithNoArgs.new(fn_name_t.value, return_value_n, def_t.pos)
   end
 end
 
@@ -90,7 +90,7 @@ class SimpleFnArgsParser < Parser
   end
 end
 
-class SingleLineFnWithArgs < Parser
+class SingleLineDefWithArgs < Parser
   def self.can_parse?(_self)
     _self.current_token.type == :def &&
       _self.peek_token.type == :identifier &&
@@ -105,7 +105,22 @@ class SingleLineFnWithArgs < Parser
     consume! :"="
     return_value_n = consume_parser! ExprParser.from(self)
 
-    AST::SingleLineFnWithArgs.new(fn_name_t.value, args_n, return_value_n, def_t.pos)
+    AST::SingleLineDefWithArgs.new(fn_name_t.value, args_n, return_value_n, def_t.pos)
+  end
+end
+
+class MultilineDefWithoutArgs < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :def &&
+      _self.peek_token.type == :identifier
+  end
+
+  def parse!
+    def_t = consume! :def
+    fn_name_t = consume! :identifier
+    body = consume_parser! FunctionBodyParser.from(self)
+    consume! :end
+    AST::MultilineDefWithoutArgs.new(fn_name_t.value, body, def_t.pos)
   end
 end
 
@@ -264,8 +279,9 @@ class ProgramParser < Parser
 
   ALLOWED_PARSERS = [
     SimpleAssignmentParser,
-    SingleLineFnWithNoArgs,
-    SingleLineFnWithArgs,
+    SingleLineDefWithNoArgs,
+    SingleLineDefWithArgs,
+    MultilineDefWithoutArgs,
   ]
 
   def consume_parser!(parser)
@@ -285,5 +301,20 @@ class ProgramParser < Parser
     end
 
     consume_parser! klass.from(self)
+
+    @body
+  end
+end
+
+class FunctionBodyParser < ProgramParser
+  def parse!
+    super
+
+    last_n = @body[-1]
+    if last_n.is_a? AST::SimpleAssignment
+      @body.push AST::Return.new(AST::IdLookup.new(last_n.name, last_n.pos), last_n.pos)
+    end
+
+    @body
   end
 end
