@@ -259,29 +259,25 @@ end
 
 class FunctionCallWithoutArgs < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :identifier &&
-      _self.peek_token&.type == :open_paren &&
-      _self.peek_token_twice.type == :close_paren
+    _self.current_token&.type == :open_paren &&
+    _self.peek_token.type == :close_paren
   end
 
-  def parse!
-    fn_name_t = consume! :identifier
-    consume! :open_paren
+  def parse!(lhs_n)
+    open_p_t = consume! :open_paren
     consume! :close_paren
 
-    AST::FunctionCallWithoutArgs.new(fn_name_t.value, fn_name_t.pos)
+    AST::FnCall.new([], lhs_n, open_p_t.pos)
   end
 end
 
 class FunctionCallWithArgs < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :identifier &&
-      _self.peek_token&.type == :open_paren
+    _self.current_token&.type == :open_paren
   end
 
-  def parse!
-    fn_name_t = consume! :identifier
-    consume! :open_paren
+  def parse!(lhs_n)
+    open_p_t = consume! :open_paren
     args = []
     while current_token.type != :close_paren
       args.push consume_parser! ExprParser.from(self)
@@ -289,7 +285,7 @@ class FunctionCallWithArgs < Parser
     end
     consume! :close_paren
 
-    AST::FunctionCallWithArgs.new(fn_name_t.value, args, fn_name_t.pos)
+    AST::FnCall.new(args, lhs_n, open_p_t.pos)
   end
 end
 
@@ -301,8 +297,6 @@ class ExprParser < Parser
     SimpleStringParser,
     ArrayParser,
     SimpleObjectParser,
-    FunctionCallWithoutArgs,
-    FunctionCallWithArgs,
     IdentifierLookupParser,
   ]
 
@@ -310,6 +304,7 @@ class ExprParser < Parser
     parser_klass = ALLOWED_PARSERS.find { |parser_klass| parser_klass.can_parse?(self) }
 
     if !parser_klass
+      binding.pry
       not_implemented! do
         puts "Not Implemented, only supporting the following parsers - "
         pp ALLOWED_PARSERS
@@ -318,11 +313,33 @@ class ExprParser < Parser
 
     expr_n = consume_parser! parser_klass.from(self)
 
-    if OperatorParser.can_parse?(self)
-      expr_n = consume_parser! OperatorParser.from(self), expr_n
+    while true
+      if OperatorParser.can_parse?(self)
+        expr_n = consume_parser! OperatorParser.from(self), expr_n
+      elsif DotParser.can_parse?(self)
+        expr_n = consume_parser! DotParser.from(self), expr_n
+      elsif FunctionCallWithoutArgs.can_parse?(self)
+        expr_n = consume_parser! FunctionCallWithoutArgs.from(self), expr_n
+      elsif FunctionCallWithArgs.can_parse?(self)
+        expr_n = consume_parser! FunctionCallWithArgs.from(self), expr_n
+      else
+        break
+      end
     end
 
     expr_n
+  end
+end
+
+class DotParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :dot
+  end
+
+  def parse!(lhs_n)
+    dot_t = consume! :dot
+    rhs_n = consume_parser! IdentifierLookupParser.from(self)
+    AST::Dot.new(lhs_n, ".", rhs_n, dot_t.pos)
   end
 end
 

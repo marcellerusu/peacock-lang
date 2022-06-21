@@ -64,4 +64,10 @@ end
 ')
     expect(ast).to eq([{ "klass" => "AST::FunctionCallWithArgs", "name" => "add", "args" => [{ "klass" => "AST::Int", "value" => 1, "pos" => 4 }, { "klass" => "AST::SimpleString", "value" => "10", "pos" => 7 }, { "klass" => "AST::ArrayLiteral", "value" => [{ "klass" => "AST::Int", "value" => 1, "pos" => 14 }, { "klass" => "AST::Int", "value" => 2, "pos" => 17 }], "pos" => 13 }], "pos" => 0 }])
   end
+  it "2022-06-20 23:14:23 -0400" do
+    ast = parse("def add(a, b) = a + b
+
+console.log(add(10, 20))")
+    expect(ast).to eq([{ "klass" => "AST::SingleLineDefWithArgs", "name" => "add", "args" => ["a", "b"], "return_value" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::IdLookup", "value" => "a", "pos" => 16 }, "type" => :+, "rhs" => { "klass" => "AST::IdLookup", "value" => "b", "pos" => 20 }, "pos" => 16 }, "pos" => 0 }, { "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::Int", "value" => 10, "pos" => 39 }, { "klass" => "AST::Int", "value" => 20, "pos" => 43 }], "expr" => { "klass" => "AST::IdLookup", "value" => "add", "pos" => 35 }, "pos" => 38 }], "expr" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "console", "pos" => 23 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "log", "pos" => 31 }, "pos" => 30 }, "pos" => 34 }])
+  end
 end

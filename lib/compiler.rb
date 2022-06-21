@@ -48,7 +48,7 @@ class Compiler
   end
 
   def std_lib
-    "print = console.log\n"
+    ""
   end
 
   def schema_lib
@@ -173,6 +173,8 @@ class Compiler
       eval_match_assignment node
     when AST::SchemaCapture
       eval_schema_capture node
+    when AST::Dot
+      eval_dot node
     when AST::Op
       eval_operator node
     when AST::ArgsSchema
@@ -209,6 +211,10 @@ class Compiler
     fn += Compiler.new(fn_node.body, @indent + 2).eval + "\n"
     fn += "#{padding}}"
     fn
+  end
+
+  def eval_dot(node)
+    "#{eval_expr(node.lhs)}.#{eval_expr(node.rhs)}"
   end
 
   def eval_operator(node)

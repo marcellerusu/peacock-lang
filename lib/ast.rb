@@ -433,6 +433,9 @@ module AST
     end
   end
 
+  class Dot < Op
+  end
+
   class MatchAssignment < Node
     attr_reader :schema, :pattern, :value
 
