@@ -360,13 +360,15 @@ class ProgramParser < Parser
   end
 
   def parse!
-    klass = ALLOWED_PARSERS.find { |klass| klass.can_parse?(self) }
+    while current_token
+      klass = ALLOWED_PARSERS.find { |klass| klass.can_parse?(self) }
 
-    if !klass
-      klass = ExprParser
+      if !klass
+        klass = ExprParser
+      end
+
+      consume_parser! klass.from(self)
     end
-
-    consume_parser! klass.from(self)
 
     @body
   end

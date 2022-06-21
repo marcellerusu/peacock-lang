@@ -48,7 +48,7 @@ class Compiler
   end
 
   def std_lib
-    ""
+    "print = console.log\n"
   end
 
   def schema_lib
