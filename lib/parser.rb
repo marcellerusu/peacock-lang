@@ -51,6 +51,10 @@ class Parser
     @tokens[@pos + 2]
   end
 
+  def peek_token_thrice
+    @tokens[@pos + 3]
+  end
+
   def consume!(token_type = nil)
     # puts "#{token_type} #{current_token.type}"
     # binding.pry if token_type && token_type != current_token.type
@@ -360,6 +364,22 @@ class AnonIdLookupParser < Parser
   end
 end
 
+class SingleLineArrowFnWithoutArgsParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :open_paren &&
+      _self.peek_token.type == :close_paren &&
+      _self.peek_token_twice.type == :"=>"
+  end
+
+  def parse!
+    open_p_t = consume! :open_paren
+    consume! :close_paren
+    consume! :"=>"
+    return_expr_n = consume_parser! ExprParser.from(self)
+    AST::ArrowFnWithoutArgs.new(return_expr_n, open_p_t.pos)
+  end
+end
+
 class ExprParser < Parser
   # order matters
   PRIMARY_PARSERS = [
@@ -371,6 +391,7 @@ class ExprParser < Parser
     AnonIdLookupParser,
     IdentifierLookupParser,
     ShortAnonFnParser,
+    SingleLineArrowFnWithoutArgsParser,
   ]
 
   SECONDARY_PARSERS = [

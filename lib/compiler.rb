@@ -157,6 +157,8 @@ class Compiler
       eval_single_line_fn_with_args node
     when AST::Fn
       eval_function node
+    when AST::ArrowFnWithoutArgs
+      eval_arrow_fn_without_args node
     when AST::ShortFn
       eval_short_fn node
     when AST::AnonIdLookup
@@ -337,6 +339,10 @@ class Compiler
 
   def eval_assignment(node)
     "#{sub_q(node.name)} = #{eval_expr(node.expr)}"
+  end
+
+  def eval_arrow_fn_without_args(node)
+    "() => #{eval_expr node.return_expr}"
   end
 
   def eval_anon_id_lookup
