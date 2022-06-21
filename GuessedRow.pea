@@ -1,14 +1,22 @@
-<script>
-with { word }
+component { word }
   import Row from "./Row"
   import { MATCH_STATE, WORD_OF_THE_DAY } from "./shared"
 
   match :=
     for word, WORD_OF_THE_DAY of
-      letter, letter => MATCH_STATE.CORRECT
-      #{ % in WORD_OF_THE_DAY }, _ => MATCH_STATE.WRONG_LOCATION
+      when letter, letter => MATCH_STATE.CORRECT
+      when #{ % in WORD_OF_THE_DAY }, _ => MATCH_STATE.WRONG_LOCATION
       else MATCH_STATE.INCORRECT
     end
-</script>
+
+when { match: Loading }
 
 <Row {word} {match} />
+
+when { match: Otherwise }
+
+end
+
+<style>
+
+</style>

@@ -1,0 +1,7 @@
+import List from "./List"
+
+component { items }
+  items := items.filter #{ %.completed }
+in
+  <List {items} />
+end

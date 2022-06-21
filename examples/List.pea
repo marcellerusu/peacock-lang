@@ -1,0 +1,34 @@
+import { update } from "peacock"
+
+import { items } from "./items"
+
+component
+  def toggleItemCompleted!(id)
+    $items := for $items of
+      { id: id, completed, ...item } =>
+        { ...item, completed: !completed },
+      pass
+    end
+  end
+  newItem := ""
+in
+  <div>
+    <input bind:value={newItem} />
+    <ul>
+      #for { completed, desc, id } of $items
+        <li
+          data-state:completed={completed}
+          @click=#{toggleItemCompleted! id}
+        >
+          {desc}
+        </li>
+      end
+    </ul>
+  </div>
+  
+  <style>
+    ul li[data-state="completed"] {
+      text-decoration: strike-through;
+    }
+  </style>
+end

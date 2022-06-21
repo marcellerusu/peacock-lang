@@ -1,6 +1,9 @@
 class AssertionError < RuntimeError
 end
 
+class NotImplemented < AssertionError
+end
+
 # TODO: later we could use Context to store the
 # entire ast parents here
 # & use this to search local scopes
@@ -58,6 +61,13 @@ def assert(&block)
   raise AssertionError unless yield
 end
 
-def assert_not_reached
+def assert_not_reached!
   raise AssertionError
+end
+
+def not_implemented!(&block)
+  if block
+    block.call
+  end
+  raise NotImplemented
 end

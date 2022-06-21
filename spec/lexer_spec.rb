@@ -83,7 +83,7 @@ describe Lexer, "#tokenize" do
       ])
     end
 
-    it ":symbol" do
+    it ":symbol", :i do
       res = Lexer::tokenize(":symbol")
       expect(res).to eq([
         Lexer::Token.new(:symbol, "symbol"),

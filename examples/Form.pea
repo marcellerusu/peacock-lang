@@ -1,0 +1,12 @@
+component { items }
+  newItem := ""
+in
+  <form @submit=#{
+    %.preventDefault()
+    items.push! newItem
+    newItem := ""
+  }>
+    <input bind:value={newItem} type="text" placeholder="todo..."/>
+    <input type="submit">add</input>
+  </form>
+end

@@ -1,0 +1,37 @@
+import { Routes, Route } from "router"
+import List from "./List"
+import Form from "./Form"
+import TodoList from "./ActiveList"
+import TodoList from "./CompleteList"
+
+component
+  items := [{ completed: false, desc: "finish app" }]
+in
+  <div>
+    <Form {items} />
+    <Routes>
+      <Route path="/all">
+        <List {items} />
+      </Route>
+      <Route path="/complete">
+        <CompleteList {items} />
+      </Route>
+      <Route path="/active">
+        <ActiveList {items} />
+      </Route>
+    </Routes>
+    <nav>
+      <Link to="/all">all</Link>
+      <Link to="/complete">complete</Link>
+      <Link to="/active">active</Link>
+    </nav>
+  </div>
+end
+
+<style>
+  nav {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+  }
+</style>

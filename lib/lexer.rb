@@ -3,9 +3,9 @@ require "utils"
 
 module Lexer
   class Token
-    attr_reader :position, :type, :value, :captures
-    def self.set_position!(position)
-      @@current_position = position
+    attr_reader :pos, :type, :value, :captures
+    def self.set_position!(pos)
+      @@current_position = pos
     end
 
     def ==(other)
@@ -13,7 +13,7 @@ module Lexer
     end
 
     def initialize(type, value = nil, captures = nil)
-      @position = @@current_position
+      @pos = @@current_position
       @type = type
       @value = value
       @captures = captures

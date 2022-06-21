@@ -1,14 +1,26 @@
-module AST
-  def self.schema(token)
-    # this is for tests only.. :/
-    if token.is_a? String
-      token = Lexer::Token.new(nil, token, nil)
-    end
-    IdLookup.new("Schema", token.position)
-  end
+require "pry"
 
+module AST
   class Node
-    attr_reader :value, :position
+    attr_reader :value, :pos
+
+    def to_h
+      hash = {
+        "klass" => self.class.to_s,
+      }
+      instance_variables.each do |var|
+        node = instance_variable_get(var)
+        value = if node.is_a? Node
+            node.to_h
+          elsif node.is_a? Array
+            node.map(&:to_h)
+          else
+            node
+          end
+        hash[var.to_s.delete("@")] = value
+      end
+      hash
+    end
 
     def is_not_one_of?(*klasses)
       klasses.none? { |klass| self.is_a? klass }
@@ -18,14 +30,8 @@ module AST
       !is_a?(klass)
     end
 
-    def to_h
-      val = self.value
-      val = value.to_h if value.is_a? Node
-      { value: val }
-    end
-
-    def position=(val)
-      @position = val
+    def pos=(val)
+      @pos = val
     end
 
     def sub_symbols
@@ -33,126 +39,52 @@ module AST
         .sub("?", "_q")
         .sub("!", "_b")
     end
-
-    def call(args = [], position = self.position)
-      FnCall.new(args, self, position)
-    end
-
-    def dot(property, position = self.position)
-      PropertyLookup.new(self, property, position)
-    end
-
-    def to_return
-      Return.new(self, position)
-    end
-
-    def schema_lookup?
-      false
-    end
-
-    def to_s
-      "#{self.class}.new(#{value})"
-    end
-
-    def wrap_in_fn
-      wrap_in_fn_with([])
-    end
-
-    def wrap_in_fn_with(ast)
-      AST::Fn.new([], [*ast, self], position)
-    end
-
-    def exportable?
-      false
-    end
-
-    def lookup?
-      false
-    end
-
-    def plus(expr)
-      Add.new(self, expr, self.position)
-    end
-
-    def collection?
-      false
-    end
-  end
-
-  class NakedOr < Node
-    attr_reader :lhs, :rhs
-
-    def to_h
-      { lhs: lhs.to_h, rhs: rhs.to_h }
-    end
-
-    def initialize(lhs, rhs)
-      @lhs = lhs
-      @rhs = rhs
-    end
-  end
-
-  class TryLookup < Node
-    def naked_or(rhs)
-      NakedOr.new(self, rhs)
-    end
-
-    def initialize(value, position)
-      @value = value
-      @position = position
-    end
-  end
-
-  class None < Node
   end
 
   class Int < Node
     def self.from_token(token)
-      Int.new(token.value, token.position)
+      Int.new(token.value, token.pos)
     end
 
-    def from_schema
-      None.new
-    end
-
-    def to_schema
-      self
-    end
-
-    def initialize(value, position)
+    def initialize(value, pos)
       @value = value
-      @position = position
+      @pos = pos
     end
   end
 
   class Float < Node
     def self.from_token(token)
-      Float.new(token.value, token.position)
+      Float.new(token.value, token.pos)
     end
 
-    def initialize(value, position)
+    def initialize(value, pos)
       @value = value
-      @position = position
+      @pos = pos
     end
   end
 
   class Bool < Node
-    def initialize(value, position)
+    def initialize(value, pos)
       @value = value
-      @position = position
+      @pos = pos
     end
   end
 
-  class StrTemplate < Node
-    def initialize(strings)
-      @strings = strings
+  class SimpleFnArgs < Node
+    def to_h
+      value
+    end
+
+    def initialize(value, pos)
+      @value = value
+      @pos = pos
     end
   end
 
   class Str < Node
-    def initialize(value, position)
+    def initialize(value, pos)
       @value = value
-      @position = position
+      @pos = pos
     end
 
     def alpha_numeric?
@@ -164,30 +96,27 @@ module AST
     end
   end
 
-  class Nil < Node
-    def initialize(position)
-      @position = position
+  class SimpleString < Node
+    def initialize(value, pos)
+      @value = value
+      @pos = pos
     end
   end
 
   class ArrayLiteral < Node
-    def to_h
-      value.map(&:to_h)
-    end
-
     def from_schema
-      ArrayLiteral.new(value.map(&:from_schema), position)
+      ArrayLiteral.new(value.map(&:from_schema), pos)
     end
 
     def to_schema
       # Maybe we should create ArraySchema?
-      ArrayLiteral.new(value.map(&:to_schema), position)
+      ArrayLiteral.new(value.map(&:to_schema), pos)
     end
 
-    def initialize(value = [], position = nil)
+    def initialize(value = [], pos = nil)
       assert { value.is_a? Array }
       @value = value
-      @position = position
+      @pos = pos
     end
 
     def collection?
@@ -211,17 +140,26 @@ module AST
     end
   end
 
+  class SimpleObjectLiteral < Node
+    def initialize(value, pos)
+      @value = value
+      @pos = pos
+    end
+
+    def to_h
+      value.map do |key, value|
+        [key, value.to_h]
+      end
+    end
+  end
+
   class ObjectLiteral < Node
     attr_reader :splats
 
-    def to_h
-      { value: value.map { |k, v| [k.to_h, v.to_h] }, splats: splats.to_h }
-    end
-
-    def initialize(value, spreads, position)
+    def initialize(value, spreads, pos)
       @value = value
       @splats = spreads
-      @position = position
+      @pos = pos
     end
 
     def collection?
@@ -235,7 +173,7 @@ module AST
     def to_schema
       ObjectLiteral.new(value.map do |key, value|
         [key, value.to_schema]
-      end, splats, position)
+      end, splats, pos)
     end
 
     def captures
@@ -262,17 +200,10 @@ module AST
     end
   end
 
-  class ParenExpr < Node
-    def initialize(value, position)
-      @value = value
-      @position = position
-    end
-  end
-
   class Return < Node
-    def initialize(value, position = value.position)
+    def initialize(value, pos = value.pos)
       @value = value
-      @position = position
+      @pos = pos
     end
 
     def to_return
@@ -284,15 +215,11 @@ module AST
     attr_reader :pass, :fail, :value
     attr_writer :pass, :fail
 
-    def to_h
-      { value: value.to_h, pass: pass.map(&:to_h), fail: self.fail.map(&:to_h) }
-    end
-
-    def initialize(value, pass, _fail, position)
+    def initialize(value, pass, _fail, pos)
       @value = value
       @pass = pass
       @fail = _fail
-      @position = position
+      @pos = pos
     end
 
     def has_return?
@@ -304,19 +231,15 @@ module AST
   class FnCall < Node
     attr_reader :args, :expr
 
-    def to_h
-      { args: args.map(&:to_h), expr: expr.to_h }
-    end
-
-    def initialize(args, expr, position)
+    def initialize(args, expr_n, pos)
       assert { args.is_a? Array }
       @args = args
-      @expr = expr
-      @position = position
+      @expr = expr_n
+      @pos = pos
     end
 
     def as_op
-      OpCall.new(args, expr, position)
+      OpCall.new(args, expr, pos)
     end
   end
 
@@ -326,18 +249,35 @@ module AST
   class Fn < Node
     attr_reader :args, :body
 
-    def to_h
-      { args: args, body: body.map(&:to_h) }
-    end
-
-    def initialize(args, body, position)
+    def initialize(args, body, pos)
       @args = args
       @body = body
-      @position = position
+      @pos = pos
     end
 
     def declare_with(name, schema)
-      Declare.new(name, schema, self, position)
+      Declare.new(name, schema, self, pos)
+    end
+  end
+
+  class SingleLineFnWithNoArgs < Node
+    attr_reader :return_value, :name
+
+    def initialize(name, return_value, pos)
+      @name = name
+      @return_value = return_value
+      @pos = pos
+    end
+  end
+
+  class SingleLineFnWithArgs < Node
+    attr_reader :return_value, :name, :args
+
+    def initialize(name, args, return_value, pos)
+      @name = name
+      @args = args
+      @return_value = return_value
+      @pos = pos
     end
   end
 
@@ -348,13 +288,13 @@ module AST
   end
 
   class IdLookup < Node
-    def initialize(value, position)
+    def initialize(value, pos)
       @value = value
-      @position = position
+      @pos = pos
     end
 
     def to_schema
-      SchemaCapture.new(value, position)
+      SchemaCapture.new(value, pos)
     end
 
     def to_schema_capture_depending_on(context)
@@ -378,10 +318,6 @@ module AST
   class ArgsSchema < Node
     attr_reader :args
 
-    def to_h
-      { args: args }
-    end
-
     def from_schema
       self
     end
@@ -394,15 +330,11 @@ module AST
   class Declare < Node
     attr_reader :name, :schema, :expr
 
-    def to_h
-      { name: name, schema: schema.to_h, expr: expr.to_h }
-    end
-
-    def initialize(name, schema, expr, position)
+    def initialize(name, schema, expr_n, pos)
       @name = name
       @schema = schema
-      @expr = expr
-      @position = position
+      @expr = expr_n
+      @pos = pos
     end
 
     def exportable?
@@ -413,21 +345,17 @@ module AST
   class SchemaCapture < Node
     attr_reader :name
 
-    def to_h
-      { name: name }
-    end
-
     def to_schema
       self
     end
 
     def from_schema
-      IdLookup.new(name, position)
+      IdLookup.new(name, pos)
     end
 
-    def initialize(name, position)
+    def initialize(name, pos)
       @name = name
-      @position = position
+      @pos = pos
     end
 
     def captures
@@ -438,101 +366,41 @@ module AST
   class Import < Node
     attr_reader :pattern, :file_name
 
-    def to_h
-      { pattern: pattern.to_h, file_name: file_name }
-    end
-
-    def initialize(pattern, file_name, position)
+    def initialize(pattern, file_name, pos)
       @pattern = pattern
       @file_name = file_name
-      @position = position
+      @pos = pos
     end
   end
 
   class Export < Node
     attr_reader :expr
 
-    def to_h
-      { expr: expr.to_h, file_name: file_name }
-    end
-
-    def initialize(expr, position)
-      @expr = expr
-      @position = position
+    def initialize(expr_n, pos)
+      @expr = expr_n
+      @pos = pos
     end
   end
 
   class Op < Node
-    attr_reader :lhs, :rhs
+    attr_reader :lhs, :type, :rhs
 
-    def to_h
-      { lhs: lhs.to_h, rhs: rhs.to_h }
-    end
-
-    def initialize(lhs, rhs, position)
+    def initialize(lhs, type, rhs, pos)
       @lhs = lhs
+      @type = type
       @rhs = rhs
-      @position = position
+      @pos = pos
     end
-  end
-
-  class Add < Op
-  end
-
-  class Minus < Op
-  end
-
-  class Multiply < Op
-  end
-
-  class Divide < Op
-  end
-
-  class AndAnd < Op
-  end
-
-  class OrOr < Op
-  end
-
-  class EqEq < Op
-  end
-
-  class NotEq < Op
-  end
-
-  class Gt < Op
-  end
-
-  class Lt < Op
-  end
-
-  class GtEq < Op
-  end
-
-  class LtEq < Op
-  end
-
-  class CombineSchemas < Op
-  end
-
-  class EitherSchemas < Op
-  end
-
-  class In < Op
   end
 
   class MatchAssignment < Node
     attr_reader :schema, :pattern, :value
 
-    def to_h
-      { schema: schema.to_h, pattern: pattern.to_h, value: value.to_h }
-    end
-
     def initialize(schema, pattern, value)
       @schema = schema
       @pattern = pattern
       @value = value
-      @position = schema.position
+      @pos = schema.pos
     end
 
     def captures
@@ -543,14 +411,24 @@ module AST
   class Assign < Node
     attr_reader :name, :expr
 
-    def to_h
-      { name: name, expr: expr.to_h }
+    def initialize(name, expr_n, pos = expr_n.pos)
+      @name = name
+      @expr = expr_n
+      @pos = pos || expr_n.pos
     end
 
-    def initialize(name, expr, position = expr.position)
+    def exportable?
+      true
+    end
+  end
+
+  class SimpleAssignment < Assign
+    attr_reader :name, :expr
+
+    def initialize(name, expr_n, pos = expr_n.pos)
       @name = name
-      @expr = expr
-      @position = position || expr.position
+      @expr = expr_n
+      @pos = pos || expr_n.pos
     end
 
     def exportable?
@@ -561,14 +439,10 @@ module AST
   class PropertyLookup < Node
     attr_reader :lhs_expr, :property
 
-    def to_h
-      { lhs_expr: lhs_expr.to_h, property: property }
-    end
-
-    def initialize(lhs_expr, property, position)
+    def initialize(lhs_expr, property, pos)
       @lhs_expr = lhs_expr
       @property = property
-      @position = position
+      @pos = pos
     end
 
     def lookup?
@@ -579,83 +453,19 @@ module AST
   class Throw < Node
     attr_reader :expr
 
-    def to_h
-      { expr: expr.to_h }
-    end
-
-    def initialize(expr, position)
-      @expr = expr
-      @position = position
-    end
-  end
-
-  class HtmlTag < Node
-    attr_reader :name, :attributes, :children
-
-    def to_h
-      { name: name.to_h, attributes: attributes.to_h, children: children.to_h }
-    end
-
-    def initialize(name, attributes, children, position)
-      @name = name
-      @attributes = attributes
-      @children = children
-      @position = position
-    end
-  end
-
-  class CustomTag < Node
-    attr_reader :name, :attributes, :children
-
-    def to_h
-      { name: name, attributes: attributes.to_h, children: children.to_h }
-    end
-
-    def initialize(name, attributes, children, position)
-      @name = name
-      @attributes = attributes
-      @children = children
-      @position = position
-    end
-  end
-
-  class HtmlText < Node
-    def initialize(value, position)
-      @value = value
-      @position = position
-    end
-  end
-
-  class Class < Node
-    attr_reader :name, :super_class, :methods
-
-    def to_h
-      { name: name, super_class: super_class, methods: methods.map(&:to_h) }
-    end
-
-    def initialize(name, super_class, methods, position)
-      @name = name
-      @super_class = super_class
-      @methods = methods
-      @position = position
-    end
-
-    def exportable?
-      true
+    def initialize(expr_n, pos)
+      @expr = expr_n
+      @pos = pos
     end
   end
 
   class Case < Node
     attr_reader :expr, :cases
 
-    def to_h
-      { expr: expr.to_h, cases: cases.to_h }
-    end
-
-    def initialize(expr, cases, position)
-      @expr = expr
+    def initialize(expr_n, cases, pos)
+      @expr = expr_n
       @cases = cases
-      @position = position
+      @pos = pos
     end
   end
 end

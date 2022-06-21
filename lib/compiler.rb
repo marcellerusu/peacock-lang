@@ -48,8 +48,7 @@ class Compiler
   end
 
   def std_lib
-    code = schema_lib
-    code += css_preprocessor
+    ""
   end
 
   def schema_lib
@@ -130,12 +129,16 @@ class Compiler
     case node
     when AST::Declare
       eval_declaration node
+    when AST::SimpleAssignment
+      eval_assignment node
     when AST::Assign
       eval_assignment node
     when AST::PropertyLookup
       eval_property_lookup node
     when AST::ArrayLiteral
       eval_array_literal node
+    when AST::SimpleObjectLiteral
+      eval_simple_object_literal node
     when AST::ObjectLiteral
       eval_object_literal node
     when AST::Bool
@@ -144,10 +147,14 @@ class Compiler
       eval_int node
     when AST::Float
       eval_float node
+    when AST::SimpleString
+      eval_simple_string node
     when AST::Str
       eval_str node
-    when AST::Nil
-      eval_nil node
+    when AST::SingleLineFnWithNoArgs
+      eval_single_line_fn_with_no_args node
+    when AST::SingleLineFnWithArgs
+      eval_single_line_fn_with_args node
     when AST::Fn
       eval_function node
     when AST::Return
@@ -156,24 +163,12 @@ class Compiler
       eval_function_call node
     when AST::IdLookup
       eval_identifier_lookup node
-    when AST::ParenExpr
-      eval_paren_expr node
     when AST::If
       eval_if_expression node
     when AST::Throw
       eval_throw node
-    when AST::HtmlTag
-      eval_html_tag node
-    when AST::CustomTag
-      eval_custom_tag node
-    when AST::HtmlText
-      eval_html_text_node node
     when AST::Case
       eval_case_expression node
-    when AST::NakedOr
-      eval_naked_or node
-    when AST::TryLookup
-      eval_try_lookup node
     when AST::MatchAssignment
       eval_match_assignment node
     when AST::SchemaCapture
@@ -182,100 +177,41 @@ class Compiler
       eval_combine_schemas node
     when AST::EitherSchemas
       eval_either_schemas node
-    when AST::Add
-      eval_add node
-    when AST::Minus
-      eval_minus node
-    when AST::Multiply
-      eval_multiply node
-    when AST::Divide
-      eval_divide node
-    when AST::AndAnd
-      eval_andand node
-    when AST::OrOr
-      eval_oror node
-    when AST::EqEq
-      eval_eqeq node
-    when AST::NotEq
-      eval_noteq node
-    when AST::Gt
-      eval_gt node
-    when AST::Lt
-      eval_lt node
-    when AST::GtEq
-      eval_gteq node
-    when AST::LtEq
-      eval_lteq node
-    when AST::In
-      eval_in_expr node
+    when AST::Op
+      eval_operator node
     when AST::ArgsSchema
       eval_args_schema node
-    when AST::None
-      eval_none node
     else
       puts "no case matched node_type: #{node.class}"
       assert { false }
     end
   end
 
-  def eval_none(node)
-    ""
-  end
-
   def eval_args_schema(node)
     node.args.join(", ")
   end
 
-  def eval_minus(node)
-    "#{eval_expr(node.lhs)} - #{eval_expr(node.rhs)}"
+  def eval_operator(node)
+    "#{eval_expr(node.lhs)} #{node.type} #{eval_expr(node.rhs)}"
   end
 
-  def eval_add(node)
-    "#{eval_expr(node.lhs)} + #{eval_expr(node.rhs)}"
+  def eval_single_line_fn_with_args(fn_node)
+    args = fn_node.args.value.join ", "
+    fn = "#{padding}function #{fn_node.name}(#{args}) {\n"
+    indent!
+    fn += "#{padding}return #{eval_expr fn_node.return_value};\n"
+    dedent!
+    fn += "#{padding}}"
+    fn
   end
 
-  def eval_in_expr(node)
-    "#{eval_expr(node.rhs)}.includes(#{eval_expr(node.lhs)})"
-  end
-
-  def eval_multiply(node)
-    "#{eval_expr(node.lhs)} * #{eval_expr(node.rhs)}"
-  end
-
-  def eval_divide(node)
-    "#{eval_expr(node.lhs)} / #{eval_expr(node.rhs)}"
-  end
-
-  def eval_andand(node)
-    "#{eval_expr(node.lhs)} && #{eval_expr(node.rhs)}"
-  end
-
-  def eval_oror(node)
-    "#{eval_expr(node.lhs)} || #{eval_expr(node.rhs)}"
-  end
-
-  def eval_eqeq(node)
-    "#{eval_expr(node.lhs)} === #{eval_expr(node.rhs)}"
-  end
-
-  def eval_noteq(node)
-    "#{eval_expr(node.lhs)} !== #{eval_expr(node.rhs)}"
-  end
-
-  def eval_gt(node)
-    "#{eval_expr(node.lhs)} > #{eval_expr(node.rhs)}"
-  end
-
-  def eval_lt(node)
-    "#{eval_expr(node.lhs)} < #{eval_expr(node.rhs)}"
-  end
-
-  def eval_gteq(node)
-    "#{eval_expr(node.lhs)} >= #{eval_expr(node.rhs)}"
-  end
-
-  def eval_lteq(node)
-    "#{eval_expr(node.lhs)} <= #{eval_expr(node.rhs)}"
+  def eval_single_line_fn_with_no_args(fn_node)
+    fn = "#{padding}function #{fn_node.name}() {\n"
+    indent!
+    fn += "#{padding}return #{eval_expr fn_node.return_value};\n"
+    dedent!
+    fn += "#{padding}}"
+    fn
   end
 
   def eval_either_schemas(node)
@@ -310,8 +246,8 @@ class Compiler
     "throw #{eval_expr(node.expr)}"
   end
 
-  def eval_paren_expr(node)
-    "(#{eval_expr node.value})"
+  def eval_simple_string(node)
+    "\"#{node.value}\""
   end
 
   def eval_str(node)
@@ -322,33 +258,8 @@ class Compiler
     "#{node.value}"
   end
 
-  def eval_try_lookup(node)
-    "__try(() => eval('#{node.value.name}'))"
-  end
-
-  def eval_naked_or(node)
-    "(#{eval_expr node.lhs} || #{eval_expr node.rhs})"
-  end
-
-  def eval_html_tag(node)
-    "React.createElement(#{eval_expr(node.name)}, #{eval_expr(node.attributes)}, ...#{eval_expr(node.children)})"
-  end
-
-  def eval_custom_tag(node)
-    "React.createElement(#{node.name}, #{eval_expr(node.attributes)}, ...#{eval_expr(node.children)})"
-  end
-
-  def eval_html_text_node(node)
-    "{\"#{eval_expr(node.value)})\"}"
-  end
-
   def eval_float(node)
     "#{node.value}"
-  end
-
-  def eval_nil(node)
-    # xd
-    "undefined"
   end
 
   def eval_bool(node)
@@ -360,15 +271,14 @@ class Compiler
     "[#{elements}]"
   end
 
+  def eval_simple_object_literal(node)
+    eval_object_literal(node)
+  end
+
   def eval_object_literal(node)
     indent!
     object_literal = "{\n"
-    object_literal += node.value.map do |k, value|
-      key = if k.alpha_numeric?
-          k.value
-        else
-          "[#{eval_expr(k)}]"
-        end
+    object_literal += node.value.map do |key, value|
       "#{padding}#{key}: #{eval_expr(value)}"
     end.join(",\n")
     dedent!

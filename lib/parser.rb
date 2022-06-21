@@ -1,343 +1,289 @@
 require "utils"
 require "ast"
-require "parser/literals"
-require "parser/helpers"
-require "parser/functions"
-require "parser/schemas"
-require "parser/html"
-require "parser/modules"
-
-OPERATORS = [:+, :-, :*, :/, :in, :"&&", :"||", :"==", :"!=", :>, :<, :">=", :"<="]
-
-ANON_SHORTHAND_ID = "__ANON_SHORT_ID"
+require "lexer"
 
 class Parser
-  include Functions
-  include Helpers
-  include Literals
-  include Schemas
-  include HTML
-  include Modules
+  attr_reader :tokens, :program_string, :pos
 
-  def initialize(tokens, program_string, token_index = 0, context = nil)
+  def self.can_parse?(_self)
+    not_implemented!
+  end
+
+  def self.from(_self)
+    self.new(_self.tokens, _self.program_string, _self.pos)
+  end
+
+  def initialize(tokens, program_string, pos = 0)
     @tokens = tokens
     @program_string = program_string
-    @token_index = token_index
-    @context = context
+    @pos = pos
   end
 
-  def unused_count
-    @@unused_count ||= 0
+  def consume_parser!(parser, *parse_args)
+    expr_n = parser.parse! *parse_args
+    @pos = parser.pos
+    expr_n
   end
 
-  def increment_unused_count!
-    @@unused_count += 1
+  def current_token
+    @tokens[@pos]
   end
 
-  def self.reset_unused_count!
-    @@unused_count = 0
+  def rest_of_line
+    rest_of_program = @program_string[current_token.pos..]
+    rest_of_program[0..rest_of_program.index("\n")]
   end
 
-  def clone(tokens: nil, program_string: nil, token_index: nil, context: nil)
-    Parser.new(
-      tokens || @tokens,
-      program_string || @program_string,
-      token_index || @token_index,
-      context || @context
-    )
+  def prev_token
+    @tokens[@pos - 1]
   end
 
-  def context
-    @context ||= Context.new
+  def peek_token
+    @tokens[@pos + 1]
+  end
+
+  def peek_token_twice
+    @tokens[@pos + 2]
+  end
+
+  def consume!(token_type = nil)
+    # puts "#{token_type} #{current_token.type}"
+    # binding.pry if token_type && token_type != current_token.type
+    assert { token_type == current_token.type } unless token_type.nil?
+    @pos += 1
+    return prev_token
   end
 
   def parse!
-    _, @ast = parse_with_position!
-    return @ast
+    ProgramParser.from(self).parse!
+  end
+end
+
+class SingleLineFnWithNoArgs < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :def &&
+      _self.peek_token.type == :identifier &&
+      _self.peek_token_twice.type == :"="
   end
 
-  def parse_with_position!(*end_tokens)
-    @ast = []
-    while more_tokens? && current_token.is_not?(:end)
-      break if current_token.is_one_of?(*end_tokens)
-      case current_token.type
-      when :export
-        @ast.push parse_export!
-      when :import
-        @ast.push parse_import!
-      when :return
-        assert { context.directly_in_a?(:function) }
-        @ast.push parse_return!
-      else
-        @ast.push parse_expr!
-      end
+  def parse!
+    def_t = consume! :def
+    fn_name_t = consume! :identifier
+    consume! :"="
+    return_value_n = consume_parser! ExprParser.from(self)
+    AST::SingleLineFnWithNoArgs.new(fn_name_t.value, return_value_n, def_t.pos)
+  end
+end
+
+class SimpleFnArgsParser < Parser
+  def parse!
+    open_t = consume! :open_paren
+    args = []
+    while current_token.type != :close_paren
+      arg_t = consume! :identifier
+      args.push arg_t.value
+      consume! :comma unless current_token.type == :close_paren
     end
-
-    wrap_last_expr_in_return!
-
-    return @token_index, @ast
-  end
-
-  def wrap_last_expr_in_return!
-    return if !context.directly_in_a?(:function)
-    return if !@ast.last.is_not_one_of?(AST::Return, AST::If)
-
-    @ast[-1] = @ast[-1].to_return
-  end
-
-  # Parsing begins!
-
-  def parse_expr!
-    # more complex conditions first
-    if current_token.is_one_of?(:true, :false)
-      return parse_bool! current_token.type
-    elsif current_token.is?(:identifier) && peek_token&.is?(:assign)
-      return parse_assignment!
-    elsif arrow_function?
-      return parse_arrow_function!
-    elsif paren_expr?
-      return parse_paren_expr!
-    end
-    # simple after
-    case current_token.type
-    when :int_lit
-      node = parse_int!
-    when :float_lit
-      parse_float!
-    when :str_lit
-      parse_str!
-    when :nil
-      parse_nil!
-    when :"["
-      parse_array_literal!
-    when :"{"
-      parse_object_literal!
-    when :"!"
-      parse_bang!
-    when :identifier
-      parse_identifier!
-    when :property
-      parse_property!
-    when :open_html_tag
-      parse_html_tag!
-    when :open_custom_element_tag
-      parse_custom_element!
-    when :def
-      parse_function_def!
-    when :do
-      parse_anon_function_def!
-    when :"#\{"
-      parse_anon_function_shorthand!
-    when :%
-      parse_anon_short_id!
-    when :if
-      node = parse_if_expression!
-      modify_if_statement_for_context! node
-    when :schema
-      parse_schema!
-    when :case
-      parse_case_expression!
-    else
-      # binding.pry
-      assert { false }
-    end
-  end
-
-  def paren_expr?
-    current_token.is?(:open_paren)
-  end
-
-  def parse_paren_expr!
-    token = consume! :open_paren
-    context.push! :paren
-    expr = parse_expr!
-    context.pop! :paren
     consume! :close_paren
-    node = AST::ParenExpr.new expr, token.position
-    parse_id_modifier_if_exists! node
+
+    AST::SimpleFnArgs.new(args, open_t.pos)
+  end
+end
+
+class SingleLineFnWithArgs < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :def &&
+      _self.peek_token.type == :identifier &&
+      _self.peek_token_twice.type == :open_paren &&
+      _self.rest_of_line.include?("=")
   end
 
-  def parse_id_modifier_if_exists!(expr)
-    # TODO: kinda hacky.. :/
-    # This is because all the tokens (text nodes)
-    # of html child aren't tokenized as raw text
-    return expr if context.directly_in_a? :html_tag
-    node = case
-      when function_call?(expr)
-        parse_function_call! expr
-      when end_of_file?
-        return expr
-      when current_token.is?(:"[") && !new_line?
-        parse_dynamic_lookup! expr
-      when current_token.is?(:&) && peek_token.is?(:"[")
-        parse_nil_safe_lookup! expr
-      when current_token.is?(:&) && peek_token.is?(:dot)
-        parse_nil_safe_call! expr
-      when current_token.is?(:dot)
-        parse_dot_expression! expr
-      when operator?
-        return parse_operator_call! expr
-      else
-        return expr
-      end
+  def parse!
+    def_t = consume! :def
+    fn_name_t = consume! :identifier
+    args_n = consume_parser! SimpleFnArgsParser.from(self)
+    consume! :"="
+    return_value_n = consume_parser! ExprParser.from(self)
 
-    return node if node == expr
-    parse_id_modifier_if_exists! node
+    AST::SingleLineFnWithArgs.new(fn_name_t.value, args_n, return_value_n, def_t.pos)
+  end
+end
+
+OPERATORS = [:+, :-, :*, :/, :in, :"&&", :"||", :"==", :"!=", :>, :<, :">=", :"<="]
+
+class OperatorParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.is_one_of? *OPERATORS
   end
 
-  def operator?
-    current_token.is_one_of?(*OPERATORS) && !context.directly_in_a?(:operator)
+  def parse!(lhs_n)
+    operator_t = consume!
+    rhs_n = consume_parser! ExprParser.from(self)
+    AST::Op.new(lhs_n, operator_t.type, rhs_n, lhs_n.pos)
+  end
+end
+
+# Complex primatives
+
+class SimpleObjectParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :"{"
   end
 
-  # Individual parsers
-
-  def parse_nil_safe_lookup!(lhs)
-    and_t = consume! :&
-    consume! :"["
-    expr = parse_expr!
-    consume! :"]"
-    assert { false }
-    AST::AndDot.new(lhs, expr)
-  end
-
-  def parse_nil_safe_call!(lhs)
-    and_t = consume! :&
-    consume! :dot
-    id_token = consume! :identifier
-    node = parse_function_call! lhs.dot(id_token.value, id_token.position)
-    node = AST::AndDot.new(lhs, node)
-  end
-
-  def parse_return!(implicit_return = false)
-    return_token = consume! :return unless implicit_return
-    expr = parse_expr!
-    node = AST::Return.new expr, return_token.position
-    if current_token.is? :if
-      if_token = consume! :if
-      cond = parse_expr!
-      AST::If.new(cond, [node], [], if_token.position)
-    else
-      node
+  def parse!
+    open_brace_t = consume! :"{"
+    values = []
+    while current_token.type != :"}"
+      key_t = consume! :identifier
+      consume! :colon
+      value = consume_parser! ExprParser.from(self)
+      consume! :comma unless current_token.type == :"}"
+      values.push [key_t.value, value]
     end
+    consume! :"}"
+    AST::SimpleObjectLiteral.new(values, open_brace_t.pos)
+  end
+end
+
+class ArrayParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :"["
   end
 
-  def parse_assignment!
-    id_token = consume! :identifier
+  def parse!
+    open_sq_b_t = consume! :"["
+    elems = []
+    while current_token.type != :"]"
+      elems.push consume_parser! ExprParser.from(self)
+      consume! :comma unless current_token.type == :"]"
+    end
+    consume! :"]"
+    AST::ArrayLiteral.new(elems, open_sq_b_t.pos)
+  end
+end
+
+# Simple Primatives
+
+class IntParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :int_lit
+  end
+
+  def parse!
+    int_t = consume! :int_lit
+    AST::Int.new(int_t.value, int_t.pos)
+  end
+end
+
+class FloatParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :float_lit
+  end
+
+  def parse!
+    int_t = consume! :float_lit
+    AST::Float.new(int_t.value, int_t.pos)
+  end
+end
+
+class SimpleStringParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :str_lit
+  end
+
+  def parse!
+    int_t = consume! :str_lit
+    AST::SimpleString.new(int_t.value, int_t.pos)
+  end
+end
+
+class IdentifierLookupParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :identifier
+  end
+
+  def parse!
+    id_t = consume! :identifier
+    AST::IdLookup.new(id_t.value, id_t.pos)
+  end
+end
+
+# Statements
+
+class SimpleAssignmentParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :identifier &&
+      _self.peek_token.type == :assign
+  end
+
+  def parse!
+    id_t = consume! :identifier
     consume! :assign
-    context.push! :assignment
-    expr = parse_expr!
-    context.pop! :assignment
-    AST::Assign.new id_token.value, expr, id_token.position
+    expr_n = consume_parser! ExprParser.from(self)
+
+    AST::SimpleAssignment.new(id_t.value, expr_n, id_t.pos)
   end
+end
 
-  def parse_operator_call!(lhs)
-    op_token = consume!
-    context.push! :operator
-    rhs = parse_expr!
-    context.pop! :operator
+class ExprParser < Parser
+  # order matters
+  ALLOWED_PARSERS = [
+    IntParser,
+    FloatParser,
+    SimpleStringParser,
+    ArrayParser,
+    SimpleObjectParser,
+    IdentifierLookupParser,
+  ]
 
-    method_name = op_token.type.to_s
-    assert { !method_name.nil? }
+  def parse!
+    parser_klass = ALLOWED_PARSERS.find { |parser_klass| parser_klass.can_parse?(self) }
 
-    node = case op_token.type
-      when :+
-        AST::Add.new(lhs, rhs, op_token.position)
-      when :-
-        AST::Minus.new(lhs, rhs, op_token.position)
-      when :*
-        AST::Multiply.new(lhs, rhs, op_token.position)
-      when :/
-        AST::Divide.new(lhs, rhs, op_token.position)
-      when :"&&"
-        AST::AndAnd.new(lhs, rhs, op_token.position)
-      when :"||"
-        AST::OrOr.new(lhs, rhs, op_token.position)
-      when :"=="
-        AST::EqEq.new(lhs, rhs, op_token.position)
-      when :"!="
-        AST::NotEq.new(lhs, rhs, op_token.position)
-      when :>
-        AST::Gt.new(lhs, rhs, op_token.position)
-      when :<
-        AST::Lt.new(lhs, rhs, op_token.position)
-      when :">="
-        AST::GtEq.new(lhs, rhs, op_token.position)
-      when :"<="
-        AST::LtEq.new(lhs, rhs, op_token.position)
-      when :in
-        AST::In.new(lhs, rhs, op_token.position)
-      else
-        assert { false }
+    if !parser_klass
+      not_implemented! do
+        puts "Not Implemented, only supporting the following parsers - "
+        pp ALLOWED_PARSERS
       end
-    parse_id_modifier_if_exists! node
-  end
-
-  def parse_if_body!
-    @token_index, body = clone(context: context.push(:if)).parse_with_position! :end, :else
-    body
-  end
-
-  def parse_if_expression!
-    if_token = consume! :if
-    check = parse_expr!
-    consume! :then if current_token.is? :then
-    pass_body = parse_if_body!
-    if current_token.is_not? :else
-      consume! :end
-      return AST::If.new check, pass_body, [], if_token.position
     end
-    consume! :else
-    fail_body = if current_token.is? :if
-        [parse_if_expression!]
-      else
-        body = parse_if_body!
-        consume! :end
-        body
+
+    expr_n = consume_parser! parser_klass.from(self)
+
+    if OperatorParser.can_parse?(self)
+      expr_n = consume_parser! OperatorParser.from(self), expr_n
+    end
+
+    expr_n
+  end
+end
+
+class ProgramParser < Parser
+  def initialize(*args)
+    super(*args)
+    @body = []
+  end
+
+  ALLOWED_PARSERS = [
+    SimpleAssignmentParser,
+    SingleLineFnWithNoArgs,
+    SingleLineFnWithArgs,
+  ]
+
+  def consume_parser!(parser)
+    expr_n = parser.parse!
+    @pos = parser.pos
+    @body.push expr_n
+  end
+
+  def parse!
+    klass = ALLOWED_PARSERS.find { |klass| klass.can_parse?(self) }
+
+    if !klass
+      not_implemented! do
+        puts "Not Implemented, only supporting the following parsers - "
+        pp ALLOWED_PARSERS
       end
-    AST::If.new check, pass_body, fail_body, if_token.position
-  end
-
-  def insert_return!(body)
-    return body if body.size == 0
-    return body if body.last.is_a? AST::Return
-    body[-1] = body[-1].to_return
-    body
-  end
-
-  def modify_if_statement_for_context!(if_expr)
-    def replace_return!(if_expr)
-      insert_return!(if_expr.pass)
-      insert_return!(if_expr.fail)
-      if_expr
     end
 
-    if context.directly_in_a? :str
-      assert { !if_expr.has_return? }
-      replace_return!(if_expr).wrap_in_fn.call
-    elsif context.directly_in_a? :assignment
-      # TODO: we shouldn't have to create a function here
-      # we could do something similar to insert_return!, but insert_assignment
-      # but that requires context to store the actual node, not just node_type
-      replace_return!(if_expr).wrap_in_fn.call
-    elsif context.directly_in_a? :html_escaped_expr
-      replace_return!(if_expr).wrap_in_fn
-    elsif context.directly_in_a? :function
-      replace_return!(if_expr)
-    else
-      if_expr
-    end
-  end
-
-  def parse_dot_expression!(lhs)
-    dot = consume! :dot
-    token = consume!(:identifier)
-    lhs.dot(token.value, token.position)
-  end
-
-  def parse_dynamic_lookup!(lhs)
-    consume! :"["
-    expr = parse_expr!
-    consume! :"]"
-    lhs.lookup(expr)
+    consume_parser! klass.from(self)
   end
 end
