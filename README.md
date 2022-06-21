@@ -9,8 +9,8 @@ For example, a more complex pattern in peacock like this, of updating a value in
 ```ruby
 # todos := [{ id: 10, completed: false, ... }, ...]
 
-def updateTodo(id, todoList) =
-  for todoList of
+def updateTodo(id, todos) =
+  for todos of
     { id: id, ...todo } => { ...todo, id, completed: true },
     continue
   end
@@ -21,8 +21,8 @@ would get compiled to the following JavaScript
 ```javascript
 // let todos = [{ id: 10, completed: false, ... }, ...]
 
-function updateTodo(id, todoList) {
-  return todoList.map((_elem) => {
+function updateTodo(id, todos) {
+  return todos.map((_elem) => {
     if (_elem.id === id) {
       let { id, ...todo } = _elem;
       return { ...todo, id, completed: true };
