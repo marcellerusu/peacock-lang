@@ -444,6 +444,17 @@ module AST
     end
   end
 
+  class SimpleForOfLoop < Node
+    attr_reader :iter_name, :arr_expr, :body
+
+    def initialize(iter_name, arr_expr, body, pos)
+      @iter_name = iter_name
+      @arr_expr = arr_expr
+      @body = body
+      @pos = pos
+    end
+  end
+
   class Import < Node
     attr_reader :pattern, :file_name
 

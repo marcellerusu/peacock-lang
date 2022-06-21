@@ -3,17 +3,15 @@ require "pry"
 require "parser"
 
 class Compiler
-  attr_reader :context
   # TODO: do something better for tests
   @@use_std_lib = true
   def self.use_std_lib=(other)
     @@use_std_lib = other
   end
 
-  def initialize(ast, indent = 0, context = Context.new)
+  def initialize(ast, indent = 0)
     @ast = ast
     @indent = indent
-    @context = context
   end
 
   def eval
@@ -197,10 +195,19 @@ class Compiler
       eval_function_call_without_args node
     when AST::FunctionCallWithArgs
       eval_function_call_with_args node
+    when AST::SimpleForOfLoop
+      eval_simple_for_of_loop node
     else
+      binding.pry
       puts "no case matched node_type: #{node.class}"
       assert_not_reached!
     end
+  end
+
+  def eval_simple_for_of_loop(node)
+    for_loop = "for (#{node.iter_name} of #{eval_expr node.arr_expr}) {\n"
+    for_loop += Compiler.new(node.body, @indent + 2).eval + "\n"
+    for_loop += "}"
   end
 
   def eval_args_schema(node)

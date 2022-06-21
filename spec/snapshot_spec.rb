@@ -95,4 +95,13 @@ console.log double()")
 ')
     expect(ast).to eq([{"klass"=>"AST::SimpleAssignment", "name"=>"double", "expr"=>{"klass"=>"AST::SingleLineArrowFnWithOneArg", "arg"=>"x", "return_expr"=>{"klass"=>"AST::Op", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"x", "pos"=>15}, "type"=>:*, "rhs"=>{"klass"=>"AST::Int", "value"=>2, "pos"=>19}, "pos"=>15}, "pos"=>10}, "pos"=>0}])
   end
+  it "2022-06-21 16:25:07 -0400" do
+    ast = parse('arr := [1, 2, 3]
+
+for elem of arr
+  console.log elem
+end
+')
+    expect(ast).to eq([{"klass"=>"AST::SimpleAssignment", "name"=>"arr", "expr"=>{"klass"=>"AST::ArrayLiteral", "value"=>[{"klass"=>"AST::Int", "value"=>1, "pos"=>8}, {"klass"=>"AST::Int", "value"=>2, "pos"=>11}, {"klass"=>"AST::Int", "value"=>3, "pos"=>14}], "pos"=>7}, "pos"=>0}, {"klass"=>"AST::SimpleForOfLoop", "iter_name"=>"elem", "arr_expr"=>{"klass"=>"AST::IdLookup", "value"=>"arr", "pos"=>30}, "body"=>[{"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::IdLookup", "value"=>"elem", "pos"=>48}], "expr"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"console", "pos"=>36}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"log", "pos"=>44}, "pos"=>43}, "pos"=>43}], "pos"=>18}])
+  end
 end

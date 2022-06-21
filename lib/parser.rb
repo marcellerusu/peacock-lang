@@ -64,7 +64,7 @@ class Parser
   end
 end
 
-class SingleLineDefWithNoArgs < Parser
+class SingleLineDefWithNoArgsParser < Parser
   def self.can_parse?(_self)
     _self.current_token.type == :def &&
       _self.peek_token.type == :identifier &&
@@ -95,7 +95,7 @@ class SimpleFnArgsParser < Parser
   end
 end
 
-class SingleLineDefWithArgs < Parser
+class SingleLineDefWithArgsParser < Parser
   def self.can_parse?(_self)
     _self.current_token.type == :def &&
       _self.peek_token.type == :identifier &&
@@ -114,7 +114,7 @@ class SingleLineDefWithArgs < Parser
   end
 end
 
-class MultilineDefWithoutArgs < Parser
+class MultilineDefWithoutArgsParser < Parser
   def self.can_parse?(_self)
     _self.current_token.type == :def &&
       _self.peek_token.type == :identifier
@@ -129,7 +129,7 @@ class MultilineDefWithoutArgs < Parser
   end
 end
 
-class MultilineDefWithArgs < Parser
+class MultilineDefWithArgsParser < Parser
   def self.can_parse?(_self)
     _self.current_token.type == :def &&
       _self.peek_token.type == :identifier &&
@@ -432,7 +432,6 @@ class ExprParser < Parser
     parser_klass = PRIMARY_PARSERS.find { |parser_klass| parser_klass.can_parse?(self) }
 
     if !parser_klass
-      binding.pry
       not_implemented! do
         puts "Not Implemented, only supporting the following parsers - "
         pp PRIMARY_PARSERS
@@ -451,6 +450,24 @@ class ExprParser < Parser
   end
 end
 
+class SimpleForOfLoopParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :for &&
+      _self.peek_token.type == :identifier &&
+      _self.peek_token_twice.type == :of
+  end
+
+  def parse!
+    for_t = consume! :for
+    iter_var_t = consume! :identifier
+    consume! :of
+    arr_expr_n = consume_parser! ExprParser.from(self)
+    body = consume_parser! ProgramParser.from(self)
+    consume! :end
+    AST::SimpleForOfLoop.new(iter_var_t.value, arr_expr_n, body, for_t.pos)
+  end
+end
+
 class ProgramParser < Parser
   def initialize(*args)
     super(*args)
@@ -458,12 +475,13 @@ class ProgramParser < Parser
   end
 
   ALLOWED_PARSERS = [
-    SimpleAssignmentParser,
-    SingleLineDefWithNoArgs,
-    SingleLineDefWithArgs,
-    MultilineDefWithArgs,
-    MultilineDefWithoutArgs,
     ReturnParser,
+    SimpleAssignmentParser,
+    SingleLineDefWithNoArgsParser,
+    SingleLineDefWithArgsParser,
+    MultilineDefWithArgsParser,
+    MultilineDefWithoutArgsParser,
+    SimpleForOfLoopParser,
   ]
 
   def consume_parser!(parser)
