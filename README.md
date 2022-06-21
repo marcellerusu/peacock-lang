@@ -25,7 +25,7 @@ function updateTodo(id, todoList) {
   return todoList.map((_elem) => {
     if (_elem.id === id) {
       let { id, ...todo } = _elem;
-      result.push({ ...todo, id, completed: true });
+      return { ...todo, id, completed: true };
     }
   });
 }
