@@ -296,8 +296,7 @@ end
 
 class FunctionCallWithArgsWithoutParens < Parser
   def self.can_parse?(_self)
-    end_tokens = [:comma, :"]", :close_paren]
-    _self.current_token&.is_not_one_of?(*end_tokens) &&
+    _self.current_token&.is_not_one_of?(:comma, :"]", :close_paren) &&
       _self.peek_token&.type != :dot &&
       !_self.new_line?
   end
@@ -310,49 +309,6 @@ class FunctionCallWithArgsWithoutParens < Parser
     end
 
     AST::FnCall.new(args, lhs_n, lhs_n.pos)
-  end
-end
-
-class ExprParser < Parser
-  # order matters
-  ALLOWED_PARSERS = [
-    IntParser,
-    FloatParser,
-    SimpleStringParser,
-    ArrayParser,
-    SimpleObjectParser,
-    IdentifierLookupParser,
-  ]
-
-  def parse!
-    parser_klass = ALLOWED_PARSERS.find { |parser_klass| parser_klass.can_parse?(self) }
-
-    if !parser_klass
-      not_implemented! do
-        puts "Not Implemented, only supporting the following parsers - "
-        pp ALLOWED_PARSERS
-      end
-    end
-
-    expr_n = consume_parser! parser_klass.from(self)
-
-    while true
-      if OperatorParser.can_parse?(self)
-        expr_n = consume_parser! OperatorParser.from(self), expr_n
-      elsif DotParser.can_parse?(self)
-        expr_n = consume_parser! DotParser.from(self), expr_n
-      elsif FunctionCallWithoutArgs.can_parse?(self)
-        expr_n = consume_parser! FunctionCallWithoutArgs.from(self), expr_n
-      elsif FunctionCallWithArgs.can_parse?(self)
-        expr_n = consume_parser! FunctionCallWithArgs.from(self), expr_n
-      elsif FunctionCallWithArgsWithoutParens.can_parse?(self)
-        expr_n = consume_parser! FunctionCallWithArgsWithoutParens.from(self), expr_n
-      else
-        break
-      end
-    end
-
-    expr_n
   end
 end
 
@@ -377,6 +333,47 @@ class ReturnParser < Parser
     return_t = consume! :return
     expr_n = consume_parser! ExprParser.from(self)
     AST::Return.new(expr_n, return_t.pos)
+  end
+end
+
+class ExprParser < Parser
+  # order matters
+  PRIMARY_PARSERS = [
+    IntParser,
+    FloatParser,
+    SimpleStringParser,
+    ArrayParser,
+    SimpleObjectParser,
+    IdentifierLookupParser,
+  ]
+
+  SECONDARY_PARSERS = [
+    OperatorParser,
+    DotParser,
+    FunctionCallWithoutArgs,
+    FunctionCallWithArgs,
+    FunctionCallWithArgsWithoutParens,
+  ]
+
+  def parse!
+    parser_klass = PRIMARY_PARSERS.find { |parser_klass| parser_klass.can_parse?(self) }
+
+    if !parser_klass
+      not_implemented! do
+        puts "Not Implemented, only supporting the following parsers - "
+        pp PRIMARY_PARSERS
+      end
+    end
+
+    expr_n = consume_parser! parser_klass.from(self)
+
+    while true
+      parser_klass = SECONDARY_PARSERS.find { |parser_klass| parser_klass.can_parse?(self) }
+      break if !parser_klass
+      expr_n = consume_parser! parser_klass.from(self), expr_n
+    end
+
+    expr_n
   end
 end
 
