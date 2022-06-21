@@ -179,6 +179,8 @@ class Compiler
       eval_args_schema node
     when AST::MultilineDefWithoutArgs
       eval_multiline_def_without_args node
+    when AST::MultilineDefWithArgs
+      eval_multiline_def_with_args node
     else
       puts "no case matched node_type: #{node.class}"
       assert_not_reached!
@@ -187,6 +189,15 @@ class Compiler
 
   def eval_args_schema(node)
     node.args.join(", ")
+  end
+
+  def eval_multiline_def_with_args(fn_node)
+    args = fn_node.args.value.join ", "
+
+    fn = "#{padding}function #{fn_node.name}(#{args}) {\n"
+    fn += Compiler.new(fn_node.body, @indent + 2).eval + "\n"
+    fn += "#{padding}}"
+    fn
   end
 
   def eval_multiline_def_without_args(fn_node)

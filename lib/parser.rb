@@ -124,6 +124,23 @@ class MultilineDefWithoutArgs < Parser
   end
 end
 
+class MultilineDefWithArgs < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :def &&
+      _self.peek_token.type == :identifier &&
+      _self.peek_token_twice.type == :open_paren
+  end
+
+  def parse!
+    def_t = consume! :def
+    fn_name_t = consume! :identifier
+    args_n = consume_parser! SimpleFnArgsParser.from(self)
+    body = consume_parser! FunctionBodyParser.from(self)
+    consume! :end
+    AST::MultilineDefWithArgs.new(fn_name_t.value, args_n, body, def_t.pos)
+  end
+end
+
 OPERATORS = [:+, :-, :*, :/, :in, :"&&", :"||", :"==", :"!=", :>, :<, :">=", :"<="]
 
 class OperatorParser < Parser
@@ -271,6 +288,18 @@ class ExprParser < Parser
   end
 end
 
+class ReturnParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :return
+  end
+
+  def parse!
+    return_t = consume! :return
+    expr_n = consume_parser! ExprParser.from(self)
+    AST::Return.new(expr_n, return_t.pos)
+  end
+end
+
 class ProgramParser < Parser
   def initialize(*args)
     super(*args)
@@ -281,7 +310,9 @@ class ProgramParser < Parser
     SimpleAssignmentParser,
     SingleLineDefWithNoArgs,
     SingleLineDefWithArgs,
+    MultilineDefWithArgs,
     MultilineDefWithoutArgs,
+    ReturnParser,
   ]
 
   def consume_parser!(parser)
@@ -294,6 +325,7 @@ class ProgramParser < Parser
     klass = ALLOWED_PARSERS.find { |klass| klass.can_parse?(self) }
 
     if !klass
+      binding.pry
       not_implemented! do
         puts "Not Implemented, only supporting the following parsers - "
         pp ALLOWED_PARSERS

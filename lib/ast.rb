@@ -291,6 +291,17 @@ module AST
     end
   end
 
+  class MultilineDefWithArgs < Node
+    attr_reader :body, :args, :name
+
+    def initialize(name, args, body, pos)
+      @name = name
+      @args = args
+      @body = body
+      @pos = pos
+    end
+  end
+
   class ShortFn < Fn
   end
 
