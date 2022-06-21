@@ -83,6 +83,16 @@ console.log add(10, 20)")
     ast = parse("double := () => 10 * 2
 
 console.log double()")
-    expect(ast).to eq([{ "klass" => "AST::SimpleAssignment", "name" => "double", "expr" => { "klass" => "AST::ArrowFnWithoutArgs", "return_expr" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::Int", "value" => 10, "pos" => 16 }, "type" => :*, "rhs" => { "klass" => "AST::Int", "value" => 2, "pos" => 21 }, "pos" => 16 }, "pos" => 10 }, "pos" => 0 }, { "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::FnCall", "args" => [], "expr" => { "klass" => "AST::IdLookup", "value" => "double", "pos" => 36 }, "pos" => 42 }], "expr" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "console", "pos" => 24 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "log", "pos" => 32 }, "pos" => 31 }, "pos" => 31 }])
+    expect(ast).to eq([{ "klass" => "AST::SimpleAssignment", "name" => "double", "expr" => { "klass" => "AST::SingleLineArrowFnWithoutArgs", "return_expr" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::Int", "value" => 10, "pos" => 16 }, "type" => :*, "rhs" => { "klass" => "AST::Int", "value" => 2, "pos" => 21 }, "pos" => 16 }, "pos" => 10 }, "pos" => 0 }, { "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::FnCall", "args" => [], "expr" => { "klass" => "AST::IdLookup", "value" => "double", "pos" => 36 }, "pos" => 42 }], "expr" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "console", "pos" => 24 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "log", "pos" => 32 }, "pos" => 31 }, "pos" => 31 }])
+  end
+  it "2022-06-21 15:28:11 -0400" do
+    ast = parse("double := (x) => x * 2
+")
+    expect(ast).to eq([{ "klass" => "AST::SimpleAssignment", "name" => "double", "expr" => { "klass" => "AST::SingleLineArrowFnWithArgs", "args" => ["x"], "return_expr" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::IdLookup", "value" => "x", "pos" => 17 }, "type" => :*, "rhs" => { "klass" => "AST::Int", "value" => 2, "pos" => 21 }, "pos" => 17 }, "pos" => 10 }, "pos" => 0 }])
+  end
+  it "2022-06-21 15:37:31 -0400" do
+    ast = parse('double := x => x * 2
+')
+    expect(ast).to eq([{"klass"=>"AST::SimpleAssignment", "name"=>"double", "expr"=>{"klass"=>"AST::SingleLineArrowFnWithOneArg", "arg"=>"x", "return_expr"=>{"klass"=>"AST::Op", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"x", "pos"=>15}, "type"=>:*, "rhs"=>{"klass"=>"AST::Int", "value"=>2, "pos"=>19}, "pos"=>15}, "pos"=>10}, "pos"=>0}])
   end
 end

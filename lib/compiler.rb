@@ -157,8 +157,12 @@ class Compiler
       eval_single_line_fn_with_args node
     when AST::Fn
       eval_function node
-    when AST::ArrowFnWithoutArgs
+    when AST::SingleLineArrowFnWithoutArgs
       eval_arrow_fn_without_args node
+    when AST::SingleLineArrowFnWithArgs
+      eval_arrow_fn_with_args node
+    when AST::SingleLineArrowFnWithOneArg
+      eval_arrow_fn_with_one_arg node
     when AST::ShortFn
       eval_short_fn node
     when AST::AnonIdLookup
@@ -339,6 +343,16 @@ class Compiler
 
   def eval_assignment(node)
     "#{sub_q(node.name)} = #{eval_expr(node.expr)}"
+  end
+
+  def eval_arrow_fn_with_one_arg(node)
+    "(#{node.arg}) => #{eval_expr node.return_expr}"
+  end
+
+  def eval_arrow_fn_with_args(node)
+    args = node.args.value.join ", "
+
+    "(#{args}) => #{eval_expr node.return_expr}"
   end
 
   def eval_arrow_fn_without_args(node)

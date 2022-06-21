@@ -1,3 +1,1 @@
-double := () => 10 * 2
-
-console.log double()
+double := x => x * 2

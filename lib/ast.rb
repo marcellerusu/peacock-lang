@@ -333,10 +333,30 @@ module AST
   class ArrowFn < Fn
   end
 
-  class ArrowFnWithoutArgs < Node
+  class SingleLineArrowFnWithoutArgs < Node
     attr_reader :return_expr, :pos
 
     def initialize(return_expr, pos)
+      @return_expr = return_expr
+      @pos = pos
+    end
+  end
+
+  class SingleLineArrowFnWithArgs < Node
+    attr_reader :args, :return_expr, :pos
+
+    def initialize(args, return_expr, pos)
+      @args = args
+      @return_expr = return_expr
+      @pos = pos
+    end
+  end
+
+  class SingleLineArrowFnWithOneArg < Node
+    attr_reader :arg, :return_expr, :pos
+
+    def initialize(arg, return_expr, pos)
+      @arg = arg
       @return_expr = return_expr
       @pos = pos
     end

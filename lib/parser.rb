@@ -51,10 +51,6 @@ class Parser
     @tokens[@pos + 2]
   end
 
-  def peek_token_thrice
-    @tokens[@pos + 3]
-  end
-
   def consume!(token_type = nil)
     # puts "#{token_type} #{current_token.type}"
     # binding.pry if token_type && token_type != current_token.type
@@ -366,9 +362,9 @@ end
 
 class SingleLineArrowFnWithoutArgsParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :open_paren &&
-      _self.peek_token.type == :close_paren &&
-      _self.peek_token_twice.type == :"=>"
+    _self.current_token&.type == :open_paren &&
+      _self.peek_token&.type == :close_paren &&
+      _self.peek_token_twice&.type == :"=>"
   end
 
   def parse!
@@ -376,7 +372,35 @@ class SingleLineArrowFnWithoutArgsParser < Parser
     consume! :close_paren
     consume! :"=>"
     return_expr_n = consume_parser! ExprParser.from(self)
-    AST::ArrowFnWithoutArgs.new(return_expr_n, open_p_t.pos)
+    AST::SingleLineArrowFnWithoutArgs.new(return_expr_n, open_p_t.pos)
+  end
+end
+
+class SingleLineArrowFnWithArgsParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :open_paren &&
+      _self.rest_of_line&.include?("=>")
+  end
+
+  def parse!
+    args_n = consume_parser! SimpleFnArgsParser.from(self)
+    consume! :"=>"
+    return_expr_n = consume_parser! ExprParser.from(self)
+    AST::SingleLineArrowFnWithArgs.new(args_n, return_expr_n, args_n.pos)
+  end
+end
+
+class SingleLineArrowFnWithOneArgParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :identifier &&
+      _self.peek_token&.type == :"=>"
+  end
+
+  def parse!
+    arg_t = consume! :identifier
+    consume! :"=>"
+    return_expr_n = consume_parser! ExprParser.from(self)
+    AST::SingleLineArrowFnWithOneArg.new(arg_t.value, return_expr_n, arg_t.pos)
   end
 end
 
@@ -389,9 +413,11 @@ class ExprParser < Parser
     ArrayParser,
     SimpleObjectParser,
     AnonIdLookupParser,
+    SingleLineArrowFnWithOneArgParser,
     IdentifierLookupParser,
     ShortAnonFnParser,
     SingleLineArrowFnWithoutArgsParser,
+    SingleLineArrowFnWithArgsParser,
   ]
 
   SECONDARY_PARSERS = [
@@ -406,6 +432,7 @@ class ExprParser < Parser
     parser_klass = PRIMARY_PARSERS.find { |parser_klass| parser_klass.can_parse?(self) }
 
     if !parser_klass
+      binding.pry
       not_implemented! do
         puts "Not Implemented, only supporting the following parsers - "
         pp PRIMARY_PARSERS
