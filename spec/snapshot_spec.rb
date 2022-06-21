@@ -46,17 +46,22 @@ end
     expect(ast).to eq([{ "klass" => "AST::SingleLineDefWithArgs", "name" => "add", "args" => ["a", "b"], "return_value" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::IdLookup", "value" => "a", "pos" => 16 }, "type" => :+, "rhs" => { "klass" => "AST::IdLookup", "value" => "b", "pos" => 20 }, "pos" => 16 }, "pos" => 0 }])
   end
   it "2022-06-20 21:58:14 -0400" do
-    ast = parse('def add(a, b)
+    ast = parse("def add(a, b)
   return a + b
 end
-')
-    expect(ast).to eq([{"klass"=>"AST::MultilineDefWithArgs", "name"=>"add", "args"=>["a", "b"], "body"=>[{"klass"=>"AST::Return", "value"=>{"klass"=>"AST::Op", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"a", "pos"=>23}, "type"=>:+, "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"b", "pos"=>27}, "pos"=>23}, "pos"=>16}], "pos"=>0}])
+")
+    expect(ast).to eq([{ "klass" => "AST::MultilineDefWithArgs", "name" => "add", "args" => ["a", "b"], "body" => [{ "klass" => "AST::Return", "value" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::IdLookup", "value" => "a", "pos" => 23 }, "type" => :+, "rhs" => { "klass" => "AST::IdLookup", "value" => "b", "pos" => 27 }, "pos" => 23 }, "pos" => 16 }], "pos" => 0 }])
   end
   it "2022-06-20 22:01:23 -0400" do
-    ast = parse('def add(a, b)
+    ast = parse("def add(a, b)
   a + b
 end
+")
+    expect(ast).to eq([{ "klass" => "AST::MultilineDefWithArgs", "name" => "add", "args" => ["a", "b"], "body" => [{ "klass" => "AST::Return", "value" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::IdLookup", "value" => "a", "pos" => 16 }, "type" => :+, "rhs" => { "klass" => "AST::IdLookup", "value" => "b", "pos" => 20 }, "pos" => 16 }, "pos" => 16 }], "pos" => 0 }])
+  end
+  it "2022-06-20 22:26:59 -0400" do
+    ast = parse('add(1, "10", [1, 2])
 ')
-    expect(ast).to eq([{"klass"=>"AST::MultilineDefWithArgs", "name"=>"add", "args"=>["a", "b"], "body"=>[{"klass"=>"AST::Return", "value"=>{"klass"=>"AST::Op", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"a", "pos"=>16}, "type"=>:+, "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"b", "pos"=>20}, "pos"=>16}, "pos"=>16}], "pos"=>0}])
+    expect(ast).to eq([{ "klass" => "AST::FunctionCallWithArgs", "name" => "add", "args" => [{ "klass" => "AST::Int", "value" => 1, "pos" => 4 }, { "klass" => "AST::SimpleString", "value" => "10", "pos" => 7 }, { "klass" => "AST::ArrayLiteral", "value" => [{ "klass" => "AST::Int", "value" => 1, "pos" => 14 }, { "klass" => "AST::Int", "value" => 2, "pos" => 17 }], "pos" => 13 }], "pos" => 0 }])
   end
 end

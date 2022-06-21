@@ -257,6 +257,42 @@ class SimpleAssignmentParser < Parser
   end
 end
 
+class FunctionCallWithoutArgs < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :identifier &&
+      _self.peek_token&.type == :open_paren &&
+      _self.peek_token_twice.type == :close_paren
+  end
+
+  def parse!
+    fn_name_t = consume! :identifier
+    consume! :open_paren
+    consume! :close_paren
+
+    AST::FunctionCallWithoutArgs.new(fn_name_t.value, fn_name_t.pos)
+  end
+end
+
+class FunctionCallWithArgs < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :identifier &&
+      _self.peek_token&.type == :open_paren
+  end
+
+  def parse!
+    fn_name_t = consume! :identifier
+    consume! :open_paren
+    args = []
+    while current_token.type != :close_paren
+      args.push consume_parser! ExprParser.from(self)
+      consume! :comma unless current_token.type == :close_paren
+    end
+    consume! :close_paren
+
+    AST::FunctionCallWithArgs.new(fn_name_t.value, args, fn_name_t.pos)
+  end
+end
+
 class ExprParser < Parser
   # order matters
   ALLOWED_PARSERS = [
@@ -265,6 +301,8 @@ class ExprParser < Parser
     SimpleStringParser,
     ArrayParser,
     SimpleObjectParser,
+    FunctionCallWithoutArgs,
+    FunctionCallWithArgs,
     IdentifierLookupParser,
   ]
 

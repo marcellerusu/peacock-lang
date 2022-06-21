@@ -181,6 +181,10 @@ class Compiler
       eval_multiline_def_without_args node
     when AST::MultilineDefWithArgs
       eval_multiline_def_with_args node
+    when AST::FunctionCallWithoutArgs
+      eval_function_call_without_args node
+    when AST::FunctionCallWithArgs
+      eval_function_call_with_args node
     else
       puts "no case matched node_type: #{node.class}"
       assert_not_reached!
@@ -228,6 +232,15 @@ class Compiler
     dedent!
     fn += "#{padding}}"
     fn
+  end
+
+  def eval_function_call_with_args(node)
+    args = node.args.map { |node| eval_expr node }.join ", "
+    "#{node.name}(#{args})"
+  end
+
+  def eval_function_call_without_args(node)
+    "#{node.name}()"
   end
 
   def eval_schema_capture(node)
