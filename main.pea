@@ -1,5 +1,5 @@
-arr := [1, 2, 3]
+arr := [{ num: 10 }]
 
-for elem of arr
-  console.log elem
+for { num } of arr
+  console.log(num)
 end

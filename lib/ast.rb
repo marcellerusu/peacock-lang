@@ -12,7 +12,7 @@ module AST
         node = instance_variable_get(var)
         value = if node.is_a? Node
             node.to_h
-          elsif node.is_a? Array
+          elsif node.is_a?(Array) && node.all? { |n| n.is_a?(Node) }
             node.map(&:to_h)
           else
             node
@@ -449,6 +449,17 @@ module AST
 
     def initialize(iter_name, arr_expr, body, pos)
       @iter_name = iter_name
+      @arr_expr = arr_expr
+      @body = body
+      @pos = pos
+    end
+  end
+
+  class ForOfObjDeconstructLoop < Node
+    attr_reader :iter_properties, :arr_expr, :body
+
+    def initialize(iter_properties, arr_expr, body, pos)
+      @iter_properties = iter_properties
       @arr_expr = arr_expr
       @body = body
       @pos = pos

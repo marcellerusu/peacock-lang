@@ -468,6 +468,30 @@ class SimpleForOfLoopParser < Parser
   end
 end
 
+class ForOfObjDeconstructLoopParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :for &&
+      _self.peek_token.type == :"{"
+  end
+
+  def parse!
+    for_t = consume! :for
+    properties = []
+    consume! :"{"
+    loop do
+      properties.push consume!(:identifier).value
+      break if current_token.type == :"}"
+      consume! :comma
+    end
+    consume! :"}"
+    consume! :of
+    arr_expr_n = consume_parser! ExprParser.from(self)
+    body = consume_parser! ProgramParser.from(self)
+    consume! :end
+    AST::ForOfObjDeconstructLoop.new(properties, arr_expr_n, body, for_t.pos)
+  end
+end
+
 class ProgramParser < Parser
   def initialize(*args)
     super(*args)
@@ -481,6 +505,7 @@ class ProgramParser < Parser
     SingleLineDefWithArgsParser,
     MultilineDefWithArgsParser,
     MultilineDefWithoutArgsParser,
+    ForOfObjDeconstructLoopParser,
     SimpleForOfLoopParser,
   ]
 

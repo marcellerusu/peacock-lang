@@ -197,11 +197,20 @@ class Compiler
       eval_function_call_with_args node
     when AST::SimpleForOfLoop
       eval_simple_for_of_loop node
+    when AST::ForOfObjDeconstructLoop
+      eval_for_of_obj_descontruct_loop node
     else
       binding.pry
       puts "no case matched node_type: #{node.class}"
       assert_not_reached!
     end
+  end
+
+  def eval_for_of_obj_descontruct_loop(node)
+    properties = node.iter_properties.join ", "
+    for_loop = "for ({ #{properties} } of #{eval_expr node.arr_expr}) {\n"
+    for_loop += Compiler.new(node.body, @indent + 2).eval + "\n"
+    for_loop += "}"
   end
 
   def eval_simple_for_of_loop(node)
