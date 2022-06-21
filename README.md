@@ -26,6 +26,8 @@ function updateTodo(id, todoList) {
     if (_elem.id === id) {
       let { id, ...todo } = _elem;
       return { ...todo, id, completed: true };
+    } else {
+      return _elem;
     }
   });
 }
