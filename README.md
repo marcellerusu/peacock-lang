@@ -68,10 +68,7 @@ This will be transformed to the the following JavaScript
 ```javascript
 let User = { id: s("id"), email: s("email") };
 
-let user = await fetch("/api/me").then((r) => r.json());
-if (!s.valid(User, user)) {
-  throw new SchemaError(s.diff(User, user));
-}
+let user = s.verify(User, await fetch("/api/me").then((r) => r.json()));
 ```
 
 `s` is a runtime schema specification library. Similar to clojure/spec in some ways.
