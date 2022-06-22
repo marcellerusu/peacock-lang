@@ -117,4 +117,8 @@ end
     ast = parse("console.log a.b")
     expect(ast).to eq([{ "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "a", "pos" => 12 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "b", "pos" => 14 }, "pos" => 13 }], "expr" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "console", "pos" => 0 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "log", "pos" => 8 }, "pos" => 7 }, "pos" => 7 }])
   end
+  it "2022-06-21 22:53:29 -0400" do
+    ast = parse('schema User = { id }')
+    expect(ast).to eq([{"klass"=>"AST::SchemaDefinition", "name"=>"User", "schema_expr"=>#<AST::SchemaObjectLiteral:0x00007fd5ba0a95f0 @properties=[["id", #<AST::SchemaCapture:0x00007fd5ba0a9780 @name="id", @pos=16>]], @pos=14>, "pos"=>0}])
+  end
 end

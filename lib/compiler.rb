@@ -46,7 +46,7 @@ class Compiler
   end
 
   def std_lib
-    ""
+    schema_lib
   end
 
   def schema_lib
@@ -199,11 +199,28 @@ class Compiler
       eval_simple_for_of_loop node
     when AST::ForOfObjDeconstructLoop
       eval_for_of_obj_descontruct_loop node
+    when AST::SchemaDefinition
+      eval_schema_definition node
+    when AST::SchemaObjectLiteral
+      eval_schema_object_literal node
     else
       binding.pry
       puts "no case matched node_type: #{node.class}"
       assert_not_reached!
     end
+  end
+
+  def eval_schema_object_literal(node)
+    schema_obj = "{ "
+    for name, value in node.properties
+      schema_obj += "#{name}: #{eval_expr value}, "
+    end
+    # remove last ", "
+    schema_obj[0...-2] + " }"
+  end
+
+  def eval_schema_definition(node)
+    "const #{node.name} = #{eval_expr node.schema_expr}"
   end
 
   def eval_for_of_obj_descontruct_loop(node)

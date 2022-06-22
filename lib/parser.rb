@@ -84,10 +84,11 @@ class SimpleFnArgsParser < Parser
   def parse!
     open_t = consume! :open_paren
     args = []
-    while current_token.type != :close_paren
+    loop do
       arg_t = consume! :identifier
       args.push arg_t.value
-      consume! :comma unless current_token.type == :close_paren
+      break if current_token.type == :close_paren
+      consume! :comma
     end
     consume! :close_paren
 
@@ -170,12 +171,13 @@ class SimpleObjectParser < Parser
   def parse!
     open_brace_t = consume! :"{"
     values = []
-    while current_token.type != :"}"
+    loop do
       key_t = consume! :identifier
       consume! :colon
       value = consume_parser! ExprParser.from(self)
-      consume! :comma unless current_token.type == :"}"
       values.push [key_t.value, value]
+      break if current_token.type == :"}"
+      consume! :comma
     end
     consume! :"}"
     AST::SimpleObjectLiteral.new(values, open_brace_t.pos)
@@ -190,9 +192,10 @@ class ArrayParser < Parser
   def parse!
     open_sq_b_t = consume! :"["
     elems = []
-    while current_token.type != :"]"
+    loop do
       elems.push consume_parser! ExprParser.from(self)
-      consume! :comma unless current_token.type == :"]"
+      break if current_token.type == :"]"
+      consume! :comma
     end
     consume! :"]"
     AST::ArrayLiteral.new(elems, open_sq_b_t.pos)
@@ -284,9 +287,10 @@ class FunctionCallWithArgs < Parser
   def parse!(lhs_n)
     open_p_t = consume! :open_paren
     args = []
-    while current_token.type != :close_paren
+    loop do
       args.push consume_parser! ExprParser.from(self)
-      consume! :comma unless current_token.type == :close_paren
+      break if current_token.type == :close_paren
+      consume! :comma
     end
     consume! :close_paren
 
@@ -491,6 +495,57 @@ class ForOfObjDeconstructLoopParser < Parser
   end
 end
 
+class SchemaObjectParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :"{"
+  end
+
+  def parse_value!(key_name, pos)
+    if current_token.type != :colon
+      return AST::SchemaCapture.new(key_name, pos)
+    end
+    assert_not_reached!
+  end
+
+  def parse!
+    open_b_t = consume! :"{"
+    properties = []
+    loop do
+      property_t = consume! :identifier
+      properties.push [property_t.value, parse_value!(property_t.value, property_t.pos)]
+      break if current_token.type == :"}"
+    end
+    consume! :"}"
+    AST::SchemaObjectLiteral.new(properties, open_b_t.pos)
+  end
+end
+
+class SchemaDefinitionParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :schema
+  end
+
+  SCHEMA_PARSERS = [SchemaObjectParser]
+
+  def parse!
+    schema_t = consume! :schema
+    name_t = consume! :identifier
+    consume! :"="
+    parser_klass = SCHEMA_PARSERS.find { |klass| klass.can_parse? self }
+
+    if !parser_klass
+      not_implemented! do
+        puts "Not Implemented, only supporting the following parsers - "
+        pp SCHEMA_PARSERS
+      end
+    end
+
+    expr_n = consume_parser! parser_klass.from(self)
+
+    AST::SchemaDefinition.new(name_t.value, expr_n, schema_t.pos)
+  end
+end
+
 class ProgramParser < Parser
   def initialize(*args)
     super(*args)
@@ -506,6 +561,7 @@ class ProgramParser < Parser
     MultilineDefWithoutArgsParser,
     ForOfObjDeconstructLoopParser,
     SimpleForOfLoopParser,
+    SchemaDefinitionParser,
   ]
 
   def consume_parser!(parser)

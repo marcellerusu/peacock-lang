@@ -153,6 +153,31 @@ module AST
     end
   end
 
+  class SchemaAny < Node
+    def initialize(pos)
+      @pos = pos
+    end
+  end
+
+  class SchemaDefinition < Node
+    attr_reader :name, :schema_expr
+
+    def initialize(name, schema_expr, pos)
+      @name = name
+      @schema_expr = schema_expr
+      @pos = pos
+    end
+  end
+
+  class SchemaObjectLiteral
+    attr_reader :properties
+
+    def initialize(properties, pos)
+      @properties = properties
+      @pos = pos
+    end
+  end
+
   class ObjectLiteral < Node
     attr_reader :splats
 
