@@ -125,4 +125,8 @@ end
     ast = parse('schema User = { id: 10 }')
     expect(ast).to eq([{"klass"=>"AST::SchemaDefinition", "name"=>"User", "schema_expr"=>[["id", {"klass"=>"AST::Int", "value"=>10, "pos"=>20}]], "pos"=>0}])
   end
+  it "2022-06-21 23:23:09 -0400" do
+    ast = parse('schema User = { id: #{ % > 10 } }')
+    expect(ast).to eq([{"klass"=>"AST::SchemaDefinition", "name"=>"User", "schema_expr"=>[["id", {"klass"=>"AST::ShortFn", "return_expr"=>{"klass"=>"AST::Op", "lhs"=>{"klass"=>"AST::AnonIdLookup", "pos"=>23}, "type"=>:>, "rhs"=>{"klass"=>"AST::Int", "value"=>10, "pos"=>27}, "pos"=>23}, "pos"=>20}]], "pos"=>0}])
+  end
 end

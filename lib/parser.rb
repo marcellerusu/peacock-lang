@@ -504,17 +504,18 @@ class SchemaObjectParser < Parser
   VALUE_PARSERS = [
     IntParser,
     FloatParser,
+    SimpleStringParser,
+    ShortAnonFnParser,
   ]
 
   def parse_value!(key_name, pos)
-    if current_token.type != :colon
-      return AST::SchemaCapture.new(key_name, pos)
-    end
+    return AST::SchemaCapture.new(key_name, pos) if current_token.type != :colon
+
     consume! :colon
 
     parser_klass = VALUE_PARSERS.find { |klass| klass.can_parse? self }
 
-    schema_not_implemented! SCHEMA_PARSERS if !parser_klass
+    schema_not_implemented! VALUE_PARSERS if !parser_klass
 
     consume_parser! parser_klass.from(self)
   end
