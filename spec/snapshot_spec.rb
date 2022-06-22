@@ -160,4 +160,14 @@ console.log todo
 ')
     expect(ast).to eq([{"klass"=>"AST::SchemaDefinition", "name"=>"Todo", "schema_expr"=>[["id", {"klass"=>"AST::SchemaCapture", "name"=>"id", "pos"=>16}], ["userId", {"klass"=>"AST::SchemaCapture", "name"=>"id", "pos"=>28}]], "pos"=>0}, {"klass"=>"AST::SimpleAssignment", "name"=>"request", "expr"=>{"klass"=>"AST::Await", "value"=>{"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::SimpleString", "value"=>"https://jsonplaceholder.typicode.com/todos/1", "pos"=>58}], "expr"=>{"klass"=>"AST::IdLookup", "value"=>"fetch", "pos"=>52}, "pos"=>57}, "pos"=>46}, "pos"=>35}, {"klass"=>"AST::SimpleSchemaAssignment", "schema_name"=>"Todo", "name"=>"todo", "expr"=>{"klass"=>"AST::Await", "value"=>{"klass"=>"AST::FnCall", "args"=>[], "expr"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"request", "pos"=>126}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"json", "pos"=>134}, "pos"=>133}, "pos"=>138}, "pos"=>120}, "pos"=>106}, {"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::IdLookup", "value"=>"todo", "pos"=>154}], "expr"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"console", "pos"=>142}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"log", "pos"=>150}, "pos"=>149}, "pos"=>149}])
   end
+  it "2022-06-22 17:52:54 -0400" do
+    ast = parse('arr := [1, 2, 3]
+
+result := arr
+  .map #{ % * 10 }
+  .filter #{ % > 20 }
+
+console.log result')
+    expect(ast).to eq([{"klass"=>"AST::SimpleAssignment", "name"=>"arr", "expr"=>{"klass"=>"AST::ArrayLiteral", "value"=>[{"klass"=>"AST::Int", "value"=>1, "pos"=>8}, {"klass"=>"AST::Int", "value"=>2, "pos"=>11}, {"klass"=>"AST::Int", "value"=>3, "pos"=>14}], "pos"=>7}, "pos"=>0}, {"klass"=>"AST::SimpleAssignment", "name"=>"result", "expr"=>{"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::ShortFn", "return_expr"=>{"klass"=>"AST::Op", "lhs"=>{"klass"=>"AST::AnonIdLookup", "pos"=>64}, "type"=>:>, "rhs"=>{"klass"=>"AST::Int", "value"=>20, "pos"=>68}, "pos"=>64}, "pos"=>61}], "expr"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::ShortFn", "return_expr"=>{"klass"=>"AST::Op", "lhs"=>{"klass"=>"AST::AnonIdLookup", "pos"=>42}, "type"=>:*, "rhs"=>{"klass"=>"AST::Int", "value"=>10, "pos"=>46}, "pos"=>42}, "pos"=>39}], "expr"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"arr", "pos"=>28}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"map", "pos"=>35}, "pos"=>34}, "pos"=>34}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"filter", "pos"=>54}, "pos"=>53}, "pos"=>53}, "pos"=>18}, {"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::IdLookup", "value"=>"result", "pos"=>86}], "expr"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"console", "pos"=>74}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"log", "pos"=>82}, "pos"=>81}, "pos"=>81}])
+  end
 end

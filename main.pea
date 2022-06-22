@@ -1,6 +1,7 @@
-schema Todo = { id, userId: :id }
+arr := [1, 2, 3]
 
-Todo(todo) := await fetch("https://jsonplaceholder.typicode.com/todos/1")
-  .then(r => r.json())
+result := arr
+  .map #{ % * 10 }
+  .filter #{ % > 20 }
 
-console.log todo
+console.log result

@@ -405,11 +405,11 @@ class Compiler
   end
 
   def eval_anon_id_lookup
-    "__id__"
+    "_arg"
   end
 
   def eval_short_fn(node)
-    "#{eval_anon_id_lookup} => #{eval_expr node.return_expr}"
+    "(#{eval_anon_id_lookup} => #{eval_expr node.return_expr})"
   end
 
   def eval_function(node, pattern = nil)
