@@ -146,8 +146,6 @@ module Lexer
         tokens.push Token.new(:unless)
       when scanner.scan(/else\b/)
         tokens.push Token.new(:else)
-      when scanner.scan(/then\b/)
-        tokens.push Token.new(:then)
       when scanner.scan(/end\b/)
         tokens.push Token.new(:end)
       when scanner.scan(/=>/)

@@ -1,6 +1,6 @@
 schema Todo = { id, userId: :id }
 
-request := await fetch("https://jsonplaceholder.typicode.com/todos/1")
-Todo(todo) := await request.json()
+Todo(todo) := await fetch("https://jsonplaceholder.typicode.com/todos/1")
+  .then(r => r.json())
 
 console.log todo
