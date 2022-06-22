@@ -561,7 +561,6 @@ class ProgramParser < Parser
   end
 
   ALLOWED_PARSERS = [
-    ReturnParser,
     SimpleAssignmentParser,
     SingleLineDefWithNoArgsParser,
     SingleLineDefWithArgsParser,
@@ -578,9 +577,9 @@ class ProgramParser < Parser
     @body.push expr_n
   end
 
-  def parse!
+  def parse!(additional_parsers = [])
     while current_token && current_token.type != :end
-      klass = ALLOWED_PARSERS.find { |klass| klass.can_parse?(self) }
+      klass = (ALLOWED_PARSERS + additional_parsers).find { |klass| klass.can_parse?(self) }
 
       if !klass
         klass = ExprParser
@@ -594,8 +593,12 @@ class ProgramParser < Parser
 end
 
 class FunctionBodyParser < ProgramParser
+  ALLOWED_PARSERS = [
+    ReturnParser,
+  ]
+
   def parse!
-    super
+    super ALLOWED_PARSERS
 
     last_n = @body[-1]
     if last_n.is_a? AST::SimpleAssignment
