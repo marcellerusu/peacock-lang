@@ -139,4 +139,15 @@ User(user) := user
 console.log user")
     expect(ast).to eq([{ "klass" => "AST::SchemaDefinition", "name" => "User", "schema_expr" => [["id", { "klass" => "AST::SchemaCapture", "name" => "id", "pos" => 16 }]], "pos" => 0 }, { "klass" => "AST::SimpleAssignment", "name" => "user", "expr" => [["id", { "klass" => "AST::Int", "value" => 10, "pos" => 36 }]], "pos" => 22 }, { "klass" => "AST::SimpleSchemaAssignment", "schema_name" => "User", "name" => "user", "expr" => { "klass" => "AST::IdLookup", "value" => "user", "pos" => 56 }, "pos" => 42 }, { "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::IdLookup", "value" => "user", "pos" => 74 }], "expr" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "console", "pos" => 62 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "log", "pos" => 70 }, "pos" => 69 }, "pos" => 69 }])
   end
+  it "2022-06-22 00:18:56 -0400" do
+    ast = parse("schema User = { id, user: id }
+
+user := { id: 10, user: 10 }
+
+User(user) := user
+
+console.log user
+")
+    expect(ast).to eq([{ "klass" => "AST::SchemaDefinition", "name" => "User", "schema_expr" => [["id", { "klass" => "AST::SchemaCapture", "name" => "id", "pos" => 16 }], ["user", { "klass" => "AST::SchemaCapture", "name" => "id", "pos" => 26 }]], "pos" => 0 }, { "klass" => "AST::SimpleAssignment", "name" => "user", "expr" => [["id", { "klass" => "AST::Int", "value" => 10, "pos" => 46 }], ["user", { "klass" => "AST::Int", "value" => 10, "pos" => 56 }]], "pos" => 32 }, { "klass" => "AST::SimpleSchemaAssignment", "schema_name" => "User", "name" => "user", "expr" => { "klass" => "AST::IdLookup", "value" => "user", "pos" => 76 }, "pos" => 62 }, { "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::IdLookup", "value" => "user", "pos" => 94 }], "expr" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "console", "pos" => 82 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "log", "pos" => 90 }, "pos" => 89 }, "pos" => 89 }])
+  end
 end

@@ -1,6 +1,6 @@
-schema User = { id }
+schema User = { id, user: id }
 
-user := { id: 10 }
+user := { id: 10, user: 10 }
 
 User(user) := user
 

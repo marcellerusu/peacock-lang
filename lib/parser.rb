@@ -544,6 +544,7 @@ class SchemaObjectParser < Parser
       property_t = consume! :identifier
       properties.push [property_t.value, parse_value!(property_t.value, property_t.pos)]
       break if current_token.type == :"}"
+      consume! :comma
     end
     consume! :"}"
     AST::SchemaObjectLiteral.new(properties, open_b_t.pos)
