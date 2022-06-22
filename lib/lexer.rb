@@ -220,6 +220,8 @@ module Lexer
         tokens.push Token.new(:return)
       when scanner.scan(/schema\b/)
         tokens.push Token.new(:schema)
+      when scanner.scan(/:[a-zA-Z][a-zA-Z0-9\_!?]*/)
+        tokens.push Token.new(:capture, scanner.matched[1..])
       when scanner.scan(/:/)
         tokens.push Token.new(:colon)
       when scanner.scan(/[a-zA-Z][a-zA-Z0-9\_!?]*/)

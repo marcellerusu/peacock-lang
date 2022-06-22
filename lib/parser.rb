@@ -503,11 +503,11 @@ end
 
 class SchemaCaptureParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :identifier
+    _self.current_token.type == :capture
   end
 
   def parse!
-    id_t = consume! :identifier
+    id_t = consume! :capture
     AST::SchemaCapture.new(id_t.value, id_t.pos)
   end
 end

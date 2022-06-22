@@ -1,1 +1,7 @@
-Number(num) := 10
+schema User = { id, user: :id }
+
+user := { id: 10, user: 10 }
+
+User(user) := user
+
+console.log user
