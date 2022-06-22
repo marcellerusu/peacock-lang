@@ -51,6 +51,12 @@ class Parser
     @tokens[@pos + 2]
   end
 
+  def schema_not_implemented!(parser_klasses)
+    puts "Not Implemented, only supporting the following parsers - "
+    pp parser_klasses
+    not_implemented!
+  end
+
   def consume!(token_type = nil)
     # puts "#{token_type} #{current_token.type}"
     # binding.pry if token_type && token_type != current_token.type
@@ -452,12 +458,7 @@ class ExprParser < Parser
   def parse!
     parser_klass = PRIMARY_PARSERS.find { |parser_klass| parser_klass.can_parse?(self) }
 
-    if !parser_klass
-      not_implemented! do
-        puts "Not Implemented, only supporting the following parsers - "
-        pp PRIMARY_PARSERS
-      end
-    end
+    schema_not_implemented! PRIMARY_PARSERS if !parser_klass
 
     expr_n = consume_parser! parser_klass.from(self)
 
@@ -500,11 +501,22 @@ class SchemaObjectParser < Parser
     _self.current_token.type == :"{"
   end
 
+  VALUE_PARSERS = [
+    IntParser,
+    FloatParser,
+  ]
+
   def parse_value!(key_name, pos)
     if current_token.type != :colon
       return AST::SchemaCapture.new(key_name, pos)
     end
-    assert_not_reached!
+    consume! :colon
+
+    parser_klass = VALUE_PARSERS.find { |klass| klass.can_parse? self }
+
+    schema_not_implemented! SCHEMA_PARSERS if !parser_klass
+
+    consume_parser! parser_klass.from(self)
   end
 
   def parse!
@@ -533,12 +545,7 @@ class SchemaDefinitionParser < Parser
     consume! :"="
     parser_klass = SCHEMA_PARSERS.find { |klass| klass.can_parse? self }
 
-    if !parser_klass
-      not_implemented! do
-        puts "Not Implemented, only supporting the following parsers - "
-        pp SCHEMA_PARSERS
-      end
-    end
+    schema_not_implemented! SCHEMA_PARSERS if !parser_klass
 
     expr_n = consume_parser! parser_klass.from(self)
 

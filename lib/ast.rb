@@ -169,8 +169,16 @@ module AST
     end
   end
 
-  class SchemaObjectLiteral
+  class SchemaObjectLiteral < Node
     attr_reader :properties
+
+    def to_h
+      props = []
+      for key, value in properties
+        props.push [key, value.to_h]
+      end
+      props
+    end
 
     def initialize(properties, pos)
       @properties = properties

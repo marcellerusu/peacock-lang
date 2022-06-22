@@ -1,1 +1,1 @@
-schema User = { id }
+schema User = { id: 10 }
