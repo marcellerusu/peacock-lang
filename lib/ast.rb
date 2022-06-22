@@ -561,6 +561,13 @@ module AST
     end
   end
 
+  class Await < Node
+    def initialize(value, pos)
+      @value = value
+      @pos = pos
+    end
+  end
+
   class SimpleSchemaAssignment < Assign
     attr_reader :schema_name
 

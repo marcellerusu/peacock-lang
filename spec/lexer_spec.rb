@@ -100,23 +100,23 @@ describe Lexer, "#tokenize" do
         Lexer::Token.new(:int_lit, 3),
       ])
     end
-    it "a := 3 == 4.0" do
-      res = Lexer::tokenize("a := 3 == 4.0")
+    it "a := 3 === 4.0" do
+      res = Lexer::tokenize("a := 3 === 4.0")
       expect(res).to eq([
         Lexer::Token.new(:identifier, "a"),
         Lexer::Token.new(:assign),
         Lexer::Token.new(:int_lit, 3),
-        Lexer::Token.new(:"=="),
+        Lexer::Token.new(:"==="),
         Lexer::Token.new(:float_lit, 4.0),
       ])
     end
-    it "a := 3 == \"4\"" do
-      res = Lexer::tokenize("a := 3 == \"4\"")
+    it "a := 3 === \"4\"" do
+      res = Lexer::tokenize("a := 3 === \"4\"")
       expect(res).to eq([
         Lexer::Token.new(:identifier, "a"),
         Lexer::Token.new(:assign),
         Lexer::Token.new(:int_lit, 3),
-        Lexer::Token.new(:"=="),
+        Lexer::Token.new(:"==="),
         Lexer::Token.new(:str_lit, "4", []),
       ])
     end

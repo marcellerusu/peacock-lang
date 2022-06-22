@@ -140,7 +140,7 @@ console.log user")
     expect(ast).to eq([{ "klass" => "AST::SchemaDefinition", "name" => "User", "schema_expr" => [["id", { "klass" => "AST::SchemaCapture", "name" => "id", "pos" => 16 }]], "pos" => 0 }, { "klass" => "AST::SimpleAssignment", "name" => "user", "expr" => [["id", { "klass" => "AST::Int", "value" => 10, "pos" => 36 }]], "pos" => 22 }, { "klass" => "AST::SimpleSchemaAssignment", "schema_name" => "User", "name" => "user", "expr" => { "klass" => "AST::IdLookup", "value" => "user", "pos" => 56 }, "pos" => 42 }, { "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::IdLookup", "value" => "user", "pos" => 74 }], "expr" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "console", "pos" => 62 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "log", "pos" => 70 }, "pos" => 69 }, "pos" => 69 }])
   end
   it "2022-06-22 00:18:56 -0400" do
-    ast = parse("schema User = { id, user: id }
+    ast = parse("schema User = { id, user: :id }
 
 user := { id: 10, user: 10 }
 
@@ -148,6 +148,16 @@ User(user) := user
 
 console.log user
 ")
-    expect(ast).to eq([{ "klass" => "AST::SchemaDefinition", "name" => "User", "schema_expr" => [["id", { "klass" => "AST::SchemaCapture", "name" => "id", "pos" => 16 }], ["user", { "klass" => "AST::SchemaCapture", "name" => "id", "pos" => 26 }]], "pos" => 0 }, { "klass" => "AST::SimpleAssignment", "name" => "user", "expr" => [["id", { "klass" => "AST::Int", "value" => 10, "pos" => 46 }], ["user", { "klass" => "AST::Int", "value" => 10, "pos" => 56 }]], "pos" => 32 }, { "klass" => "AST::SimpleSchemaAssignment", "schema_name" => "User", "name" => "user", "expr" => { "klass" => "AST::IdLookup", "value" => "user", "pos" => 76 }, "pos" => 62 }, { "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::IdLookup", "value" => "user", "pos" => 94 }], "expr" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "console", "pos" => 82 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "log", "pos" => 90 }, "pos" => 89 }, "pos" => 89 }])
+    expect(ast).to eq([{ "klass" => "AST::SchemaDefinition", "name" => "User", "schema_expr" => [["id", { "klass" => "AST::SchemaCapture", "name" => "id", "pos" => 16 }], ["user", { "klass" => "AST::SchemaCapture", "name" => "id", "pos" => 26 }]], "pos" => 0 }, { "klass" => "AST::SimpleAssignment", "name" => "user", "expr" => [["id", { "klass" => "AST::Int", "value" => 10, "pos" => 47 }], ["user", { "klass" => "AST::Int", "value" => 10, "pos" => 57 }]], "pos" => 33 }, { "klass" => "AST::SimpleSchemaAssignment", "schema_name" => "User", "name" => "user", "expr" => { "klass" => "AST::IdLookup", "value" => "user", "pos" => 77 }, "pos" => 63 }, { "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::IdLookup", "value" => "user", "pos" => 95 }], "expr" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "console", "pos" => 83 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "log", "pos" => 91 }, "pos" => 90 }, "pos" => 90 }])
+  end
+  it "2022-06-22 14:21:16 -0400" do
+    ast = parse('schema Todo = { id, userId: :id }
+
+request := await fetch("https://jsonplaceholder.typicode.com/todos/1")
+Todo(todo) := await request.json()
+
+console.log todo
+')
+    expect(ast).to eq([{"klass"=>"AST::SchemaDefinition", "name"=>"Todo", "schema_expr"=>[["id", {"klass"=>"AST::SchemaCapture", "name"=>"id", "pos"=>16}], ["userId", {"klass"=>"AST::SchemaCapture", "name"=>"id", "pos"=>28}]], "pos"=>0}, {"klass"=>"AST::SimpleAssignment", "name"=>"request", "expr"=>{"klass"=>"AST::Await", "value"=>{"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::SimpleString", "value"=>"https://jsonplaceholder.typicode.com/todos/1", "pos"=>58}], "expr"=>{"klass"=>"AST::IdLookup", "value"=>"fetch", "pos"=>52}, "pos"=>57}, "pos"=>46}, "pos"=>35}, {"klass"=>"AST::SimpleSchemaAssignment", "schema_name"=>"Todo", "name"=>"todo", "expr"=>{"klass"=>"AST::Await", "value"=>{"klass"=>"AST::FnCall", "args"=>[], "expr"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"request", "pos"=>126}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"json", "pos"=>134}, "pos"=>133}, "pos"=>138}, "pos"=>120}, "pos"=>106}, {"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::IdLookup", "value"=>"todo", "pos"=>154}], "expr"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"console", "pos"=>142}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"log", "pos"=>150}, "pos"=>149}, "pos"=>149}])
   end
 end

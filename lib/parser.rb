@@ -158,7 +158,7 @@ class MultilineDefWithArgsParser < Parser
   end
 end
 
-OPERATORS = [:+, :-, :*, :/, :in, :"&&", :"||", :"==", :"!=", :>, :<, :">=", :"<="]
+OPERATORS = [:+, :-, :*, :/, :in, :"&&", :"||", :"===", :"!==", :>, :<, :">=", :"<="]
 
 class OperatorParser < Parser
   def self.can_parse?(_self)
@@ -436,6 +436,18 @@ class SimpleForOfLoopParser < Parser
   end
 end
 
+class AwaitParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :await
+  end
+
+  def parse!
+    await_t = consume! :await
+    expr_n = consume_parser! ExprParser
+    AST::Await.new(expr_n, await_t.pos)
+  end
+end
+
 class ExprParser < Parser
   # order matters
   PRIMARY_PARSERS = [
@@ -450,6 +462,7 @@ class ExprParser < Parser
     ShortAnonFnParser,
     SingleLineArrowFnWithoutArgsParser,
     SingleLineArrowFnWithArgsParser,
+    AwaitParser,
   ]
 
   SECONDARY_PARSERS = [

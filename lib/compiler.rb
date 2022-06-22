@@ -205,11 +205,17 @@ class Compiler
       eval_schema_definition node
     when AST::SchemaObjectLiteral
       eval_schema_object_literal node
+    when AST::Await
+      eval_await node
     else
       binding.pry
       puts "no case matched node_type: #{node.class}"
       assert_not_reached!
     end
+  end
+
+  def eval_await(node)
+    "await #{eval_expr node.value}"
   end
 
   def eval_simple_schema_assignment(node)
