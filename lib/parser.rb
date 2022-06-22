@@ -297,7 +297,6 @@ end
 class FunctionCallWithArgsWithoutParens < Parser
   def self.can_parse?(_self)
     _self.current_token&.is_not_one_of?(:comma, :"]", :close_paren, :"}") &&
-      _self.peek_token&.type != :dot &&
       !_self.new_line?
   end
 
@@ -404,6 +403,24 @@ class SingleLineArrowFnWithOneArgParser < Parser
   end
 end
 
+class SimpleForOfLoopParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :for &&
+      _self.peek_token.type == :identifier &&
+      _self.peek_token_twice.type == :of
+  end
+
+  def parse!
+    for_t = consume! :for
+    iter_var_t = consume! :identifier
+    consume! :of
+    arr_expr_n = consume_parser! ExprParser.from(self)
+    body = consume_parser! ProgramParser.from(self)
+    consume! :end
+    AST::SimpleForOfLoop.new(iter_var_t.value, arr_expr_n, body, for_t.pos)
+  end
+end
+
 class ExprParser < Parser
   # order matters
   PRIMARY_PARSERS = [
@@ -447,24 +464,6 @@ class ExprParser < Parser
     end
 
     expr_n
-  end
-end
-
-class SimpleForOfLoopParser < Parser
-  def self.can_parse?(_self)
-    _self.current_token.type == :for &&
-      _self.peek_token.type == :identifier &&
-      _self.peek_token_twice.type == :of
-  end
-
-  def parse!
-    for_t = consume! :for
-    iter_var_t = consume! :identifier
-    consume! :of
-    arr_expr_n = consume_parser! ExprParser.from(self)
-    body = consume_parser! ProgramParser.from(self)
-    consume! :end
-    AST::SimpleForOfLoop.new(iter_var_t.value, arr_expr_n, body, for_t.pos)
   end
 end
 

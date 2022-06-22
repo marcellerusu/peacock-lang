@@ -113,4 +113,8 @@ end
 ")
     expect(ast).to eq([{ "klass" => "AST::SimpleAssignment", "name" => "arr", "expr" => { "klass" => "AST::ArrayLiteral", "value" => [[["num", { "klass" => "AST::Int", "value" => 10, "pos" => 15 }]]], "pos" => 7 }, "pos" => 0 }, { "klass" => "AST::ForOfObjDeconstructLoop", "iter_properties" => ["num"], "arr_expr" => { "klass" => "AST::IdLookup", "value" => "arr", "pos" => 37 }, "body" => [{ "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::IdLookup", "value" => "num", "pos" => 55 }], "expr" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "console", "pos" => 43 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "log", "pos" => 51 }, "pos" => 50 }, "pos" => 54 }], "pos" => 22 }])
   end
+  it "2022-06-21 21:14:11 -0400" do
+    ast = parse("console.log a.b")
+    expect(ast).to eq([{ "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "a", "pos" => 12 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "b", "pos" => 14 }, "pos" => 13 }], "expr" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "console", "pos" => 0 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "log", "pos" => 8 }, "pos" => 7 }, "pos" => 7 }])
+  end
 end

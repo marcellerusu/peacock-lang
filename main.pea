@@ -1,5 +1,1 @@
-arr := [{ num: 10 }]
-
-for { num } of arr
-  console.log(num)
-end
+console.log a.b
