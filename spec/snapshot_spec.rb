@@ -122,11 +122,21 @@ end
     expect(ast).to eq([{ "klass" => "AST::SchemaDefinition", "name" => "User", "schema_expr" => [["id", { "klass" => "AST::SchemaCapture", "name" => "id", "pos" => 16 }]], "pos" => 0 }])
   end
   it "2022-06-21 23:20:25 -0400" do
-    ast = parse('schema User = { id: 10 }')
-    expect(ast).to eq([{"klass"=>"AST::SchemaDefinition", "name"=>"User", "schema_expr"=>[["id", {"klass"=>"AST::Int", "value"=>10, "pos"=>20}]], "pos"=>0}])
+    ast = parse("schema User = { id: 10 }")
+    expect(ast).to eq([{ "klass" => "AST::SchemaDefinition", "name" => "User", "schema_expr" => [["id", { "klass" => "AST::Int", "value" => 10, "pos" => 20 }]], "pos" => 0 }])
   end
   it "2022-06-21 23:23:09 -0400" do
     ast = parse('schema User = { id: #{ % > 10 } }')
-    expect(ast).to eq([{"klass"=>"AST::SchemaDefinition", "name"=>"User", "schema_expr"=>[["id", {"klass"=>"AST::ShortFn", "return_expr"=>{"klass"=>"AST::Op", "lhs"=>{"klass"=>"AST::AnonIdLookup", "pos"=>23}, "type"=>:>, "rhs"=>{"klass"=>"AST::Int", "value"=>10, "pos"=>27}, "pos"=>23}, "pos"=>20}]], "pos"=>0}])
+    expect(ast).to eq([{ "klass" => "AST::SchemaDefinition", "name" => "User", "schema_expr" => [["id", { "klass" => "AST::ShortFn", "return_expr" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::AnonIdLookup", "pos" => 23 }, "type" => :>, "rhs" => { "klass" => "AST::Int", "value" => 10, "pos" => 27 }, "pos" => 23 }, "pos" => 20 }]], "pos" => 0 }])
+  end
+  it "2022-06-22 00:14:11 -0400" do
+    ast = parse("schema User = { id }
+
+user := { id: 10 }
+
+User(user) := user
+
+console.log user")
+    expect(ast).to eq([{ "klass" => "AST::SchemaDefinition", "name" => "User", "schema_expr" => [["id", { "klass" => "AST::SchemaCapture", "name" => "id", "pos" => 16 }]], "pos" => 0 }, { "klass" => "AST::SimpleAssignment", "name" => "user", "expr" => [["id", { "klass" => "AST::Int", "value" => 10, "pos" => 36 }]], "pos" => 22 }, { "klass" => "AST::SimpleSchemaAssignment", "schema_name" => "User", "name" => "user", "expr" => { "klass" => "AST::IdLookup", "value" => "user", "pos" => 56 }, "pos" => 42 }, { "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::IdLookup", "value" => "user", "pos" => 74 }], "expr" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "console", "pos" => 62 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "log", "pos" => 70 }, "pos" => 69 }, "pos" => 69 }])
   end
 end

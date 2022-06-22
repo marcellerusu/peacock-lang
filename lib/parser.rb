@@ -19,7 +19,8 @@ class Parser
     @pos = pos
   end
 
-  def consume_parser!(parser, *parse_args)
+  def consume_parser!(parser_klass, *parse_args)
+    parser = parser_klass.from(self)
     expr_n = parser.parse! *parse_args
     @pos = parser.pos
     expr_n
@@ -49,6 +50,10 @@ class Parser
 
   def peek_token_twice
     @tokens[@pos + 2]
+  end
+
+  def peek_token_thrice
+    @tokens[@pos + 3]
   end
 
   def schema_not_implemented!(parser_klasses)
@@ -81,7 +86,7 @@ class SingleLineDefWithNoArgsParser < Parser
     def_t = consume! :def
     fn_name_t = consume! :identifier
     consume! :"="
-    return_value_n = consume_parser! ExprParser.from(self)
+    return_value_n = consume_parser! ExprParser
     AST::SingleLineDefWithNoArgs.new(fn_name_t.value, return_value_n, def_t.pos)
   end
 end
@@ -113,9 +118,9 @@ class SingleLineDefWithArgsParser < Parser
   def parse!
     def_t = consume! :def
     fn_name_t = consume! :identifier
-    args_n = consume_parser! SimpleFnArgsParser.from(self)
+    args_n = consume_parser! SimpleFnArgsParser
     consume! :"="
-    return_value_n = consume_parser! ExprParser.from(self)
+    return_value_n = consume_parser! ExprParser
 
     AST::SingleLineDefWithArgs.new(fn_name_t.value, args_n, return_value_n, def_t.pos)
   end
@@ -130,7 +135,7 @@ class MultilineDefWithoutArgsParser < Parser
   def parse!
     def_t = consume! :def
     fn_name_t = consume! :identifier
-    body = consume_parser! FunctionBodyParser.from(self)
+    body = consume_parser! FunctionBodyParser
     consume! :end
     AST::MultilineDefWithoutArgs.new(fn_name_t.value, body, def_t.pos)
   end
@@ -146,8 +151,8 @@ class MultilineDefWithArgsParser < Parser
   def parse!
     def_t = consume! :def
     fn_name_t = consume! :identifier
-    args_n = consume_parser! SimpleFnArgsParser.from(self)
-    body = consume_parser! FunctionBodyParser.from(self)
+    args_n = consume_parser! SimpleFnArgsParser
+    body = consume_parser! FunctionBodyParser
     consume! :end
     AST::MultilineDefWithArgs.new(fn_name_t.value, args_n, body, def_t.pos)
   end
@@ -162,7 +167,7 @@ class OperatorParser < Parser
 
   def parse!(lhs_n)
     operator_t = consume!
-    rhs_n = consume_parser! ExprParser.from(self)
+    rhs_n = consume_parser! ExprParser
     AST::Op.new(lhs_n, operator_t.type, rhs_n, lhs_n.pos)
   end
 end
@@ -180,7 +185,7 @@ class SimpleObjectParser < Parser
     loop do
       key_t = consume! :identifier
       consume! :colon
-      value = consume_parser! ExprParser.from(self)
+      value = consume_parser! ExprParser
       values.push [key_t.value, value]
       break if current_token.type == :"}"
       consume! :comma
@@ -199,7 +204,7 @@ class ArrayParser < Parser
     open_sq_b_t = consume! :"["
     elems = []
     loop do
-      elems.push consume_parser! ExprParser.from(self)
+      elems.push consume_parser! ExprParser
       break if current_token.type == :"]"
       consume! :comma
     end
@@ -265,7 +270,7 @@ class SimpleAssignmentParser < Parser
   def parse!
     id_t = consume! :identifier
     consume! :assign
-    expr_n = consume_parser! ExprParser.from(self)
+    expr_n = consume_parser! ExprParser
 
     AST::SimpleAssignment.new(id_t.value, expr_n, id_t.pos)
   end
@@ -294,7 +299,7 @@ class FunctionCallWithArgs < Parser
     open_p_t = consume! :open_paren
     args = []
     loop do
-      args.push consume_parser! ExprParser.from(self)
+      args.push consume_parser! ExprParser
       break if current_token.type == :close_paren
       consume! :comma
     end
@@ -313,7 +318,7 @@ class FunctionCallWithArgsWithoutParens < Parser
   def parse!(lhs_n)
     args = []
     until new_line?
-      args.push consume_parser! ExprParser.from(self)
+      args.push consume_parser! ExprParser
       consume! :comma unless new_line?
     end
 
@@ -328,7 +333,7 @@ class DotParser < Parser
 
   def parse!(lhs_n)
     dot_t = consume! :dot
-    rhs_n = consume_parser! IdentifierLookupParser.from(self)
+    rhs_n = consume_parser! IdentifierLookupParser
     AST::Dot.new(lhs_n, ".", rhs_n, dot_t.pos)
   end
 end
@@ -340,7 +345,7 @@ class ReturnParser < Parser
 
   def parse!
     return_t = consume! :return
-    expr_n = consume_parser! ExprParser.from(self)
+    expr_n = consume_parser! ExprParser
     AST::Return.new(expr_n, return_t.pos)
   end
 end
@@ -352,7 +357,7 @@ class ShortAnonFnParser < Parser
 
   def parse!
     open_anon_t = consume! :"#\{"
-    return_expr_n = consume_parser! ExprParser.from(self)
+    return_expr_n = consume_parser! ExprParser
     consume! :"}"
     AST::ShortFn.new(return_expr_n, open_anon_t.pos)
   end
@@ -380,7 +385,7 @@ class SingleLineArrowFnWithoutArgsParser < Parser
     open_p_t = consume! :open_paren
     consume! :close_paren
     consume! :"=>"
-    return_expr_n = consume_parser! ExprParser.from(self)
+    return_expr_n = consume_parser! ExprParser
     AST::SingleLineArrowFnWithoutArgs.new(return_expr_n, open_p_t.pos)
   end
 end
@@ -392,9 +397,9 @@ class SingleLineArrowFnWithArgsParser < Parser
   end
 
   def parse!
-    args_n = consume_parser! SimpleFnArgsParser.from(self)
+    args_n = consume_parser! SimpleFnArgsParser
     consume! :"=>"
-    return_expr_n = consume_parser! ExprParser.from(self)
+    return_expr_n = consume_parser! ExprParser
     AST::SingleLineArrowFnWithArgs.new(args_n, return_expr_n, args_n.pos)
   end
 end
@@ -408,7 +413,7 @@ class SingleLineArrowFnWithOneArgParser < Parser
   def parse!
     arg_t = consume! :identifier
     consume! :"=>"
-    return_expr_n = consume_parser! ExprParser.from(self)
+    return_expr_n = consume_parser! ExprParser
     AST::SingleLineArrowFnWithOneArg.new(arg_t.value, return_expr_n, arg_t.pos)
   end
 end
@@ -424,8 +429,8 @@ class SimpleForOfLoopParser < Parser
     for_t = consume! :for
     iter_var_t = consume! :identifier
     consume! :of
-    arr_expr_n = consume_parser! ExprParser.from(self)
-    body = consume_parser! ProgramParser.from(self)
+    arr_expr_n = consume_parser! ExprParser
+    body = consume_parser! ProgramParser
     consume! :end
     AST::SimpleForOfLoop.new(iter_var_t.value, arr_expr_n, body, for_t.pos)
   end
@@ -460,12 +465,12 @@ class ExprParser < Parser
 
     schema_not_implemented! PRIMARY_PARSERS if !parser_klass
 
-    expr_n = consume_parser! parser_klass.from(self)
+    expr_n = consume_parser! parser_klass
 
     loop do
       secondary_klass = SECONDARY_PARSERS.find { |parser_klass| parser_klass.can_parse?(self) }
       break if !secondary_klass
-      expr_n = consume_parser! secondary_klass.from(self), expr_n
+      expr_n = consume_parser! secondary_klass, expr_n
     end
 
     expr_n
@@ -489,10 +494,21 @@ class ForOfObjDeconstructLoopParser < Parser
     end
     consume! :"}"
     consume! :of
-    arr_expr_n = consume_parser! ExprParser.from(self)
-    body = consume_parser! ProgramParser.from(self)
+    arr_expr_n = consume_parser! ExprParser
+    body = consume_parser! ProgramParser
     consume! :end
     AST::ForOfObjDeconstructLoop.new(properties, arr_expr_n, body, for_t.pos)
+  end
+end
+
+class SchemaCaptureParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :identifier
+  end
+
+  def parse!
+    id_t = consume! :identifier
+    AST::SchemaCapture.new(id_t.value, id_t.pos)
   end
 end
 
@@ -506,6 +522,7 @@ class SchemaObjectParser < Parser
     FloatParser,
     SimpleStringParser,
     ShortAnonFnParser,
+    SchemaCaptureParser,
   ]
 
   def parse_value!(key_name, pos)
@@ -517,7 +534,7 @@ class SchemaObjectParser < Parser
 
     schema_not_implemented! VALUE_PARSERS if !parser_klass
 
-    consume_parser! parser_klass.from(self)
+    consume_parser! parser_klass
   end
 
   def parse!
@@ -548,9 +565,28 @@ class SchemaDefinitionParser < Parser
 
     schema_not_implemented! SCHEMA_PARSERS if !parser_klass
 
-    expr_n = consume_parser! parser_klass.from(self)
+    expr_n = consume_parser! parser_klass
 
     AST::SchemaDefinition.new(name_t.value, expr_n, schema_t.pos)
+  end
+end
+
+class SimpleSchemaAssignmentParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :identifier &&
+      _self.peek_token.type == :open_paren &&
+      _self.peek_token_twice.type == :identifier &&
+      _self.peek_token_thrice.type == :close_paren
+  end
+
+  def parse!
+    schema_name_t = consume! :identifier
+    consume! :open_paren
+    var_t = consume! :identifier
+    consume! :close_paren
+    consume! :assign
+    expr_n = consume_parser! ExprParser
+    AST::SimpleSchemaAssignment.new(schema_name_t.value, var_t.value, expr_n, schema_name_t.pos)
   end
 end
 
@@ -569,11 +605,11 @@ class ProgramParser < Parser
     ForOfObjDeconstructLoopParser,
     SimpleForOfLoopParser,
     SchemaDefinitionParser,
+    SimpleSchemaAssignmentParser,
   ]
 
-  def consume_parser!(parser)
-    expr_n = parser.parse!
-    @pos = parser.pos
+  def consume_parser!(parser_klass)
+    expr_n = super parser_klass
     @body.push expr_n
   end
 
@@ -585,7 +621,7 @@ class ProgramParser < Parser
         klass = ExprParser
       end
 
-      consume_parser! klass.from(self)
+      consume_parser! klass
     end
 
     @body

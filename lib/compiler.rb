@@ -129,6 +129,8 @@ class Compiler
       eval_declaration node
     when AST::SimpleAssignment
       eval_assignment node
+    when AST::SimpleSchemaAssignment
+      eval_simple_schema_assignment node
     when AST::Assign
       eval_assignment node
     when AST::PropertyLookup
@@ -208,6 +210,10 @@ class Compiler
       puts "no case matched node_type: #{node.class}"
       assert_not_reached!
     end
+  end
+
+  def eval_simple_schema_assignment(node)
+    "#{node.name} = s.verify(#{node.schema_name}, #{eval_expr node.expr})"
   end
 
   def eval_schema_object_literal(node)

@@ -561,6 +561,17 @@ module AST
     end
   end
 
+  class SimpleSchemaAssignment < Assign
+    attr_reader :schema_name
+
+    def initialize(schema_name, name, expr, pos)
+      @schema_name = schema_name
+      @name = name
+      @expr = expr
+      @pos = pos
+    end
+  end
+
   class SimpleAssignment < Assign
     attr_reader :name, :expr
 
