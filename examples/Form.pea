@@ -1,11 +1,11 @@
 component { items }
   newItem := ""
 in
-  <form @submit=#{
-    %.preventDefault()
-    items.push! newItem
+  <form @submit={function(event)
+    event.preventDefault()
+    items := [...items, newItem]
     newItem := ""
-  }>
+  end}>
     <input bind:value={newItem} type="text" placeholder="todo..."/>
     <input type="submit">add</input>
   </form>

@@ -189,8 +189,7 @@ OPERATORS = [:+, :-, :*, :/, :in, :"&&", :"||", :"===", :"!==", :>, :<, :">=", :
 
 class OperatorParser < Parser
   def self.can_parse?(_self, node)
-    !node.is_a?(AST::ShortFn) &&
-      _self.current_token&.is_one_of?(*OPERATORS)
+    _self.current_token&.is_one_of?(*OPERATORS)
   end
 
   def parse!(lhs_n)
@@ -306,9 +305,8 @@ end
 
 class FunctionCallWithoutArgs < Parser
   def self.can_parse?(_self, node)
-    !node.is_a?(AST::ShortFn) &&
-      _self.current_token&.type == :open_paren &&
-      _self.peek_token.type == :close_paren
+    _self.current_token&.type == :open_paren &&
+    _self.peek_token.type == :close_paren
   end
 
   def parse!(lhs_n)
@@ -321,8 +319,7 @@ end
 
 class FunctionCallWithArgs < Parser
   def self.can_parse?(_self, node)
-    !node.is_a?(AST::ShortFn) &&
-      _self.current_token&.type == :open_paren
+    _self.current_token&.type == :open_paren
   end
 
   def parse!(lhs_n)
@@ -341,16 +338,21 @@ end
 
 class FunctionCallWithArgsWithoutParens < Parser
   def self.can_parse?(_self, node)
-    !node.is_a?(AST::ShortFn) &&
-      _self.current_token&.is_not_one_of?(:comma, :"]", :close_paren, :"}") &&
-      !_self.new_line?
+    _self.current_token&.is_not_one_of?(:comma, :"]", :"#\{", :close_paren, :"}") &&
+    !_self.new_line?
+  end
+
+  def end_of_expr?
+    current_token&.is_one_of? :"}", :close_paren
   end
 
   def parse!(lhs_n)
     args = []
-    until new_line?
+
+    loop do
       args.push consume_parser! ExprParser
-      consume! :comma unless new_line?
+      break if new_line? || end_of_expr?
+      consume! :comma
     end
 
     AST::FnCall.new(args, lhs_n, lhs_n.pos)
@@ -359,8 +361,7 @@ end
 
 class DotParser < Parser
   def self.can_parse?(_self, node)
-    !node.is_a?(AST::ShortFn) &&
-      _self.current_token&.type == :dot
+    _self.current_token&.type == :dot
   end
 
   def parse!(lhs_n)
@@ -506,11 +507,11 @@ class ExprParser < Parser
   ]
 
   def parse!
-    parser_klass = PRIMARY_PARSERS.find { |parser_klass| parser_klass.can_parse?(self) }
+    primary_klass = PRIMARY_PARSERS.find { |parser_klass| parser_klass.can_parse?(self) }
 
-    parser_not_implemented! PRIMARY_PARSERS if !parser_klass
+    parser_not_implemented! PRIMARY_PARSERS if !primary_klass
 
-    expr_n = consume_parser! parser_klass
+    expr_n = consume_parser! primary_klass
 
     loop do
       secondary_klass = SECONDARY_PARSERS.find { |parser_klass| parser_klass.can_parse?(self, expr_n) }

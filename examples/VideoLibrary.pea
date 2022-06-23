@@ -1,10 +1,12 @@
+schema VideoWithViews = Video({ views: #{ it >= 100 } })
+
 component { videos }
   a := 10
 when { videos: [] }
   <div>
     ..upload a video!
   </div>
-when { videos: [ Video({ views: #{ % >= 100 } }) ] }
+when { videos: [ VideoWithViews({ views }) ] }
   <div>
     Congrats on your first video! It reached over {views}
   </div>

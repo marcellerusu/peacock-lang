@@ -4,10 +4,12 @@ import { items } from "./items"
 
 component
   function toggleItemCompleted(id)
-    $items := for $items of
-      { id: id, completed, ...item } =>
-        { ...item, completed: !completed },
-      pass
+    $items := $items.map function (item)
+      if item.id === id
+        return { ...item, completed: !completed }
+      else
+        return item
+      end
     end
   end
   newItem := ""
@@ -18,7 +20,7 @@ in
       #for { completed, desc, id } of $items
         <li
           data-state:completed={completed}
-          @click=#{toggleItemCompleted id}
+          @click={() => toggleItemCompleted id}
         >
           {desc}
         </li>

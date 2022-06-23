@@ -9,7 +9,9 @@
   case function onKeyDown
   when not { key: "Enter" }
     state.set! word.length < 5;
-    setTimeout #{state.set! null}, 200
+    setTimeout function
+      state := null
+    end, 200
   end
 </script>
 

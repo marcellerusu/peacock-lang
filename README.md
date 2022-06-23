@@ -66,11 +66,13 @@ see here.
 import differenceInCalendarDays from "date-fns/differenceInCalendarDays"
 import sub from "date-fns/sub"
 
-lastWeek := sub(new Date(), { weeks: 1 })
 
-schema NewUser = User & {
-  createdAt: #{ differenceInCalendarDays(%, lastWeek) > 0 }
-}
+function verifyWithinLastWeek(Date(date))
+  lastWeek := sub(new Date(), { weeks: 1 })
+  return differenceInCalendarDays(date, lastWeek) > 0
+end
+
+schema NewUser = User & { createdAt: verifyWithinLastWeek }
 ```
 
 NewUser only is valid for users created within the last week.

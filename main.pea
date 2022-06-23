@@ -1,6 +1,3 @@
-schema Ten = 10
-schema Eleven = 11
-
-function add(Ten(a), Eleven(b)) = a + b
-
-console.log add(10, 11)
+[1, 2, 3]
+  .map(num => num * 10)
+  .forEach(num => console.log num)
