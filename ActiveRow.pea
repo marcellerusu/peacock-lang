@@ -4,13 +4,12 @@
 
   export declare word
   declare state := "shaking"
-  once match := Array(5).fill(MATCH_STATE.EMPTY)
+  match := Array(5).fill(MATCH_STATE.EMPTY)
 
-  def onKeyDown({ key: !"Enter" })
+  case function onKeyDown
+  when not { key: "Enter" }
     state.set! word.length < 5;
     setTimeout #{state.set! null}, 200
-  else
-    pass
   end
 </script>
 

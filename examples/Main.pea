@@ -26,12 +26,12 @@ in
       <Link to="/active">active</Link>
     </nav>
   </div>
+  <style>
+    nav {
+      display: flex;
+      width: 100%;
+      justify-content: space-between;
+    }
+  </style>
 end
 
-<style>
-  nav {
-    display: flex;
-    width: 100%;
-    justify-content: space-between;
-  }
-</style>

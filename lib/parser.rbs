@@ -1,5 +1,0 @@
-# sig/parser.rbs
-
-class Parser
-  def initialize: (tokens: Token[], program_string: String, pos: Fixnum) -> void
-end

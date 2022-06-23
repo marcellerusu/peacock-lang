@@ -1,0 +1,17 @@
+component { videos }
+  a := 10
+when { videos: [] }
+  <div>
+    ..upload a video!
+  </div>
+when { videos: [ Video({ views: #{ % >= 100 } }) ] }
+  <div>
+    Congrats on your first video! It reached over {views}
+  </div>
+when videos.length > 10
+  <div>
+    10 Videos!
+  </div>
+else
+
+end

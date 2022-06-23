@@ -3,7 +3,7 @@ import { update } from "peacock"
 import { items } from "./items"
 
 component
-  def toggleItemCompleted!(id)
+  function toggleItemCompleted(id)
     $items := for $items of
       { id: id, completed, ...item } =>
         { ...item, completed: !completed },
@@ -18,7 +18,7 @@ in
       #for { completed, desc, id } of $items
         <li
           data-state:completed={completed}
-          @click=#{toggleItemCompleted! id}
+          @click=#{toggleItemCompleted id}
         >
           {desc}
         </li>

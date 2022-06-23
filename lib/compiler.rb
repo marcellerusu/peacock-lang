@@ -18,7 +18,7 @@ class Compiler
     program = ""
     program += std_lib if first_run?
     program += eval_assignment_declarations
-    program += collapse_function_overloading
+    # program += collapse_function_overloading
     @ast.each do |statement|
       program += " " * @indent
       program += eval_expr(statement)
@@ -29,7 +29,7 @@ class Compiler
 
   def eval_without_variable_declarations
     program = ""
-    program += collapse_function_overloading
+    # program += collapse_function_overloading
     @ast.each do |statement|
       program += " " * @indent
       program += eval_expr(statement)
@@ -68,29 +68,6 @@ class Compiler
   def padding(by = 0)
     assert { @indent + by >= 0 }
     " " * (@indent + by)
-  end
-
-  def collapse_function_overloading(ast = @ast)
-    functions = ast
-      .filter { |node| node.is_a? AST::Declare }
-      .group_by { |node| node.name }
-
-    function = ""
-    functions.each do |sym, function_group|
-      indent!
-      function += "function #{sub_q(sym)}(...params) {"
-      indent!
-      function += "
-  return s.defn(
-#{function_group.map do |fn|
-        padding + "s.case(#{eval_expr(fn.schema)}).is(#{eval_function(fn.expr, fn.schema)})"
-      end.join ",\n"}
-  )(params);\n}\n"
-      dedent!
-      dedent!
-      ast.filter! { |node| !node.is_a?(AST::Declare) || node.name != sym }
-    end
-    function
   end
 
   def eval_assignment_declarations
@@ -151,8 +128,6 @@ class Compiler
       eval_simple_string node
     when AST::Str
       eval_str node
-    when AST::SingleLineDefWithNoArgs
-      eval_single_line_fn_with_no_args node
     when AST::SingleLineDefWithArgs
       eval_single_line_fn_with_args node
     when AST::Fn
@@ -252,15 +227,6 @@ class Compiler
     node.args.join(", ")
   end
 
-  def eval_multiline_def_with_args(fn_node)
-    args = fn_node.args.value.join ", "
-
-    fn = "#{padding}function #{fn_node.name}(#{args}) {\n"
-    fn += Compiler.new(fn_node.body, @indent + 2).eval + "\n"
-    fn += "#{padding}}"
-    fn
-  end
-
   def eval_multiline_def_without_args(fn_node)
     fn = "#{padding}function #{fn_node.name}() {\n"
     fn += Compiler.new(fn_node.body, @indent + 2).eval + "\n"
@@ -274,25 +240,6 @@ class Compiler
 
   def eval_operator(node)
     "#{eval_expr(node.lhs)} #{node.type} #{eval_expr(node.rhs)}"
-  end
-
-  def eval_single_line_fn_with_args(fn_node)
-    args = fn_node.args.value.join ", "
-    fn = "#{padding}function #{fn_node.name}(#{args}) {\n"
-    indent!
-    fn += "#{padding}return #{eval_expr fn_node.return_value};\n"
-    dedent!
-    fn += "#{padding}}"
-    fn
-  end
-
-  def eval_single_line_fn_with_no_args(fn_node)
-    fn = "#{padding}function #{fn_node.name}() {\n"
-    indent!
-    fn += "#{padding}return #{eval_expr fn_node.return_value};\n"
-    dedent!
-    fn += "#{padding}}"
-    fn
   end
 
   def eval_function_call_with_args(node)
@@ -394,10 +341,49 @@ class Compiler
     "(#{node.arg}) => #{eval_expr node.return_expr}"
   end
 
-  def eval_arrow_fn_with_args(node)
-    args = node.args.value.join ", "
+  def arg_names(args_node)
+    args_node.value.map { |node| node.name }.join ", "
+  end
 
-    "(#{args}) => #{eval_expr node.return_expr}"
+  def eval_multiline_def_with_args(fn_node)
+    args = arg_names fn_node.args
+
+    fn = "#{padding}function #{fn_node.name}(#{args}) {\n"
+    fn += Compiler.new(fn_node.body, @indent + 2).eval + "\n"
+    fn += "#{padding}}"
+    fn
+  end
+
+  def schema_arg_assignments(args_node)
+    args_node.value
+      .select { |node| node.is_a?(AST::SimpleSchemaArg) }
+      .map do |arg|
+      "#{padding}#{arg.name} = s.verify(#{arg.schema_name}, #{arg.name});"
+    end.join "\n"
+  end
+
+  def eval_single_line_fn_with_args(fn_node)
+    args = arg_names fn_node.args
+
+    fn = "#{padding}function #{fn_node.name}(#{args}) {\n"
+    indent!
+    fn += schema_arg_assignments(fn_node.args) + "\n"
+
+    fn += "#{padding}return #{eval_expr fn_node.return_value};\n"
+    dedent!
+    fn += "#{padding}}"
+    fn
+  end
+
+  def eval_arrow_fn_with_args(node)
+    args = arg_names node.args
+
+    fn = "(#{args}) => {\n"
+    indent!
+    fn += padding + schema_arg_assignments(node.args) + "\n"
+    fn += padding + "return #{eval_expr node.return_expr};\n"
+    dedent!
+    fn + "}"
   end
 
   def eval_arrow_fn_without_args(node)
@@ -405,7 +391,7 @@ class Compiler
   end
 
   def eval_anon_id_lookup
-    "_arg"
+    "_it"
   end
 
   def eval_short_fn(node)

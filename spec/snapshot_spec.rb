@@ -30,65 +30,15 @@ context "snapshot" do
     ast = parse("a := a + 10")
     expect(ast).to eq([{ "klass" => "AST::SimpleAssignment", "name" => "a", "expr" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::IdLookup", "value" => "a", "pos" => 5 }, "type" => :+, "rhs" => { "klass" => "AST::Int", "value" => 10, "pos" => 9 }, "pos" => 5 }, "pos" => 0 }])
   end
-  it "2022-06-20 21:32:08 -0400" do
-    ast = parse("def add
-  a := 10
-end
-")
-    expect(ast).to eq([{ "klass" => "AST::MultilineDefWithoutArgs", "name" => "add", "body" => [{ "klass" => "AST::SimpleAssignment", "name" => "a", "expr" => { "klass" => "AST::Int", "value" => 10, "pos" => 15 }, "pos" => 10 }, { "klass" => "AST::Return", "value" => { "klass" => "AST::IdLookup", "value" => "a", "pos" => 10 }, "pos" => 10 }], "pos" => 0 }])
-  end
-  it "2022-06-20 21:32:50 -0400" do
-    ast = parse("def a = 10")
-    expect(ast).to eq([{ "klass" => "AST::SingleLineDefWithNoArgs", "name" => "a", "return_value" => { "klass" => "AST::Int", "value" => 10, "pos" => 8 }, "pos" => 0 }])
-  end
-  it "2022-06-20 21:33:16 -0400" do
-    ast = parse("def add(a, b) = a + b")
-    expect(ast).to eq([{ "klass" => "AST::SingleLineDefWithArgs", "name" => "add", "args" => ["a", "b"], "return_value" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::IdLookup", "value" => "a", "pos" => 16 }, "type" => :+, "rhs" => { "klass" => "AST::IdLookup", "value" => "b", "pos" => 20 }, "pos" => 16 }, "pos" => 0 }])
-  end
-  it "2022-06-20 21:58:14 -0400" do
-    ast = parse("def add(a, b)
-  return a + b
-end
-")
-    expect(ast).to eq([{ "klass" => "AST::MultilineDefWithArgs", "name" => "add", "args" => ["a", "b"], "body" => [{ "klass" => "AST::Return", "value" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::IdLookup", "value" => "a", "pos" => 23 }, "type" => :+, "rhs" => { "klass" => "AST::IdLookup", "value" => "b", "pos" => 27 }, "pos" => 23 }, "pos" => 16 }], "pos" => 0 }])
-  end
-  it "2022-06-20 22:01:23 -0400" do
-    ast = parse("def add(a, b)
-  a + b
-end
-")
-    expect(ast).to eq([{ "klass" => "AST::MultilineDefWithArgs", "name" => "add", "args" => ["a", "b"], "body" => [{ "klass" => "AST::Return", "value" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::IdLookup", "value" => "a", "pos" => 16 }, "type" => :+, "rhs" => { "klass" => "AST::IdLookup", "value" => "b", "pos" => 20 }, "pos" => 16 }, "pos" => 16 }], "pos" => 0 }])
-  end
   it "2022-06-21 09:48:20 -0400" do
     ast = parse('add(1, "10", [1, 2])')
     expect(ast).to eq([{ "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::Int", "value" => 1, "pos" => 4 }, { "klass" => "AST::SimpleString", "value" => "10", "pos" => 7 }, { "klass" => "AST::ArrayLiteral", "value" => [{ "klass" => "AST::Int", "value" => 1, "pos" => 14 }, { "klass" => "AST::Int", "value" => 2, "pos" => 17 }], "pos" => 13 }], "expr" => { "klass" => "AST::IdLookup", "value" => "add", "pos" => 0 }, "pos" => 3 }])
-  end
-  it "2022-06-21 09:50:25 -0400" do
-    ast = parse("def add(a, b) = a + b
-
-console.log(add(10, 20))")
-    expect(ast).to eq([{ "klass" => "AST::SingleLineDefWithArgs", "name" => "add", "args" => ["a", "b"], "return_value" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::IdLookup", "value" => "a", "pos" => 16 }, "type" => :+, "rhs" => { "klass" => "AST::IdLookup", "value" => "b", "pos" => 20 }, "pos" => 16 }, "pos" => 0 }, { "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::Int", "value" => 10, "pos" => 39 }, { "klass" => "AST::Int", "value" => 20, "pos" => 43 }], "expr" => { "klass" => "AST::IdLookup", "value" => "add", "pos" => 35 }, "pos" => 38 }], "expr" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "console", "pos" => 23 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "log", "pos" => 31 }, "pos" => 30 }, "pos" => 34 }])
-  end
-  it "2022-06-21 09:52:49 -0400" do
-    ast = parse("def add(a, b) = a + b
-
-console.log add(10, 20)")
-    expect(ast).to eq([{ "klass" => "AST::SingleLineDefWithArgs", "name" => "add", "args" => ["a", "b"], "return_value" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::IdLookup", "value" => "a", "pos" => 16 }, "type" => :+, "rhs" => { "klass" => "AST::IdLookup", "value" => "b", "pos" => 20 }, "pos" => 16 }, "pos" => 0 }, { "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::Int", "value" => 10, "pos" => 39 }, { "klass" => "AST::Int", "value" => 20, "pos" => 43 }], "expr" => { "klass" => "AST::IdLookup", "value" => "add", "pos" => 35 }, "pos" => 38 }], "expr" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "console", "pos" => 23 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "log", "pos" => 31 }, "pos" => 30 }, "pos" => 30 }])
-  end
-  it "2022-06-21 15:21:36 -0400" do
-    ast = parse('double := #{ % * 2 }')
-    expect(ast).to eq([{ "klass" => "AST::SimpleAssignment", "name" => "double", "expr" => { "klass" => "AST::ShortFn", "return_expr" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::AnonIdLookup", "pos" => 13 }, "type" => :*, "rhs" => { "klass" => "AST::Int", "value" => 2, "pos" => 17 }, "pos" => 13 }, "pos" => 10 }, "pos" => 0 }])
   end
   it "2022-06-21 15:21:51 -0400" do
     ast = parse("double := () => 10 * 2
 
 console.log double()")
     expect(ast).to eq([{ "klass" => "AST::SimpleAssignment", "name" => "double", "expr" => { "klass" => "AST::SingleLineArrowFnWithoutArgs", "return_expr" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::Int", "value" => 10, "pos" => 16 }, "type" => :*, "rhs" => { "klass" => "AST::Int", "value" => 2, "pos" => 21 }, "pos" => 16 }, "pos" => 10 }, "pos" => 0 }, { "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::FnCall", "args" => [], "expr" => { "klass" => "AST::IdLookup", "value" => "double", "pos" => 36 }, "pos" => 42 }], "expr" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "console", "pos" => 24 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "log", "pos" => 32 }, "pos" => 31 }, "pos" => 31 }])
-  end
-  it "2022-06-21 15:28:11 -0400" do
-    ast = parse("double := (x) => x * 2
-")
-    expect(ast).to eq([{ "klass" => "AST::SimpleAssignment", "name" => "double", "expr" => { "klass" => "AST::SingleLineArrowFnWithArgs", "args" => ["x"], "return_expr" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::IdLookup", "value" => "x", "pos" => 17 }, "type" => :*, "rhs" => { "klass" => "AST::Int", "value" => 2, "pos" => 21 }, "pos" => 17 }, "pos" => 10 }, "pos" => 0 }])
   end
   it "2022-06-21 15:37:31 -0400" do
     ast = parse("double := x => x * 2
@@ -125,10 +75,6 @@ end
     ast = parse("schema User = { id: 10 }")
     expect(ast).to eq([{ "klass" => "AST::SchemaDefinition", "name" => "User", "schema_expr" => [["id", { "klass" => "AST::Int", "value" => 10, "pos" => 20 }]], "pos" => 0 }])
   end
-  it "2022-06-21 23:23:09 -0400" do
-    ast = parse('schema User = { id: #{ % > 10 } }')
-    expect(ast).to eq([{ "klass" => "AST::SchemaDefinition", "name" => "User", "schema_expr" => [["id", { "klass" => "AST::ShortFn", "return_expr" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::AnonIdLookup", "pos" => 23 }, "type" => :>, "rhs" => { "klass" => "AST::Int", "value" => 10, "pos" => 27 }, "pos" => 23 }, "pos" => 20 }]], "pos" => 0 }])
-  end
   it "2022-06-22 00:14:11 -0400" do
     ast = parse("schema User = { id }
 
@@ -158,16 +104,64 @@ Todo(todo) := await request.json()
 
 console.log todo
 ')
-    expect(ast).to eq([{"klass"=>"AST::SchemaDefinition", "name"=>"Todo", "schema_expr"=>[["id", {"klass"=>"AST::SchemaCapture", "name"=>"id", "pos"=>16}], ["userId", {"klass"=>"AST::SchemaCapture", "name"=>"id", "pos"=>28}]], "pos"=>0}, {"klass"=>"AST::SimpleAssignment", "name"=>"request", "expr"=>{"klass"=>"AST::Await", "value"=>{"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::SimpleString", "value"=>"https://jsonplaceholder.typicode.com/todos/1", "pos"=>58}], "expr"=>{"klass"=>"AST::IdLookup", "value"=>"fetch", "pos"=>52}, "pos"=>57}, "pos"=>46}, "pos"=>35}, {"klass"=>"AST::SimpleSchemaAssignment", "schema_name"=>"Todo", "name"=>"todo", "expr"=>{"klass"=>"AST::Await", "value"=>{"klass"=>"AST::FnCall", "args"=>[], "expr"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"request", "pos"=>126}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"json", "pos"=>134}, "pos"=>133}, "pos"=>138}, "pos"=>120}, "pos"=>106}, {"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::IdLookup", "value"=>"todo", "pos"=>154}], "expr"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"console", "pos"=>142}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"log", "pos"=>150}, "pos"=>149}, "pos"=>149}])
+    expect(ast).to eq([{ "klass" => "AST::SchemaDefinition", "name" => "Todo", "schema_expr" => [["id", { "klass" => "AST::SchemaCapture", "name" => "id", "pos" => 16 }], ["userId", { "klass" => "AST::SchemaCapture", "name" => "id", "pos" => 28 }]], "pos" => 0 }, { "klass" => "AST::SimpleAssignment", "name" => "request", "expr" => { "klass" => "AST::Await", "value" => { "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::SimpleString", "value" => "https://jsonplaceholder.typicode.com/todos/1", "pos" => 58 }], "expr" => { "klass" => "AST::IdLookup", "value" => "fetch", "pos" => 52 }, "pos" => 57 }, "pos" => 46 }, "pos" => 35 }, { "klass" => "AST::SimpleSchemaAssignment", "schema_name" => "Todo", "name" => "todo", "expr" => { "klass" => "AST::Await", "value" => { "klass" => "AST::FnCall", "args" => [], "expr" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "request", "pos" => 126 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "json", "pos" => 134 }, "pos" => 133 }, "pos" => 138 }, "pos" => 120 }, "pos" => 106 }, { "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::IdLookup", "value" => "todo", "pos" => 154 }], "expr" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "console", "pos" => 142 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "log", "pos" => 150 }, "pos" => 149 }, "pos" => 149 }])
   end
-  it "2022-06-22 17:52:54 -0400" do
+  it "2022-06-22 23:38:51 -0400" do
+    ast = parse("function add(a, b) = a + b")
+    expect(ast).to eq([{ "klass" => "AST::SingleLineDefWithArgs", "name" => "add", "args" => { "klass" => "AST::SimpleFnArgs", "value" => [{ "klass" => "AST::SimpleArg", "name" => "a", "pos" => 13 }, { "klass" => "AST::SimpleArg", "name" => "b", "pos" => 16 }], "pos" => 12 }, "return_value" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::IdLookup", "value" => "a", "pos" => 21 }, "type" => :+, "rhs" => { "klass" => "AST::IdLookup", "value" => "b", "pos" => 25 }, "pos" => 21 }, "pos" => 0 }])
+  end
+  it "2022-06-22 23:40:50 -0400" do
+    ast = parse("function add(a, b)
+  a + b
+end
+")
+    expect(ast).to eq([{ "klass" => "AST::MultilineDefWithArgs", "name" => "add", "args" => { "klass" => "AST::SimpleFnArgs", "value" => [{ "klass" => "AST::SimpleArg", "name" => "a", "pos" => 13 }, { "klass" => "AST::SimpleArg", "name" => "b", "pos" => 16 }], "pos" => 12 }, "body" => [{ "klass" => "AST::Return", "value" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::IdLookup", "value" => "a", "pos" => 21 }, "type" => :+, "rhs" => { "klass" => "AST::IdLookup", "value" => "b", "pos" => 25 }, "pos" => 21 }, "pos" => 21 }], "pos" => 0 }])
+  end
+  it "2022-06-22 23:41:28 -0400" do
+    ast = parse("function add(a, b) = a + b
+
+console.log(add(10, 20))")
+    expect(ast).to eq([{ "klass" => "AST::SingleLineDefWithArgs", "name" => "add", "args" => { "klass" => "AST::SimpleFnArgs", "value" => [{ "klass" => "AST::SimpleArg", "name" => "a", "pos" => 13 }, { "klass" => "AST::SimpleArg", "name" => "b", "pos" => 16 }], "pos" => 12 }, "return_value" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::IdLookup", "value" => "a", "pos" => 21 }, "type" => :+, "rhs" => { "klass" => "AST::IdLookup", "value" => "b", "pos" => 25 }, "pos" => 21 }, "pos" => 0 }, { "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::Int", "value" => 10, "pos" => 44 }, { "klass" => "AST::Int", "value" => 20, "pos" => 48 }], "expr" => { "klass" => "AST::IdLookup", "value" => "add", "pos" => 40 }, "pos" => 43 }], "expr" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "console", "pos" => 28 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "log", "pos" => 36 }, "pos" => 35 }, "pos" => 39 }])
+  end
+  it "2022-06-22 23:41:50 -0400" do
+    ast = parse("function add(a, b) = a + b
+
+console.log add(10, 20)")
+    expect(ast).to eq([{ "klass" => "AST::SingleLineDefWithArgs", "name" => "add", "args" => { "klass" => "AST::SimpleFnArgs", "value" => [{ "klass" => "AST::SimpleArg", "name" => "a", "pos" => 13 }, { "klass" => "AST::SimpleArg", "name" => "b", "pos" => 16 }], "pos" => 12 }, "return_value" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::IdLookup", "value" => "a", "pos" => 21 }, "type" => :+, "rhs" => { "klass" => "AST::IdLookup", "value" => "b", "pos" => 25 }, "pos" => 21 }, "pos" => 0 }, { "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::Int", "value" => 10, "pos" => 44 }, { "klass" => "AST::Int", "value" => 20, "pos" => 48 }], "expr" => { "klass" => "AST::IdLookup", "value" => "add", "pos" => 40 }, "pos" => 43 }], "expr" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "console", "pos" => 28 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "log", "pos" => 36 }, "pos" => 35 }, "pos" => 35 }])
+  end
+  it "2022-06-22 23:46:22 -0400" do
+    ast = parse('double := #{ it * 2 }')
+    expect(ast).to eq([{ "klass" => "AST::SimpleAssignment", "name" => "double", "expr" => { "klass" => "AST::ShortFn", "return_expr" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::AnonIdLookup", "pos" => 13 }, "type" => :*, "rhs" => { "klass" => "AST::Int", "value" => 2, "pos" => 18 }, "pos" => 13 }, "pos" => 10 }, "pos" => 0 }])
+  end
+  it "2022-06-22 23:46:42 -0400" do
+    ast = parse("double := (x) => x * 2")
+    expect(ast).to eq([{ "klass" => "AST::SimpleAssignment", "name" => "double", "expr" => { "klass" => "AST::SingleLineArrowFnWithArgs", "args" => { "klass" => "AST::SimpleFnArgs", "value" => [{ "klass" => "AST::SimpleArg", "name" => "x", "pos" => 11 }], "pos" => 10 }, "return_expr" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::IdLookup", "value" => "x", "pos" => 17 }, "type" => :*, "rhs" => { "klass" => "AST::Int", "value" => 2, "pos" => 21 }, "pos" => 17 }, "pos" => 10 }, "pos" => 0 }])
+  end
+  it "2022-06-22 23:47:04 -0400" do
+    ast = parse('schema User = { id: #{ it > 10 } }')
+    expect(ast).to eq([{ "klass" => "AST::SchemaDefinition", "name" => "User", "schema_expr" => [["id", { "klass" => "AST::ShortFn", "return_expr" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::AnonIdLookup", "pos" => 23 }, "type" => :>, "rhs" => { "klass" => "AST::Int", "value" => 10, "pos" => 28 }, "pos" => 23 }, "pos" => 20 }]], "pos" => 0 }])
+  end
+  it "2022-06-22 23:47:32 -0400" do
     ast = parse('arr := [1, 2, 3]
 
 result := arr
-  .map #{ % * 10 }
-  .filter #{ % > 20 }
+  .map #{ it * 10 }
+  .filter #{ it > 20 }
 
 console.log result')
-    expect(ast).to eq([{"klass"=>"AST::SimpleAssignment", "name"=>"arr", "expr"=>{"klass"=>"AST::ArrayLiteral", "value"=>[{"klass"=>"AST::Int", "value"=>1, "pos"=>8}, {"klass"=>"AST::Int", "value"=>2, "pos"=>11}, {"klass"=>"AST::Int", "value"=>3, "pos"=>14}], "pos"=>7}, "pos"=>0}, {"klass"=>"AST::SimpleAssignment", "name"=>"result", "expr"=>{"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::ShortFn", "return_expr"=>{"klass"=>"AST::Op", "lhs"=>{"klass"=>"AST::AnonIdLookup", "pos"=>64}, "type"=>:>, "rhs"=>{"klass"=>"AST::Int", "value"=>20, "pos"=>68}, "pos"=>64}, "pos"=>61}], "expr"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::ShortFn", "return_expr"=>{"klass"=>"AST::Op", "lhs"=>{"klass"=>"AST::AnonIdLookup", "pos"=>42}, "type"=>:*, "rhs"=>{"klass"=>"AST::Int", "value"=>10, "pos"=>46}, "pos"=>42}, "pos"=>39}], "expr"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"arr", "pos"=>28}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"map", "pos"=>35}, "pos"=>34}, "pos"=>34}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"filter", "pos"=>54}, "pos"=>53}, "pos"=>53}, "pos"=>18}, {"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::IdLookup", "value"=>"result", "pos"=>86}], "expr"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"console", "pos"=>74}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"log", "pos"=>82}, "pos"=>81}, "pos"=>81}])
+    expect(ast).to eq([{ "klass" => "AST::SimpleAssignment", "name" => "arr", "expr" => { "klass" => "AST::ArrayLiteral", "value" => [{ "klass" => "AST::Int", "value" => 1, "pos" => 8 }, { "klass" => "AST::Int", "value" => 2, "pos" => 11 }, { "klass" => "AST::Int", "value" => 3, "pos" => 14 }], "pos" => 7 }, "pos" => 0 }, { "klass" => "AST::SimpleAssignment", "name" => "result", "expr" => { "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::ShortFn", "return_expr" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::AnonIdLookup", "pos" => 65 }, "type" => :>, "rhs" => { "klass" => "AST::Int", "value" => 20, "pos" => 70 }, "pos" => 65 }, "pos" => 62 }], "expr" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::ShortFn", "return_expr" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::AnonIdLookup", "pos" => 42 }, "type" => :*, "rhs" => { "klass" => "AST::Int", "value" => 10, "pos" => 47 }, "pos" => 42 }, "pos" => 39 }], "expr" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "arr", "pos" => 28 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "map", "pos" => 35 }, "pos" => 34 }, "pos" => 34 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "filter", "pos" => 55 }, "pos" => 54 }, "pos" => 54 }, "pos" => 18 }, { "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::IdLookup", "value" => "result", "pos" => 88 }], "expr" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "console", "pos" => 76 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "log", "pos" => 84 }, "pos" => 83 }, "pos" => 83 }])
+  end
+  it "2022-06-22 23:47:52 -0400" do
+    ast = parse("function a() = 10")
+    expect(ast).to eq([{ "klass" => "AST::SingleLineDefWithArgs", "name" => "a", "args" => { "klass" => "AST::SimpleFnArgs", "value" => [], "pos" => 10 }, "return_value" => { "klass" => "AST::Int", "value" => 10, "pos" => 15 }, "pos" => 0 }])
+  end
+  it "2022-06-22 23:51:28 -0400" do
+    ast = parse('schema Ten = 10
+schema Eleven = 11
+
+function add(Ten(a), Eleven(b)) = a + b
+
+console.log add(10, 11)')
+    expect(ast).to eq([{"klass"=>"AST::SchemaDefinition", "name"=>"Ten", "schema_expr"=>{"klass"=>"AST::Int", "value"=>10, "pos"=>13}, "pos"=>0}, {"klass"=>"AST::SchemaDefinition", "name"=>"Eleven", "schema_expr"=>{"klass"=>"AST::Int", "value"=>11, "pos"=>32}, "pos"=>16}, {"klass"=>"AST::SingleLineDefWithArgs", "name"=>"add", "args"=>{"klass"=>"AST::SimpleFnArgs", "value"=>[{"klass"=>"AST::SimpleSchemaArg", "schema_name"=>"Ten", "name"=>"a", "pos"=>49}, {"klass"=>"AST::SimpleSchemaArg", "schema_name"=>"Eleven", "name"=>"b", "pos"=>57}], "pos"=>48}, "return_value"=>{"klass"=>"AST::Op", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"a", "pos"=>70}, "type"=>:+, "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"b", "pos"=>74}, "pos"=>70}, "pos"=>36}, {"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::Int", "value"=>10, "pos"=>93}, {"klass"=>"AST::Int", "value"=>11, "pos"=>97}], "expr"=>{"klass"=>"AST::IdLookup", "value"=>"add", "pos"=>89}, "pos"=>92}], "expr"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"console", "pos"=>77}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"log", "pos"=>85}, "pos"=>84}, "pos"=>84}])
   end
 end

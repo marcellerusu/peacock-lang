@@ -2,6 +2,7 @@ $LOAD_PATH.push "./lib"
 
 require "lexer"
 require "parser"
+require "type_checker"
 require "compiler"
 
 content = File.read(ARGV[0])
@@ -10,6 +11,7 @@ tokens = Lexer::tokenize(content)
 # # puts ast
 # # begin
 parser = Parser.new(tokens, content)
+
 case ARGV[1]
 when "-t"
   pp tokens
@@ -18,6 +20,11 @@ when /-a+/
   pp ast.map(&:to_h)
 when "-n"
   ast = parser.parse!
+when "-c"
+  ast = parser.parse!
+  ast = TypeChecker.new(ast, content).check!
+  js = Compiler.new(ast).eval
+  puts js
 else
   ast = parser.parse!
   js = Compiler.new(ast).eval

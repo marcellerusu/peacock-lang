@@ -56,7 +56,7 @@ class Parser
     @tokens[@pos + 3]
   end
 
-  def schema_not_implemented!(parser_klasses)
+  def parser_not_implemented!(parser_klasses)
     puts "Not Implemented, only supporting the following parsers - "
     pp parser_klasses
     not_implemented!
@@ -75,29 +75,56 @@ class Parser
   end
 end
 
-class SingleLineDefWithNoArgsParser < Parser
+class SimpleSchemaArgParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :def &&
-      _self.peek_token.type == :identifier &&
-      _self.peek_token_twice.type == :"="
+    _self.current_token.type == :identifier &&
+      _self.peek_token.type == :open_paren &&
+      _self.peek_token_twice.type == :identifier &&
+      _self.peek_token_thrice.type == :close_paren
   end
 
   def parse!
-    def_t = consume! :def
-    fn_name_t = consume! :identifier
-    consume! :"="
-    return_value_n = consume_parser! ExprParser
-    AST::SingleLineDefWithNoArgs.new(fn_name_t.value, return_value_n, def_t.pos)
+    args = []
+    schema_name_t = consume! :identifier
+    consume! :open_paren
+    var_t = consume! :identifier
+    consume! :close_paren
+    AST::SimpleSchemaArg.new(schema_name_t.value, var_t.value, schema_name_t.pos)
+  end
+end
+
+class SimpleArgParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :identifier &&
+      _self.peek_token.is_one_of?(:comma, :close_paren)
+  end
+
+  def parse!
+    name_t = consume! :identifier
+    AST::SimpleArg.new(name_t.value, name_t.pos)
   end
 end
 
 class SimpleFnArgsParser < Parser
+  ARG_PARSERS = [
+    SimpleArgParser,
+    SimpleSchemaArgParser,
+  ]
+
   def parse!
     open_t = consume! :open_paren
+
+    if current_token.type == :close_paren
+      consume! :close_paren
+      return AST::SimpleFnArgs.new([], open_t.pos)
+    end
+
     args = []
+
     loop do
-      arg_t = consume! :identifier
-      args.push arg_t.value
+      parser_klass = ARG_PARSERS.find { |klass| klass.can_parse? self }
+      parser_not_implemented! ARG_PARSERS if !parser_klass
+      args.push consume_parser! parser_klass
       break if current_token.type == :close_paren
       consume! :comma
     end
@@ -109,52 +136,52 @@ end
 
 class SingleLineDefWithArgsParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :def &&
+    _self.current_token.type == :function &&
       _self.peek_token.type == :identifier &&
       _self.peek_token_twice.type == :open_paren &&
       _self.rest_of_line.include?("=")
   end
 
   def parse!
-    def_t = consume! :def
+    function_t = consume! :function
     fn_name_t = consume! :identifier
     args_n = consume_parser! SimpleFnArgsParser
     consume! :"="
     return_value_n = consume_parser! ExprParser
 
-    AST::SingleLineDefWithArgs.new(fn_name_t.value, args_n, return_value_n, def_t.pos)
+    AST::SingleLineDefWithArgs.new(fn_name_t.value, args_n, return_value_n, function_t.pos)
   end
 end
 
 class MultilineDefWithoutArgsParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :def &&
+    _self.current_token.type == :function &&
       _self.peek_token.type == :identifier
   end
 
   def parse!
-    def_t = consume! :def
+    function_t = consume! :function
     fn_name_t = consume! :identifier
     body = consume_parser! FunctionBodyParser
     consume! :end
-    AST::MultilineDefWithoutArgs.new(fn_name_t.value, body, def_t.pos)
+    AST::MultilineDefWithoutArgs.new(fn_name_t.value, body, function_t.pos)
   end
 end
 
 class MultilineDefWithArgsParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :def &&
+    _self.current_token.type == :function &&
       _self.peek_token.type == :identifier &&
       _self.peek_token_twice.type == :open_paren
   end
 
   def parse!
-    def_t = consume! :def
+    function_t = consume! :function
     fn_name_t = consume! :identifier
     args_n = consume_parser! SimpleFnArgsParser
     body = consume_parser! FunctionBodyParser
     consume! :end
-    AST::MultilineDefWithArgs.new(fn_name_t.value, args_n, body, def_t.pos)
+    AST::MultilineDefWithArgs.new(fn_name_t.value, args_n, body, function_t.pos)
   end
 end
 
@@ -370,11 +397,11 @@ end
 
 class AnonIdLookupParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :%
+    _self.current_token.type == :it
   end
 
   def parse!
-    id_t = consume! :%
+    id_t = consume! :it
     AST::AnonIdLookup.new(id_t.pos)
   end
 end
@@ -481,7 +508,7 @@ class ExprParser < Parser
   def parse!
     parser_klass = PRIMARY_PARSERS.find { |parser_klass| parser_klass.can_parse?(self) }
 
-    schema_not_implemented! PRIMARY_PARSERS if !parser_klass
+    parser_not_implemented! PRIMARY_PARSERS if !parser_klass
 
     expr_n = consume_parser! parser_klass
 
@@ -550,7 +577,7 @@ class SchemaObjectParser < Parser
 
     parser_klass = VALUE_PARSERS.find { |klass| klass.can_parse? self }
 
-    schema_not_implemented! VALUE_PARSERS if !parser_klass
+    parser_not_implemented! VALUE_PARSERS if !parser_klass
 
     consume_parser! parser_klass
   end
@@ -574,7 +601,10 @@ class SchemaDefinitionParser < Parser
     _self.current_token.type == :schema
   end
 
-  SCHEMA_PARSERS = [SchemaObjectParser]
+  SCHEMA_PARSERS = [
+    SchemaObjectParser,
+    IntParser,
+  ]
 
   def parse!
     schema_t = consume! :schema
@@ -582,7 +612,7 @@ class SchemaDefinitionParser < Parser
     consume! :"="
     parser_klass = SCHEMA_PARSERS.find { |klass| klass.can_parse? self }
 
-    schema_not_implemented! SCHEMA_PARSERS if !parser_klass
+    parser_not_implemented! SCHEMA_PARSERS if !parser_klass
 
     expr_n = consume_parser! parser_klass
 
@@ -617,7 +647,6 @@ class ProgramParser < Parser
 
   ALLOWED_PARSERS = [
     SimpleAssignmentParser,
-    SingleLineDefWithNoArgsParser,
     SingleLineDefWithArgsParser,
     MultilineDefWithArgsParser,
     MultilineDefWithoutArgsParser,

@@ -4,35 +4,6 @@ The syntax is heavily inspired by ruby in efforts to bring some of the beauty of
 
 A primary goal is to use plain JavaScript data types & emit idiomatic JavaScript.
 
-For example, a more complex pattern in peacock like this, of updating a value in a list
-
-```ruby
-# todos := [{ id: 10, completed: false, ... }, ...]
-
-def updateTodo(id, todos) =
-  for todos of
-    { id: id, ...todo } => { ...todo, id, completed: true },
-    continue
-  end
-```
-
-would get compiled to the following JavaScript
-
-```javascript
-// let todos = [{ id: 10, completed: false, ... }, ...]
-
-function updateTodo(id, todos) {
-  return todos.map((_elem) => {
-    if (_elem.id === id) {
-      let { id, ...todo } = _elem;
-      return { ...todo, id, completed: true };
-    } else {
-      return _elem;
-    }
-  });
-}
-```
-
 I went on quite the journey to make this language & likely have a long time to go.
 
 Initially this language was meant to be a impure Elm sorta like Derw, but after exploring more ruby & rewriting the language in ruby I fell in love.

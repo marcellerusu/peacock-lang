@@ -70,11 +70,26 @@ module AST
     end
   end
 
-  class SimpleFnArgs < Node
-    def to_h
-      value
-    end
+  class SimpleArg < Node
+    attr_reader :name
 
+    def initialize(name, pos)
+      @name = name
+      @pos = pos
+    end
+  end
+
+  class SimpleSchemaArg < Node
+    attr_reader :schema_name, :name
+
+    def initialize(schema_name, name, pos)
+      @schema_name = schema_name
+      @name = name
+      @pos = pos
+    end
+  end
+
+  class SimpleFnArgs < Node
     def initialize(value, pos)
       @value = value
       @pos = pos
@@ -290,16 +305,6 @@ module AST
 
     def declare_with(name, schema)
       Declare.new(name, schema, self, pos)
-    end
-  end
-
-  class SingleLineDefWithNoArgs < Node
-    attr_reader :return_value, :name
-
-    def initialize(name, return_value, pos)
-      @name = name
-      @return_value = return_value
-      @pos = pos
     end
   end
 

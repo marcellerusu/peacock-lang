@@ -1,7 +1,6 @@
-arr := [1, 2, 3]
+schema Ten = 10
+schema Eleven = 11
 
-result := arr
-  .map #{ % * 10 }
-  .filter #{ % > 20 }
+function add(Ten(a), Eleven(b)) = a + b
 
-console.log result
+console.log add(10, 11)
