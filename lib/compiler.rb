@@ -168,10 +168,6 @@ class Compiler
       eval_multiline_def_without_args node
     when AST::MultilineDefWithArgs
       eval_multiline_def_with_args node
-    when AST::FunctionCallWithoutArgs
-      eval_function_call_without_args node
-    when AST::FunctionCallWithArgs
-      eval_function_call_with_args node
     when AST::SimpleForOfLoop
       eval_simple_for_of_loop node
     when AST::ForOfObjDeconstructLoop
@@ -240,15 +236,6 @@ class Compiler
 
   def eval_operator(node)
     "#{eval_expr(node.lhs)} #{node.type} #{eval_expr(node.rhs)}"
-  end
-
-  def eval_function_call_with_args(node)
-    args = node.args.map { |node| eval_expr node }.join ", "
-    "#{node.name}(#{args})"
-  end
-
-  def eval_function_call_without_args(node)
-    "#{node.name}()"
   end
 
   def eval_schema_capture(node)

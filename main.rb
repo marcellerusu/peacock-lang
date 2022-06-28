@@ -22,7 +22,7 @@ when "-n"
   ast = parser.parse!
 when "-c"
   ast = parser.parse!
-  ast = TypeChecker.new(ast, content).check!
+  ast = TypeChecker.new(ast, content).step!
   js = Compiler.new(ast).eval
   puts js
 else

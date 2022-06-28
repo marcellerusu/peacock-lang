@@ -3,13 +3,10 @@ import { update } from "peacock"
 import { items } from "./items"
 
 component
-  function toggleItemCompleted(id)
-    $items := $items.map function (item)
-      if item.id === id
-        return { ...item, completed: !completed }
-      else
-        return item
-      end
+  def toggleItemCompleted(id)
+    $items := for $items of
+      { id: id } as item => { ...item, completed: !item.completed },
+      else item => item
     end
   end
   newItem := ""

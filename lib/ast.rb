@@ -340,25 +340,6 @@ module AST
     end
   end
 
-  class FunctionCallWithoutArgs < Node
-    attr_reader :name, :pos
-
-    def initialize(name, pos)
-      @name = name
-      @pos = pos
-    end
-  end
-
-  class FunctionCallWithArgs < Node
-    attr_reader :name, :args, :pos
-
-    def initialize(name, args, pos)
-      @name = name
-      @args = args
-      @pos = pos
-    end
-  end
-
   class ShortFn < Node
     attr_reader :return_expr, :pos
 
