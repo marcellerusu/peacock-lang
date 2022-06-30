@@ -1,6 +1,12 @@
 require "ast"
 require "utils"
 
+class Object
+  def do
+    yield self
+  end
+end
+
 module Types
   class Type
     def to_s
@@ -118,26 +124,50 @@ class TypeChecker
     return line, col
   end
 
-  def print_error(node, expected, got)
+  def get_line_positions_to_print(node)
     previous_line = (@program_string[0..node.pos].rindex("\n") || -1) + 1
-    previous_line = (@program_string[0..previous_line].rindex("\n") || -1) + 1
-    next_line = (@program_string[node.pos..].index("\n") || @program_string.size) + 1
+    previous_line = (@program_string[0...previous_line - 1].rindex("\n")) + 1
+
+    next_line = @program_string[node.pos..].do { |s|
+      i = s.index("\n")
+      if i
+        i + node.pos
+      else
+        @program_string.size
+      end
+    }
+
+    return previous_line, next_line
+  end
+
+  def print_error(node, expected, got)
+    previous_line, next_line = get_line_positions_to_print node
     line, col = pos_to_line_and_col node.pos
-    puts "Type mismatch! [line:#{line},col:#{col}]"
-    puts "> #{@program_string[previous_line..next_line]}"
-    puts " #{" " * col + " "}^ Expected #{expected}, got #{got}"
-    @has_errors = true
+    puts "Type mismatch! [line:#{line}, col:#{col}]"
+    lines = @program_string[previous_line..next_line].split("\n")
+    puts "..."
+    lines.each_with_index do |_line, index|
+      puts "#{line - (lines.size - index) + 1} | #{_line}"
+    end
+    puts "    #{" " * col}^ Expected #{expected}, got #{got}"
+
     abort
   end
 
   def print_failed_id_lookup(node)
-    previous_line = (@program_string[0..node.pos].rindex("\n") || -1) + 1
-    previous_line = (@program_string[0..previous_line].rindex("\n") || -1) + 1
-    next_line = (@program_string[node.pos..].index("\n") || @program_string.size) + 1
+    previous_line, next_line = get_line_positions_to_print node
     line, col = pos_to_line_and_col node.pos
-    puts "Variable `#{node.value}` not found! [line:#{line},col:#{col}]"
-    puts "> #{@program_string[previous_line..next_line]}"
-    @has_errors = true
+
+    lines = @program_string[previous_line..next_line].split("\n")
+    puts "..."
+    lines.each_with_index do |_line, index|
+      break if index == lines.size - 1
+      puts "#{line - (lines.size - index) + 1} | #{_line}"
+    end
+    puts "#{line} | #{lines.last}"
+    puts "    #{" " * col}^"
+    puts "Identifier \"#{node.value}\" not found! [line:#{line}, col:#{col}]"
+
     abort
   end
 
@@ -190,34 +220,20 @@ class TypeChecker
     ),
   }
 
-  MATH_OPERATOR_ARGS_TYPE = Types::Tuple.new([
-    Types::Number.new,
-    Types::Number.new,
-  ])
-
-  MATH_OPERATOR_RETURN_TYPE = Types::Number.new
+  MATH_OPERATOR_TYPE = Types::Function.new(
+    Types::Tuple.new([
+      Types::Number.new,
+      Types::Number.new,
+    ]),
+    Types::Number.new
+  )
 
   OPERATOR_TYPES = {
-    "+" => Types::Function.new(
-      MATH_OPERATOR_ARGS_TYPE,
-      MATH_OPERATOR_RETURN_TYPE
-    ),
-    "*" => Types::Function.new(
-      MATH_OPERATOR_ARGS_TYPE,
-      MATH_OPERATOR_RETURN_TYPE
-    ),
-    "-" => Types::Function.new(
-      MATH_OPERATOR_ARGS_TYPE,
-      MATH_OPERATOR_RETURN_TYPE
-    ),
-    "/" => Types::Function.new(
-      MATH_OPERATOR_ARGS_TYPE,
-      MATH_OPERATOR_RETURN_TYPE
-    ),
-    "**" => Types::Function.new(
-      MATH_OPERATOR_ARGS_TYPE,
-      MATH_OPERATOR_RETURN_TYPE
-    ),
+    "+" => MATH_OPERATOR_TYPE,
+    "*" => MATH_OPERATOR_TYPE,
+    "-" => MATH_OPERATOR_TYPE,
+    "/" => MATH_OPERATOR_TYPE,
+    "**" => MATH_OPERATOR_TYPE,
   }
 end
 
