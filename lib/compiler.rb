@@ -130,14 +130,16 @@ class Compiler
       eval_str node
     when AST::SingleLineDefWithArgs
       eval_single_line_fn_with_args node
-    when AST::Fn
-      eval_function node
     when AST::SingleLineArrowFnWithoutArgs
       eval_arrow_fn_without_args node
     when AST::SingleLineArrowFnWithArgs
       eval_arrow_fn_with_args node
     when AST::SingleLineArrowFnWithOneArg
       eval_arrow_fn_with_one_arg node
+    when AST::MultilineDefWithoutArgs
+      eval_multiline_def_without_args node
+    when AST::MultilineDefWithArgs
+      eval_multiline_def_with_args node
     when AST::ShortFn
       eval_short_fn node
     when AST::AnonIdLookup
@@ -164,10 +166,6 @@ class Compiler
       eval_operator node
     when AST::ArgsSchema
       eval_args_schema node
-    when AST::MultilineDefWithoutArgs
-      eval_multiline_def_without_args node
-    when AST::MultilineDefWithArgs
-      eval_multiline_def_with_args node
     when AST::SimpleForOfLoop
       eval_simple_for_of_loop node
     when AST::ForOfObjDeconstructLoop
@@ -342,11 +340,17 @@ class Compiler
   end
 
   def schema_arg_assignments(args_node)
-    args_node.value
+    assignments = args_node.value
       .select { |node| node.is_a?(AST::SimpleSchemaArg) }
       .map do |arg|
       "#{padding}#{arg.name} = s.verify(#{arg.schema_name}, #{arg.name});"
-    end.join "\n"
+    end.join("\n")
+
+    if assignments.empty?
+      ""
+    else
+      assignments + "\n"
+    end
   end
 
   def eval_single_line_fn_with_args(fn_node)
@@ -354,7 +358,8 @@ class Compiler
 
     fn = "#{padding}function #{fn_node.name}(#{args}) {\n"
     indent!
-    fn += schema_arg_assignments(fn_node.args) + "\n"
+
+    fn += schema_arg_assignments(fn_node.args)
 
     fn += "#{padding}return #{eval_expr fn_node.return_value};\n"
     dedent!
@@ -367,7 +372,7 @@ class Compiler
 
     fn = "(#{args}) => {\n"
     indent!
-    fn += padding + schema_arg_assignments(node.args) + "\n"
+    fn += padding + schema_arg_assignments(node.args)
     fn += padding + "return #{eval_expr node.return_expr};\n"
     dedent!
     fn + "}"
@@ -383,15 +388,6 @@ class Compiler
 
   def eval_short_fn(node)
     "(#{eval_anon_id_lookup} => #{eval_expr node.return_expr})"
-  end
-
-  def eval_function(node, pattern = nil)
-    node.body[0] = node.body[0].value if node.body.size == 1
-    body = Compiler.new(node.body, @indent + 2).eval
-    args = node.args.join(", ")
-    pattern = AST::ArgsSchema.new(node.args) if pattern.nil?
-    body = "{\n #{body}\n#{padding}}" if node.body.size > 1
-    "((#{eval_expr(pattern.from_schema)}) => #{body.strip.delete_suffix ";"})"
   end
 
   def eval_return(node)

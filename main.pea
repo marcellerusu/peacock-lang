@@ -1,5 +1,6 @@
-b := "10"
+function add(a, b) = a + b
 
-Number(a) := b
+a := "1"
+b := 2
 
-console.log d
+add(a, b, b)

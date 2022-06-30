@@ -26,6 +26,10 @@ module Types
   class Array < Type
     attr_reader :type
 
+    def to_s
+      "Array<#{type}>"
+    end
+
     def initialize(type = Any)
       @type = type
     end
@@ -46,6 +50,18 @@ module Types
   class Tuple < Type
     attr_reader :types
 
+    def to_s
+      "Tuple<#{types.map(&:to_s).join ", "}>"
+    end
+
+    def initialize(types)
+      @types = types
+    end
+  end
+
+  class Union < Type
+    attr_reader :types
+
     def initialize(types)
       @types = types
     end
@@ -54,10 +70,6 @@ end
 
 class TypeChecker
   attr_reader :ast, :program_string, :pos, :stack
-
-  def self.can_parse?(_self)
-    not_implemented!
-  end
 
   def self.from(_self)
     self.new(_self.ast, _self.program_string, _self.pos, _self.stack)
@@ -113,8 +125,9 @@ class TypeChecker
     line, col = pos_to_line_and_col node.pos
     puts "Type mismatch! [line:#{line},col:#{col}]"
     puts "> #{@program_string[previous_line..next_line]}"
-    puts "  ^ Expected #{expected}, got #{got}"
+    puts " #{" " * col + " "}^ Expected #{expected}, got #{got}"
     @has_errors = true
+    abort
   end
 
   def print_failed_id_lookup(node)
@@ -125,9 +138,24 @@ class TypeChecker
     puts "Variable `#{node.value}` not found! [line:#{line},col:#{col}]"
     puts "> #{@program_string[previous_line..next_line]}"
     @has_errors = true
+    abort
   end
 
-  def type_of(node)
+  def check_type_of_op(node, local_stack)
+    lhs_type = type_of node.lhs, local_stack
+    rhs_type = type_of node.rhs, local_stack
+    op_fn_type = OPERATOR_TYPES[node.type.to_s]
+
+    if !types_match?(op_fn_type.args_type, Types::Tuple.new([lhs_type, rhs_type]))
+      print_error node, op_fn_type.args_type, Types::Tuple.new([lhs_type, rhs_type])
+    end
+
+    op_fn_type.return_type
+  end
+
+  def type_of(node, temp_stack = {})
+    local_stack = { **@stack, **temp_stack }
+
     case node
     when AST::Int
       Types::Number.new
@@ -135,12 +163,13 @@ class TypeChecker
       Types::Number.new
     when AST::SimpleString
       Types::String.new
+    when AST::Op
+      check_type_of_op(node, local_stack)
     when AST::IdLookup
-      if !@stack[node.value]
+      if !local_stack[node.value]
         print_failed_id_lookup node
-        assert_not_reached!
       end
-      @stack[node.value]
+      local_stack[node.value]
     else
       assert_not_reached!
     end
@@ -160,6 +189,36 @@ class TypeChecker
       Types::Undefined.new
     ),
   }
+
+  MATH_OPERATOR_ARGS_TYPE = Types::Tuple.new([
+    Types::Number.new,
+    Types::Number.new,
+  ])
+
+  MATH_OPERATOR_RETURN_TYPE = Types::Number.new
+
+  OPERATOR_TYPES = {
+    "+" => Types::Function.new(
+      MATH_OPERATOR_ARGS_TYPE,
+      MATH_OPERATOR_RETURN_TYPE
+    ),
+    "*" => Types::Function.new(
+      MATH_OPERATOR_ARGS_TYPE,
+      MATH_OPERATOR_RETURN_TYPE
+    ),
+    "-" => Types::Function.new(
+      MATH_OPERATOR_ARGS_TYPE,
+      MATH_OPERATOR_RETURN_TYPE
+    ),
+    "/" => Types::Function.new(
+      MATH_OPERATOR_ARGS_TYPE,
+      MATH_OPERATOR_RETURN_TYPE
+    ),
+    "**" => Types::Function.new(
+      MATH_OPERATOR_ARGS_TYPE,
+      MATH_OPERATOR_RETURN_TYPE
+    ),
+  }
 end
 
 class StatementChecker < TypeChecker
@@ -171,6 +230,8 @@ class StatementChecker < TypeChecker
       step_function_call node
     when AST::SimpleAssignment
       step_simple_assignment node
+    when AST::SingleLineDefWithArgs
+      step_single_line_def_with_args node
     else
       assert_not_reached!
     end
@@ -188,6 +249,10 @@ class StatementChecker < TypeChecker
     case node
     when AST::Dot
       fn_type_from_native_object(node)
+    when AST::IdLookup
+      @stack[node.value]
+    else
+      assert_not_reached!
     end
   end
 
@@ -199,27 +264,75 @@ class StatementChecker < TypeChecker
     Types::Tuple.new arg_types
   end
 
+  def type_of_def_args(node_args)
+    case node_args
+    when AST::SimpleFnArgs
+      Types::Tuple.new node_args.value.map { Types::Any.new }
+    else
+      assert_not_reached!
+    end
+  end
+
+  def infer_type_of(id, expr)
+    case expr
+    when AST::Op
+      type = OPERATOR_TYPES[expr.type.to_s]
+      if expr.lhs.value == id
+        type.args_type.types[0]
+      elsif expr.rhs.value == id
+        type.args_type.types[1]
+      else
+        assert_not_reached!
+      end
+    end
+  end
+
+  def step_single_line_def_with_args(node)
+    args_type = Types::Tuple.new(
+      node.args.value.map { |id|
+        infer_type_of id.name, node.return_value
+      }
+    )
+
+    local_stack = node.args.value.map(&:name)
+      .zip(args_type.types)
+      .map { |name, type| [name, type] }.to_h
+    return_type = type_of node.return_value, local_stack
+
+    @stack[node.name] = Types::Function.new(
+      args_type,
+      return_type
+    )
+    node
+  end
+
   def step_function_call(node)
     fn_type = function_type node.expr
     call_args_type = args_type node.args
 
     if !types_match?(fn_type.args_type, call_args_type)
       print_error node, fn_type.args_type, call_args_type
-      assert_not_reached!
     end
 
     node
   end
 
   def types_match?(into, from)
+    return true if into.is_a?(Types::Any) || from.is_a?(Types::Any)
+
     case into
-    when Types::Any
-      true
     when Types::Number
       from.is_a? Types::Number
     when Types::String
       from.is_a? Types::String
+    when Types::Tuple
+      return false if !from.is_a?(Types::Tuple)
+      return false if from.types.size != into.types.size
+      into.types
+        .zip(from.types)
+        .all? { |type_a, type_b| types_match? type_a, type_b }
     else
+      binding.pry
       assert_not_reached!
     end
   end
@@ -240,7 +353,6 @@ class StatementChecker < TypeChecker
     rhs_type = type_of node.expr
     if !types_match?(rhs_type, schema_type)
       print_error node, schema_type, rhs_type
-      assert_not_reached!
     end
 
     @stack[node.name] = rhs_type
