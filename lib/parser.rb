@@ -355,7 +355,7 @@ class FunctionCallWithArgsWithoutParens < Parser
       consume! :comma
     end
 
-    AST::FnCall.new(args, lhs_n, lhs_n.pos)
+    AST::FnCall.new(args, lhs_n, args.first.pos)
   end
 end
 
