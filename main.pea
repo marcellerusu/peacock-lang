@@ -1,5 +1,1 @@
-arr := [{ num: 10 }, { num: 11 }]
-
-for { num } of arr
-  console.log(num)
-end
+function add(a, b) = a + b

@@ -62,6 +62,12 @@ class Parser
     not_implemented!
   end
 
+  def consume_first_valid_parser!(parser_klasses)
+    parser_klass = parser_klasses.find { |klass| klass.can_parse? self }
+    parser_not_implemented! parser_klasses if !parser_klass
+    consume_parser! parser_klass
+  end
+
   def consume!(token_type = nil)
     # puts "#{token_type} #{current_token.type}"
     # binding.pry if token_type && token_type != current_token.type
@@ -122,9 +128,7 @@ class SimpleFnArgsParser < Parser
     args = []
 
     loop do
-      parser_klass = ARG_PARSERS.find { |klass| klass.can_parse? self }
-      parser_not_implemented! ARG_PARSERS if !parser_klass
-      args.push consume_parser! parser_klass
+      args.push consume_first_valid_parser! ARG_PARSERS
       break if current_token.type == :close_paren
       consume! :comma
     end
@@ -242,6 +246,15 @@ class ArrowMethodObjectEntryParser < Parser
   end
 end
 
+class FunctionObjectEntryParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :function
+  end
+
+  def parse!
+  end
+end
+
 class ObjectParser < Parser
   def self.can_parse?(_self)
     _self.current_token.type == :"{"
@@ -256,11 +269,7 @@ class ObjectParser < Parser
     open_brace_t = consume! :"{"
     values = []
     loop do
-      parser_klass = ENTRY_PARSERS.find { |klass| klass.can_parse? self }
-      parser_not_implemented! ENTRY_PARSERS if !parser_klass
-      key_value_n = consume_parser! parser_klass
-
-      values.push key_value_n
+      values.push consume_first_valid_parser! ENTRY_PARSERS
       consume! :comma if current_token&.type == :comma
       break if current_token.type == :"}"
     end
@@ -572,18 +581,12 @@ class ExprParser < Parser
   ]
 
   def parse!
-    primary_klass = PRIMARY_PARSERS.find { |parser_klass| parser_klass.can_parse?(self) }
-
-    parser_not_implemented! PRIMARY_PARSERS if !primary_klass
-
-    expr_n = consume_parser! primary_klass
-
+    expr_n = consume_first_valid_parser! PRIMARY_PARSERS
     loop do
       secondary_klass = SECONDARY_PARSERS.find { |parser_klass| parser_klass.can_parse?(self, expr_n) }
       break if !secondary_klass
       expr_n = consume_parser! secondary_klass, expr_n
     end
-
     expr_n
   end
 end
@@ -638,14 +641,8 @@ class SchemaObjectParser < Parser
 
   def parse_value!(key_name, pos)
     return AST::SchemaCapture.new(key_name, pos) if current_token.type != :colon
-
     consume! :colon
-
-    parser_klass = VALUE_PARSERS.find { |klass| klass.can_parse? self }
-
-    parser_not_implemented! VALUE_PARSERS if !parser_klass
-
-    consume_parser! parser_klass
+    consume_first_valid_parser! VALUE_PARSERS
   end
 
   def parse!
@@ -670,18 +667,14 @@ class SchemaDefinitionParser < Parser
   SCHEMA_PARSERS = [
     SchemaObjectParser,
     IntParser,
+    SimpleStringParser,
   ]
 
   def parse!
     schema_t = consume! :schema
     name_t = consume! :identifier
     consume! :"="
-    parser_klass = SCHEMA_PARSERS.find { |klass| klass.can_parse? self }
-
-    parser_not_implemented! SCHEMA_PARSERS if !parser_klass
-
-    expr_n = consume_parser! parser_klass
-
+    expr_n = consume_first_valid_parser! SCHEMA_PARSERS
     AST::SchemaDefinition.new(name_t.value, expr_n, schema_t.pos)
   end
 end
@@ -705,17 +698,22 @@ class SimpleSchemaAssignmentParser < Parser
   end
 end
 
+def function_parsers
+  [
+    SingleLineDefWithArgsParser,
+    MultilineDefWithArgsParser,
+    MultilineDefWithoutArgsParser,
+  ]
+end
+
 class ProgramParser < Parser
   def initialize(*args)
     super(*args)
     @body = []
   end
 
-  ALLOWED_PARSERS = [
+  ALLOWED_PARSERS = function_parsers + [
     SimpleAssignmentParser,
-    SingleLineDefWithArgsParser,
-    MultilineDefWithArgsParser,
-    MultilineDefWithoutArgsParser,
     ForOfObjDeconstructLoopParser,
     SimpleForOfLoopParser,
     SchemaDefinitionParser,
