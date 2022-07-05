@@ -172,4 +172,8 @@ end")
 ')
     expect(ast).to eq([{"klass"=>"AST::SimpleAssignment", "name"=>"o1", "expr"=>{"klass"=>"AST::ObjectLiteral", "value"=>[{"klass"=>"AST::SpreadObjectEntry", "value"=>{"klass"=>"AST::IdLookup", "value"=>"o", "pos"=>11}, "pos"=>8}], "pos"=>6}, "pos"=>0}])
   end
+  it "2022-07-04 23:52:00 -0400" do
+    ast = parse('console.log false')
+    expect(ast).to eq([{"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::Bool", "value"=>false, "pos"=>12}], "expr"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"console", "pos"=>0}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"log", "pos"=>8}, "pos"=>7}, "pos"=>12}])
+  end
 end
