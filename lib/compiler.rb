@@ -9,9 +9,10 @@ class Compiler
     @@use_std_lib = other
   end
 
-  def initialize(ast, indent = 0)
+  def initialize(ast, indent = 0, fn_arg_names = [])
     @ast = ast
     @indent = indent
+    @fn_arg_names = fn_arg_names
   end
 
   def eval
@@ -93,6 +94,7 @@ class Compiler
     nodes
       .filter { |node| node.is_a?(AST::Assign) }
       .uniq { |node| node.name }
+      .filter { |node| !@fn_arg_names.include?(node.name) }
       .map(&:name) +
       nodes
         .filter { |node| node.is_a?(AST::MatchAssignment) }
@@ -114,10 +116,12 @@ class Compiler
       eval_property_lookup node
     when AST::ArrayLiteral
       eval_array_literal node
-    when AST::SimpleObjectLiteral
-      eval_simple_object_literal node
     when AST::ObjectLiteral
       eval_object_literal node
+    when AST::SimpleObjectEntry
+      eval_object_entry node
+    when AST::ArrowMethodObjectEntry
+      eval_object_entry node
     when AST::Bool
       eval_bool node
     when AST::Int
@@ -133,6 +137,8 @@ class Compiler
     when AST::SingleLineArrowFnWithoutArgs
       eval_arrow_fn_without_args node
     when AST::SingleLineArrowFnWithArgs
+      eval_single_line_arrow_fn_with_args node
+    when AST::MultiLineArrowFnWithArgs
       eval_arrow_fn_with_args node
     when AST::SingleLineArrowFnWithOneArg
       eval_arrow_fn_with_one_arg node
@@ -285,16 +291,14 @@ class Compiler
     "[#{elements}]"
   end
 
-  def eval_simple_object_literal(node)
-    eval_object_literal(node)
+  def eval_object_entry(node)
+    "#{padding}#{node.key_name}: #{eval_expr node.value}"
   end
 
   def eval_object_literal(node)
     indent!
     object_literal = "{\n"
-    object_literal += node.value.map do |key, value|
-      "#{padding}#{key}: #{eval_expr(value)}"
-    end.join(",\n")
+    object_literal += node.value.map { |node| eval_expr node }.join(",\n")
     dedent!
     object_literal += "\n#{padding}}"
   end
@@ -358,23 +362,30 @@ class Compiler
 
     fn = "#{padding}function #{fn_node.name}(#{args}) {\n"
     indent!
-
     fn += schema_arg_assignments(fn_node.args)
-
     fn += "#{padding}return #{eval_expr fn_node.return_value};\n"
     dedent!
     fn += "#{padding}}"
     fn
   end
 
-  def eval_arrow_fn_with_args(node)
+  def eval_single_line_arrow_fn_with_args(node)
     args = arg_names node.args
 
     fn = "(#{args}) => {\n"
     indent!
-    fn += padding + schema_arg_assignments(node.args)
+    fn += schema_arg_assignments(node.args)
     fn += padding + "return #{eval_expr node.return_expr};\n"
     dedent!
+    fn + "#{padding}}"
+  end
+
+  def eval_arrow_fn_with_args(node)
+    args = arg_names node.args
+
+    fn = "(#{args}) => {\n"
+    fn += schema_arg_assignments(node.args)
+    fn += Compiler.new(node.body, @indent + 2, node.args.value.map(&:name)).eval + "\n"
     fn + "}"
   end
 

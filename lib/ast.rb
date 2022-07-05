@@ -155,17 +155,27 @@ module AST
     end
   end
 
-  class SimpleObjectLiteral < Node
+  class ObjectLiteral < Node
     def initialize(value, pos)
       @value = value
       @pos = pos
     end
+  end
 
-    def to_h
-      value.map do |key, value|
-        [key, value.to_h]
-      end
+  class ObjectEntry < Node
+    attr_reader :key_name
+
+    def initialize(key_name, value, pos)
+      @key_name = key_name
+      @value = value
+      @pos = pos
     end
+  end
+
+  class SimpleObjectEntry < ObjectEntry
+  end
+
+  class ArrowMethodObjectEntry < ObjectEntry
   end
 
   class SchemaAny < Node
@@ -201,53 +211,6 @@ module AST
     end
   end
 
-  class ObjectLiteral < Node
-    attr_reader :splats
-
-    def initialize(value, spreads, pos)
-      @value = value
-      @splats = spreads
-      @pos = pos
-    end
-
-    def collection?
-      true
-    end
-
-    def insert!(key, v)
-      @value.push [key, v]
-    end
-
-    def to_schema
-      ObjectLiteral.new(value.map do |key, value|
-        [key, value.to_schema]
-      end, splats, pos)
-    end
-
-    def captures
-      list = []
-      @value.each do |key, val|
-        list.concat val.captures
-      end
-      list
-    end
-
-    def each(&block)
-      @value.each { |k, v| block.call(k, v) }
-    end
-
-    def lookup_key(_key)
-      _, value = @value.find { |key, _| key.value == _key }
-      value
-    end
-
-    def does_not_have_key?(_key)
-      @value.none? do |key, value|
-        key.value == _key
-      end
-    end
-  end
-
   class Return < Node
     def initialize(value, pos = value.pos)
       @value = value
@@ -279,10 +242,10 @@ module AST
   class FnCall < Node
     attr_reader :args, :expr
 
-    def initialize(args, expr_n, pos)
+    def initialize(args, return_expr_n, pos)
       assert { args.is_a? Array }
       @args = args
-      @expr = expr_n
+      @expr = return_expr_n
       @pos = pos
     end
 
@@ -349,7 +312,14 @@ module AST
     end
   end
 
-  class ArrowFn < Fn
+  class MultiLineArrowFnWithArgs < Node
+    attr_reader :args, :body, :pos
+
+    def initialize(args, body, pos)
+      @args = args
+      @body = body
+      @pos = pos
+    end
   end
 
   class SingleLineArrowFnWithoutArgs < Node
@@ -430,10 +400,10 @@ module AST
   class Declare < Node
     attr_reader :name, :schema, :expr
 
-    def initialize(name, schema, expr_n, pos)
+    def initialize(name, schema, return_expr_n, pos)
       @name = name
       @schema = schema
-      @expr = expr_n
+      @expr = return_expr_n
       @pos = pos
     end
 
@@ -498,8 +468,8 @@ module AST
   class Export < Node
     attr_reader :expr
 
-    def initialize(expr_n, pos)
-      @expr = expr_n
+    def initialize(return_expr_n, pos)
+      @expr = return_expr_n
       @pos = pos
     end
   end
@@ -536,10 +506,10 @@ module AST
   class Assign < Node
     attr_reader :name, :expr
 
-    def initialize(name, expr_n, pos = expr_n.pos)
+    def initialize(name, return_expr_n, pos = return_expr_n.pos)
       @name = name
-      @expr = expr_n
-      @pos = pos || expr_n.pos
+      @expr = return_expr_n
+      @pos = pos || return_expr_n.pos
     end
 
     def exportable?
@@ -568,10 +538,10 @@ module AST
   class SimpleAssignment < Assign
     attr_reader :name, :expr
 
-    def initialize(name, expr_n, pos = expr_n.pos)
+    def initialize(name, return_expr_n, pos = return_expr_n.pos)
       @name = name
-      @expr = expr_n
-      @pos = pos || expr_n.pos
+      @expr = return_expr_n
+      @pos = pos || return_expr_n.pos
     end
 
     def exportable?
@@ -596,8 +566,8 @@ module AST
   class Throw < Node
     attr_reader :expr
 
-    def initialize(expr_n, pos)
-      @expr = expr_n
+    def initialize(return_expr_n, pos)
+      @expr = return_expr_n
       @pos = pos
     end
   end
@@ -605,8 +575,8 @@ module AST
   class Case < Node
     attr_reader :expr, :cases
 
-    def initialize(expr_n, cases, pos)
-      @expr = expr_n
+    def initialize(return_expr_n, cases, pos)
+      @expr = return_expr_n
       @cases = cases
       @pos = pos
     end

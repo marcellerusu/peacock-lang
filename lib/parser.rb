@@ -201,24 +201,71 @@ end
 
 # Complex primatives
 
-class SimpleObjectParser < Parser
+class SimpleObjectEntryParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :identifier &&
+      _self.peek_token.type == :colon
+  end
+
+  def parse!
+    key_t = consume! :identifier
+    consume! :colon
+    value_n = consume_parser! ExprParser
+
+    AST::SimpleObjectEntry.new(key_t.value, value_n, key_t.pos)
+  end
+end
+
+class ArrowMethodObjectEntryParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :identifier &&
+      _self.peek_token.type == :open_paren &&
+      _self.rest_of_line.include?("=>")
+  end
+
+  def parse!
+    key_t = consume! :identifier
+    args_n = consume_parser! SimpleFnArgsParser
+    consume! :"=>"
+    return_expr_n = consume_parser! ExprParser
+    AST::ArrowMethodObjectEntry.new(
+      key_t.value,
+      AST::SingleLineArrowFnWithArgs.new(
+        args_n,
+        return_expr_n,
+        # TODO: incorrect
+        # this should be position of (
+        key_t.pos
+      ),
+      key_t.pos
+    )
+  end
+end
+
+class ObjectParser < Parser
   def self.can_parse?(_self)
     _self.current_token.type == :"{"
   end
+
+  ENTRY_PARSERS = [
+    SimpleObjectEntryParser,
+    ArrowMethodObjectEntryParser,
+  ]
 
   def parse!
     open_brace_t = consume! :"{"
     values = []
     loop do
-      key_t = consume! :identifier
-      consume! :colon
-      value = consume_parser! ExprParser
-      values.push [key_t.value, value]
+      parser_klass = ENTRY_PARSERS.find { |klass| klass.can_parse? self }
+      parser_not_implemented! ENTRY_PARSERS if !parser_klass
+      key_value_n = consume_parser! parser_klass
+
+      values.push key_value_n
+      consume! :comma if current_token&.type == :comma
       break if current_token.type == :"}"
-      consume! :comma
     end
     consume! :"}"
-    AST::SimpleObjectLiteral.new(values, open_brace_t.pos)
+    AST::ObjectLiteral.new(values, open_brace_t.pos)
   end
 end
 
@@ -423,6 +470,23 @@ class SingleLineArrowFnWithoutArgsParser < Parser
   end
 end
 
+class MultiLineArrowFnWithArgsParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :open_paren &&
+      _self.rest_of_line&.include?("=>") &&
+      _self.rest_of_line&.include?("{")
+  end
+
+  def parse!
+    args_n = consume_parser! SimpleFnArgsParser
+    consume! :"=>"
+    consume! :"{"
+    body_n = consume_parser! FunctionBodyParser
+    consume! :"}"
+    AST::MultiLineArrowFnWithArgs.new(args_n, body_n, args_n.pos)
+  end
+end
+
 class SingleLineArrowFnWithArgsParser < Parser
   def self.can_parse?(_self)
     _self.current_token&.type == :open_paren &&
@@ -488,8 +552,9 @@ class ExprParser < Parser
     FloatParser,
     SimpleStringParser,
     ArrayParser,
-    SimpleObjectParser,
+    ObjectParser,
     AnonIdLookupParser,
+    MultiLineArrowFnWithArgsParser,
     SingleLineArrowFnWithOneArgParser,
     IdentifierLookupParser,
     ShortAnonFnParser,
@@ -663,7 +728,7 @@ class ProgramParser < Parser
   end
 
   def parse!(additional_parsers = [])
-    while current_token && current_token.type != :end
+    while current_token && current_token.is_not_one_of?(:end, :"}")
       klass = (ALLOWED_PARSERS + additional_parsers).find { |klass| klass.can_parse?(self) }
 
       if !klass
