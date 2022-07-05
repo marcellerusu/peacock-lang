@@ -4,6 +4,11 @@ module AST
   class Node
     attr_reader :value, :pos
 
+    def initialize(value, pos)
+      @value = value
+      @pos = pos
+    end
+
     def to_h
       hash = {
         "klass" => self.class.to_s,
@@ -20,10 +25,6 @@ module AST
         hash[var.to_s.delete("@")] = value
       end
       hash
-    end
-
-    def is_not_one_of?(*klasses)
-      klasses.none? { |klass| self.is_a? klass }
     end
 
     def is_not_a?(klass)
@@ -90,58 +91,12 @@ module AST
   end
 
   class SimpleFnArgs < Node
-    def initialize(value, pos)
-      @value = value
-      @pos = pos
-    end
-  end
-
-  class Str < Node
-    def initialize(value, pos)
-      @value = value
-      @pos = pos
-    end
-
-    def alpha_numeric?
-      !!(value =~ /^[a-zA-Z_]+$/)
-    end
-
-    def captures
-      []
-    end
   end
 
   class SimpleString < Node
-    def initialize(value, pos)
-      @value = value
-      @pos = pos
-    end
   end
 
   class ArrayLiteral < Node
-    def from_schema
-      ArrayLiteral.new(value.map(&:from_schema), pos)
-    end
-
-    def to_schema
-      # Maybe we should create ArraySchema?
-      ArrayLiteral.new(value.map(&:to_schema), pos)
-    end
-
-    def initialize(value = [], pos = nil)
-      assert { value.is_a? Array }
-      @value = value
-      @pos = pos
-    end
-
-    def collection?
-      true
-    end
-
-    def each_with_index(&block)
-      @value.each_with_index { |v, i| block.call(v, i) }
-    end
-
     def captures
       list = []
       @value.each do |val|
@@ -149,17 +104,9 @@ module AST
       end
       list
     end
-
-    def push!(val)
-      @value.push val
-    end
   end
 
   class ObjectLiteral < Node
-    def initialize(value, pos)
-      @value = value
-      @pos = pos
-    end
   end
 
   class ObjectEntry < Node
@@ -179,6 +126,9 @@ module AST
   end
 
   class FunctionObjectEntry < ObjectEntry
+  end
+
+  class SpreadObjectEntry < Node
   end
 
   class SchemaAny < Node
@@ -218,10 +168,6 @@ module AST
     def initialize(value, pos = value.pos)
       @value = value
       @pos = pos
-    end
-
-    def to_return
-      self
     end
   end
 
@@ -361,39 +307,13 @@ module AST
   end
 
   class IdLookup < Node
-    def initialize(value, pos)
-      @value = value
-      @pos = pos
-    end
-
-    def to_schema
-      SchemaCapture.new(value, pos)
-    end
-
-    def to_schema_capture_depending_on(context)
-      if context.in_a?(:schema) && !schema_lookup?
-        to_schema
-      else
-        self
-      end
-    end
-
     def captures
       []
-    end
-
-    def schema_lookup?
-      return false if value[0] == "_"
-      value[0].upcase == value[0]
     end
   end
 
   class ArgsSchema < Node
     attr_reader :args
-
-    def from_schema
-      self
-    end
 
     def initialize(args)
       @args = args
@@ -417,14 +337,6 @@ module AST
 
   class SchemaCapture < Node
     attr_reader :name
-
-    def to_schema
-      self
-    end
-
-    def from_schema
-      IdLookup.new(name, pos)
-    end
 
     def initialize(name, pos)
       @name = name
@@ -458,25 +370,6 @@ module AST
     end
   end
 
-  class Import < Node
-    attr_reader :pattern, :file_name
-
-    def initialize(pattern, file_name, pos)
-      @pattern = pattern
-      @file_name = file_name
-      @pos = pos
-    end
-  end
-
-  class Export < Node
-    attr_reader :expr
-
-    def initialize(return_expr_n, pos)
-      @expr = return_expr_n
-      @pos = pos
-    end
-  end
-
   class Op < Node
     attr_reader :lhs, :type, :rhs
 
@@ -489,21 +382,6 @@ module AST
   end
 
   class Dot < Op
-  end
-
-  class MatchAssignment < Node
-    attr_reader :schema, :pattern, :value
-
-    def initialize(schema, pattern, value)
-      @schema = schema
-      @pattern = pattern
-      @value = value
-      @pos = schema.pos
-    end
-
-    def captures
-      pattern.to_schema.captures
-    end
   end
 
   class Assign < Node
@@ -521,10 +399,6 @@ module AST
   end
 
   class Await < Node
-    def initialize(value, pos)
-      @value = value
-      @pos = pos
-    end
   end
 
   class SimpleSchemaAssignment < Assign
@@ -545,43 +419,6 @@ module AST
       @name = name
       @expr = return_expr_n
       @pos = pos || return_expr_n.pos
-    end
-
-    def exportable?
-      true
-    end
-  end
-
-  class PropertyLookup < Node
-    attr_reader :lhs_expr, :property
-
-    def initialize(lhs_expr, property, pos)
-      @lhs_expr = lhs_expr
-      @property = property
-      @pos = pos
-    end
-
-    def lookup?
-      true
-    end
-  end
-
-  class Throw < Node
-    attr_reader :expr
-
-    def initialize(return_expr_n, pos)
-      @expr = return_expr_n
-      @pos = pos
-    end
-  end
-
-  class Case < Node
-    attr_reader :expr, :cases
-
-    def initialize(return_expr_n, cases, pos)
-      @expr = return_expr_n
-      @cases = cases
-      @pos = pos
     end
   end
 end

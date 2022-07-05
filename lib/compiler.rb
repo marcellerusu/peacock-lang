@@ -97,7 +97,6 @@ class Compiler
       .filter { |node| !@fn_arg_names.include?(node.name) }
       .map(&:name) +
       nodes
-        .filter { |node| node.is_a?(AST::MatchAssignment) }
         .flat_map { |node| node.captures }
         .uniq
   end
@@ -112,8 +111,6 @@ class Compiler
       eval_simple_schema_assignment node
     when AST::Assign
       eval_assignment node
-    when AST::PropertyLookup
-      eval_property_lookup node
     when AST::ArrayLiteral
       eval_array_literal node
     when AST::ObjectLiteral
@@ -131,8 +128,6 @@ class Compiler
       eval_float node
     when AST::SimpleString
       eval_simple_string node
-    when AST::Str
-      eval_str node
     when AST::SingleLineDefWithArgs
       eval_single_line_fn_with_args node
     when AST::SingleLineArrowFnWithoutArgs
@@ -159,12 +154,6 @@ class Compiler
       eval_identifier_lookup node
     when AST::If
       eval_if_expression node
-    when AST::Throw
-      eval_throw node
-    when AST::Case
-      eval_case_expression node
-    when AST::MatchAssignment
-      eval_match_assignment node
     when AST::SchemaCapture
       eval_schema_capture node
     when AST::Dot
@@ -247,10 +236,6 @@ class Compiler
     "s('#{node.name}')"
   end
 
-  def eval_match_assignment(node)
-    "(#{eval_expr(node.pattern)} = s.verify(#{eval_expr(node.schema)}, #{eval_expr(node.value)}))"
-  end
-
   def eval_if_expression(node)
     cond = eval_expr(node.value)
     pass_body = Compiler.new(node.pass, @indent + 2).eval_without_variable_declarations
@@ -263,16 +248,8 @@ class Compiler
     "#{padding}}"
   end
 
-  def eval_throw(node)
-    "throw #{eval_expr(node.expr)}"
-  end
-
   def eval_simple_string(node)
     "\"#{node.value}\""
-  end
-
-  def eval_str(node)
-    "`#{node.value}`"
   end
 
   def eval_int(node)
@@ -310,15 +287,6 @@ class Compiler
     object_literal += node.value.map { |node| eval_expr node }.join(",\n")
     dedent!
     object_literal += "\n#{padding}}"
-  end
-
-  def eval_property_lookup(node)
-    lhs, key = eval_expr(node.lhs_expr), node.property
-    if key =~ /[a-zA-Z\_][a-zA-Z1-9\_?]*/
-      "#{lhs}.#{sub_q(key)}"
-    else
-      "#{lhs}[#{sub_q(key)}]"
-    end
   end
 
   def sub_q(sym)
@@ -423,9 +391,5 @@ class Compiler
   def eval_identifier_lookup(node)
     assert { node.value }
     sub_q(node.value)
-  end
-
-  def eval_case_expression(node)
-    "s.match(#{node.cases.map { |_case| eval_expr(_case) }.join(",")})(#{eval_expr(node.value)})"
   end
 end
