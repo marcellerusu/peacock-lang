@@ -577,11 +577,23 @@ class AwaitParser < Parser
   end
 end
 
+class BoolParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :bool_lit
+  end
+
+  def parse!
+    bool_t = consume! :bool_lit
+    AST::Bool.new(bool_t.value, bool_t.pos)
+  end
+end
+
 class ExprParser < Parser
   # order matters
   PRIMARY_PARSERS = [
     IntParser,
     FloatParser,
+    BoolParser,
     SimpleStringParser,
     ArrayParser,
     ObjectParser,

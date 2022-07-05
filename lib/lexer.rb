@@ -107,7 +107,7 @@ module Lexer
       when scanner.scan(/_/)
         tokens.push Token.new(:identifier, "_")
       when scanner.scan(/(true|false)\b/)
-        tokens.push Token.new(scanner.matched.to_sym)
+        tokens.push Token.new(:bool_lit, scanner.matched == "true")
       when scanner.scan(/nil(?!\?)\b/)
         tokens.push Token.new(:nil)
       when scanner.scan(/<([A-Z][a-zA-Z1-9_]*)/)
