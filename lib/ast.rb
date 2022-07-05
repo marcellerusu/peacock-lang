@@ -40,6 +40,10 @@ module AST
         .sub("?", "_q")
         .sub("!", "_b")
     end
+
+    def captures
+      []
+    end
   end
 
   class Int < Node
@@ -419,6 +423,10 @@ module AST
       @name = name
       @expr = return_expr_n
       @pos = pos || return_expr_n.pos
+    end
+
+    def captures
+      [name]
     end
   end
 end

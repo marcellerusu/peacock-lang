@@ -1,5 +1,1 @@
-PMath := {
-  function add(a, b)
-    a + b
-  end
-}
+o1 := { ...o }

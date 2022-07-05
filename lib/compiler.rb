@@ -91,14 +91,14 @@ class Compiler
       end
     end
 
-    nodes
+    (nodes
       .filter { |node| node.is_a?(AST::Assign) }
       .uniq { |node| node.name }
       .filter { |node| !@fn_arg_names.include?(node.name) }
       .map(&:name) +
-      nodes
-        .flat_map { |node| node.captures }
-        .uniq
+     nodes
+       .flat_map { |node| node.captures }
+       .uniq).uniq
   end
 
   def eval_expr(node)
@@ -120,6 +120,8 @@ class Compiler
       eval_object_entry node
     when AST::FunctionObjectEntry
       eval_function_object_entry node
+    when AST::SpreadObjectEntry
+      eval_spread_object_entry node
     when AST::Bool
       eval_bool node
     when AST::Int
@@ -271,6 +273,10 @@ class Compiler
 
   def eval_object_entry(node)
     "#{padding}#{node.key_name}: #{eval_expr node.value}"
+  end
+
+  def eval_spread_object_entry(node)
+    "#{padding}...#{eval_expr node.value}"
   end
 
   def eval_function_object_entry(node)

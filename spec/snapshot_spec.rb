@@ -167,4 +167,9 @@ end")
 ')
     expect(ast).to eq([{"klass"=>"AST::SimpleAssignment", "name"=>"PMath", "expr"=>{"klass"=>"AST::ObjectLiteral", "value"=>[{"klass"=>"AST::FunctionObjectEntry", "key_name"=>"add", "value"=>{"klass"=>"AST::MultilineDefWithArgs", "name"=>"add", "args"=>{"klass"=>"AST::SimpleFnArgs", "value"=>[{"klass"=>"AST::SimpleArg", "name"=>"a", "pos"=>26}, {"klass"=>"AST::SimpleArg", "name"=>"b", "pos"=>29}], "pos"=>25}, "body"=>[{"klass"=>"AST::Return", "value"=>{"klass"=>"AST::Op", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"a", "pos"=>36}, "type"=>:+, "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"b", "pos"=>40}, "pos"=>36}, "pos"=>36}], "pos"=>13}, "pos"=>13}], "pos"=>9}, "pos"=>0}])
   end
+  it "2022-07-04 23:42:53 -0400" do
+    ast = parse('o1 := { ...o }
+')
+    expect(ast).to eq([{"klass"=>"AST::SimpleAssignment", "name"=>"o1", "expr"=>{"klass"=>"AST::ObjectLiteral", "value"=>[{"klass"=>"AST::SpreadObjectEntry", "value"=>{"klass"=>"AST::IdLookup", "value"=>"o", "pos"=>11}, "pos"=>8}], "pos"=>6}, "pos"=>0}])
+  end
 end

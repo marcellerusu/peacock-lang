@@ -257,6 +257,36 @@ class FunctionObjectEntryParser < Parser
   end
 end
 
+class IdentifierLookupParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :identifier
+  end
+
+  def parse!
+    id_t = consume! :identifier
+    AST::IdLookup.new(id_t.value, id_t.pos)
+  end
+end
+
+class SpreadObjectEntryParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :"..."
+  end
+
+  def parsers
+    [
+      IdentifierLookupParser,
+      ObjectParser,
+    ]
+  end
+
+  def parse!
+    spread_t = consume! :"..."
+    expr_n = consume_first_valid_parser! parsers
+    AST::SpreadObjectEntry.new(expr_n, spread_t.pos)
+  end
+end
+
 class ObjectParser < Parser
   def self.can_parse?(_self)
     _self.current_token.type == :"{"
@@ -266,6 +296,7 @@ class ObjectParser < Parser
     SimpleObjectEntryParser,
     ArrowMethodObjectEntryParser,
     FunctionObjectEntryParser,
+    SpreadObjectEntryParser,
   ]
 
   def parse!
@@ -331,17 +362,6 @@ class SimpleStringParser < Parser
   def parse!
     int_t = consume! :str_lit
     AST::SimpleString.new(int_t.value, int_t.pos)
-  end
-end
-
-class IdentifierLookupParser < Parser
-  def self.can_parse?(_self)
-    _self.current_token.type == :identifier
-  end
-
-  def parse!
-    id_t = consume! :identifier
-    AST::IdLookup.new(id_t.value, id_t.pos)
   end
 end
 
