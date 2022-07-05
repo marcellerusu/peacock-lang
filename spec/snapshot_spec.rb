@@ -48,15 +48,6 @@ end
 ")
     expect(ast).to eq([{ "klass" => "AST::SimpleAssignment", "name" => "arr", "expr" => { "klass" => "AST::ArrayLiteral", "value" => [{ "klass" => "AST::Int", "value" => 1, "pos" => 8 }, { "klass" => "AST::Int", "value" => 2, "pos" => 11 }, { "klass" => "AST::Int", "value" => 3, "pos" => 14 }], "pos" => 7 }, "pos" => 0 }, { "klass" => "AST::SimpleForOfLoop", "iter_name" => "elem", "arr_expr" => { "klass" => "AST::IdLookup", "value" => "arr", "pos" => 30 }, "body" => [{ "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::IdLookup", "value" => "elem", "pos" => 48 }], "expr" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "console", "pos" => 36 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "log", "pos" => 44 }, "pos" => 43 }, "pos" => 48 }], "pos" => 18 }])
   end
-  it "2022-06-21 17:31:40 -0400" do
-    ast = parse("arr := [{ num: 10 }]
-
-for { num } of arr
-  console.log(num)
-end
-")
-    expect(ast).to eq([{ "klass" => "AST::SimpleAssignment", "name" => "arr", "expr" => { "klass" => "AST::ArrayLiteral", "value" => [[["num", { "klass" => "AST::Int", "value" => 10, "pos" => 15 }]]], "pos" => 7 }, "pos" => 0 }, { "klass" => "AST::ForOfObjDeconstructLoop", "iter_properties" => ["num"], "arr_expr" => { "klass" => "AST::IdLookup", "value" => "arr", "pos" => 37 }, "body" => [{ "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::IdLookup", "value" => "num", "pos" => 55 }], "expr" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "console", "pos" => 43 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "log", "pos" => 51 }, "pos" => 50 }, "pos" => 54 }], "pos" => 22 }])
-  end
   it "2022-06-21 23:19:22 -0400" do
     ast = parse("schema User = { id }")
     expect(ast).to eq([{ "klass" => "AST::SchemaDefinition", "name" => "User", "schema_expr" => [["id", { "klass" => "AST::SchemaCapture", "name" => "id", "pos" => 16 }]], "pos" => 0 }])
@@ -158,5 +149,13 @@ function add(Ten(a), Eleven(b)) = a + b
 
 console.log add(10, 11)")
     expect(ast).to eq([{ "klass" => "AST::SchemaDefinition", "name" => "Ten", "schema_expr" => { "klass" => "AST::Int", "value" => 10, "pos" => 13 }, "pos" => 0 }, { "klass" => "AST::SchemaDefinition", "name" => "Eleven", "schema_expr" => { "klass" => "AST::Int", "value" => 11, "pos" => 32 }, "pos" => 16 }, { "klass" => "AST::SingleLineDefWithArgs", "name" => "add", "args" => { "klass" => "AST::SimpleFnArgs", "value" => [{ "klass" => "AST::SimpleSchemaArg", "schema_name" => "Ten", "name" => "a", "pos" => 49 }, { "klass" => "AST::SimpleSchemaArg", "schema_name" => "Eleven", "name" => "b", "pos" => 57 }], "pos" => 48 }, "return_value" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::IdLookup", "value" => "a", "pos" => 70 }, "type" => :+, "rhs" => { "klass" => "AST::IdLookup", "value" => "b", "pos" => 74 }, "pos" => 70 }, "pos" => 36 }, { "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::Int", "value" => 10, "pos" => 93 }, { "klass" => "AST::Int", "value" => 11, "pos" => 97 }], "expr" => { "klass" => "AST::IdLookup", "value" => "add", "pos" => 89 }, "pos" => 92 }], "expr" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "console", "pos" => 77 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "log", "pos" => 85 }, "pos" => 84 }, "pos" => 92 }])
+  end
+  it "2022-07-04 21:49:17 -0400" do
+    ast = parse("arr := [{ num: 10 }, { num: 11 }]
+
+for { num } of arr
+  console.log(num)
+end")
+    expect(ast).to eq([{ "klass" => "AST::SimpleAssignment", "name" => "arr", "expr" => { "klass" => "AST::ArrayLiteral", "value" => [{ "klass" => "AST::ObjectLiteral", "value" => [{ "klass" => "AST::SimpleObjectEntry", "key_name" => "num", "value" => { "klass" => "AST::Int", "value" => 10, "pos" => 15 }, "pos" => 10 }], "pos" => 8 }, { "klass" => "AST::ObjectLiteral", "value" => [{ "klass" => "AST::SimpleObjectEntry", "key_name" => "num", "value" => { "klass" => "AST::Int", "value" => 11, "pos" => 28 }, "pos" => 23 }], "pos" => 21 }], "pos" => 7 }, "pos" => 0 }, { "klass" => "AST::ForOfObjDeconstructLoop", "iter_properties" => ["num"], "arr_expr" => { "klass" => "AST::IdLookup", "value" => "arr", "pos" => 50 }, "body" => [{ "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::IdLookup", "value" => "num", "pos" => 68 }], "expr" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "console", "pos" => 56 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "log", "pos" => 64 }, "pos" => 63 }, "pos" => 67 }], "pos" => 35 }])
   end
 end

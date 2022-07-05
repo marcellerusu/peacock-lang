@@ -1,5 +1,5 @@
-PMath := {
-  add(a, b) => a + b,
-}
+arr := [{ num: 10 }, { num: 11 }]
 
-console.log PMath.add(10, 20)
+for { num } of arr
+  console.log(num)
+end
