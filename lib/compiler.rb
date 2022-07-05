@@ -118,10 +118,11 @@ class Compiler
       eval_array_literal node
     when AST::ObjectLiteral
       eval_object_literal node
-    when AST::SimpleObjectEntry
+    when AST::SimpleObjectEntry,
+         AST::ArrowMethodObjectEntry
       eval_object_entry node
-    when AST::ArrowMethodObjectEntry
-      eval_object_entry node
+    when AST::FunctionObjectEntry
+      eval_function_object_entry node
     when AST::Bool
       eval_bool node
     when AST::Int
@@ -293,6 +294,14 @@ class Compiler
 
   def eval_object_entry(node)
     "#{padding}#{node.key_name}: #{eval_expr node.value}"
+  end
+
+  def eval_function_object_entry(node)
+    fn = node.value
+    args = arg_names fn.args
+    output = "#{padding}#{node.key_name}(#{args}) {\n"
+    output += Compiler.new(fn.body, @indent + 2, fn.args.value.map(&:name)).eval + "\n"
+    output + "#{padding}}"
   end
 
   def eval_object_literal(node)

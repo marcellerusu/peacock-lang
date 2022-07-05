@@ -178,6 +178,9 @@ module AST
   class ArrowMethodObjectEntry < ObjectEntry
   end
 
+  class FunctionObjectEntry < ObjectEntry
+  end
+
   class SchemaAny < Node
     def initialize(pos)
       @pos = pos

@@ -252,6 +252,8 @@ class FunctionObjectEntryParser < Parser
   end
 
   def parse!
+    fn_n = consume_first_valid_parser! function_parsers
+    AST::FunctionObjectEntry.new(fn_n.name, fn_n, fn_n.pos)
   end
 end
 
@@ -263,6 +265,7 @@ class ObjectParser < Parser
   ENTRY_PARSERS = [
     SimpleObjectEntryParser,
     ArrowMethodObjectEntryParser,
+    FunctionObjectEntryParser,
   ]
 
   def parse!
