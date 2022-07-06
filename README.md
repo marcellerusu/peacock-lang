@@ -1,4 +1,4 @@
-Peacock is a compile-to-js language that aims at embracing JavaScript while adding minimal syntax for "schemas"
+Peacock is a compile-to-js language that aims at embracing JavaScript semantics (data structures, web standards NOT syntax) while adding support for "schemas"
 
 The syntax is heavily inspired by ruby in efforts to bring some of the beauty of ruby but without drastically changing the language of JavaScript
 
