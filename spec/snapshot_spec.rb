@@ -176,4 +176,9 @@ end")
     ast = parse("console.log false")
     expect(ast).to eq([{ "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::Bool", "value" => false, "pos" => 12 }], "expr" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "console", "pos" => 0 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "log", "pos" => 8 }, "pos" => 7 }, "pos" => 12 }])
   end
+  it "2022-07-07 17:42:42 -0400" do
+    ast = parse("schema OneOrTwo = 1 | 2 | 3
+")
+    expect(ast).to eq([{ "klass" => "AST::SchemaDefinition", "name" => "OneOrTwo", "schema_expr" => { "klass" => "AST::SchemaUnion", "lhs" => { "klass" => "AST::SchemaUnion", "lhs" => { "klass" => "AST::Int", "value" => 1, "pos" => 18 }, "rhs" => { "klass" => "AST::Int", "value" => 2, "pos" => 22 }, "pos" => 20 }, "rhs" => { "klass" => "AST::Int", "value" => 3, "pos" => 26 }, "pos" => 24 }, "pos" => 0 }])
+  end
 end

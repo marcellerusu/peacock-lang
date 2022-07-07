@@ -388,6 +388,16 @@ module AST
   class Dot < Op
   end
 
+  class SchemaUnion < Node
+    attr_reader :lhs, :rhs
+
+    def initialize(lhs, rhs, pos)
+      @lhs = lhs
+      @rhs = rhs
+      @pos = pos
+    end
+  end
+
   class Assign < Node
     attr_reader :name, :expr
 

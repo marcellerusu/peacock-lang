@@ -109,6 +109,8 @@ class Compiler
       eval_assignment node
     when AST::SimpleSchemaAssignment
       eval_simple_schema_assignment node
+    when AST::SchemaUnion
+      eval_schema_union node
     when AST::Assign
       eval_assignment node
     when AST::ArrayLiteral
@@ -187,6 +189,10 @@ class Compiler
 
   def eval_simple_schema_assignment(node)
     "#{node.name} = s.verify(#{node.schema_name}, #{eval_expr node.expr})"
+  end
+
+  def eval_schema_union(node)
+    "s.union(#{eval_expr node.lhs}, #{eval_expr node.rhs})"
   end
 
   def eval_schema_object_literal(node)

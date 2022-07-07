@@ -194,8 +194,6 @@ module Lexer
         tokens.push Token.new(:"=")
       when scanner.scan(/\|\|/)
         tokens.push Token.new(:"||")
-      when scanner.scan(/\|/)
-        tokens.push Token.new(:"|")
       when scanner.scan(/&&/)
         tokens.push Token.new(:"&&")
       when scanner.scan(/\|/)

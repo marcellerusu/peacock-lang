@@ -201,7 +201,7 @@ end
 OPERATORS = [:+, :-, :*, :/, :in, :"&&", :"||", :"===", :"!==", :>, :<, :">=", :"<="]
 
 class OperatorParser < Parser
-  def self.can_parse?(_self, node)
+  def self.can_parse?(_self)
     _self.current_token&.is_one_of?(*OPERATORS)
   end
 
@@ -392,7 +392,7 @@ class SimpleAssignmentParser < Parser
 end
 
 class FunctionCallWithoutArgs < Parser
-  def self.can_parse?(_self, node)
+  def self.can_parse?(_self)
     _self.current_token&.type == :open_paren &&
     _self.peek_token.type == :close_paren
   end
@@ -406,7 +406,7 @@ class FunctionCallWithoutArgs < Parser
 end
 
 class FunctionCallWithArgs < Parser
-  def self.can_parse?(_self, node)
+  def self.can_parse?(_self)
     _self.current_token&.type == :open_paren
   end
 
@@ -425,9 +425,9 @@ class FunctionCallWithArgs < Parser
 end
 
 class FunctionCallWithArgsWithoutParens < Parser
-  def self.can_parse?(_self, node)
+  def self.can_parse?(_self)
     _self.current_token&.is_not_one_of?(:comma, :"]", :"#\{", :close_paren, :"}") &&
-    !_self.new_line?
+      !_self.new_line?
   end
 
   def end_of_expr?
@@ -448,7 +448,7 @@ class FunctionCallWithArgsWithoutParens < Parser
 end
 
 class DotParser < Parser
-  def self.can_parse?(_self, node)
+  def self.can_parse?(_self)
     _self.current_token&.type == :dot
   end
 
@@ -627,7 +627,7 @@ class ExprParser < Parser
   def parse!
     expr_n = consume_first_valid_parser! PRIMARY_PARSERS
     loop do
-      secondary_klass = SECONDARY_PARSERS.find { |parser_klass| parser_klass.can_parse?(self, expr_n) }
+      secondary_klass = SECONDARY_PARSERS.find { |parser_klass| parser_klass.can_parse?(self) }
       break if !secondary_klass
       expr_n = consume_parser! secondary_klass, expr_n
     end
@@ -703,11 +703,7 @@ class SchemaObjectParser < Parser
   end
 end
 
-class SchemaDefinitionParser < Parser
-  def self.can_parse?(_self)
-    _self.current_token.type == :schema
-  end
-
+class SchemaExprParser < Parser
   SCHEMA_PARSERS = [
     SchemaObjectParser,
     IntParser,
@@ -715,10 +711,45 @@ class SchemaDefinitionParser < Parser
   ]
 
   def parse!
+    consume_first_valid_parser! SCHEMA_PARSERS
+  end
+end
+
+class SchemaUnionParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :"|"
+  end
+
+  def parse!(lhs_expr_n)
+    union_t = consume! :"|"
+    rhs_expr_n = consume_parser! SchemaExprParser
+    AST::SchemaUnion.new(lhs_expr_n, rhs_expr_n, union_t.pos)
+  end
+end
+
+class SchemaDefinitionParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :schema
+  end
+
+  OP_PARSERS = [
+    SchemaUnionParser,
+  ]
+
+  def parse!
     schema_t = consume! :schema
     name_t = consume! :identifier
     consume! :"="
-    expr_n = consume_first_valid_parser! SCHEMA_PARSERS
+    expr_n = consume_parser! SchemaExprParser
+
+    loop do
+      op_parser_klass = OP_PARSERS.find do |parser_klass|
+        parser_klass.can_parse?(self)
+      end
+      break if !op_parser_klass
+      expr_n = consume_parser! op_parser_klass, expr_n
+    end
+
     AST::SchemaDefinition.new(name_t.value, expr_n, schema_t.pos)
   end
 end
