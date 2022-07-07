@@ -398,6 +398,16 @@ module AST
     end
   end
 
+  class SchemaIntersect < Node
+    attr_reader :lhs, :rhs
+
+    def initialize(lhs, rhs, pos)
+      @lhs = lhs
+      @rhs = rhs
+      @pos = pos
+    end
+  end
+
   class Assign < Node
     attr_reader :name, :expr
 

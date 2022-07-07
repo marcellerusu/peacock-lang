@@ -181,4 +181,11 @@ end")
 ")
     expect(ast).to eq([{ "klass" => "AST::SchemaDefinition", "name" => "OneOrTwo", "schema_expr" => { "klass" => "AST::SchemaUnion", "lhs" => { "klass" => "AST::SchemaUnion", "lhs" => { "klass" => "AST::Int", "value" => 1, "pos" => 18 }, "rhs" => { "klass" => "AST::Int", "value" => 2, "pos" => 22 }, "pos" => 20 }, "rhs" => { "klass" => "AST::Int", "value" => 3, "pos" => 26 }, "pos" => 24 }, "pos" => 0 }])
   end
+  it "2022-07-07 18:03:27 -0400" do
+    ast = parse('schema User = { id, admin }
+
+schema Admin = User & { admin: true }
+')
+    expect(ast).to eq([{"klass"=>"AST::SchemaDefinition", "name"=>"User", "schema_expr"=>[["id", {"klass"=>"AST::SchemaCapture", "name"=>"id", "pos"=>16}], ["admin", {"klass"=>"AST::SchemaCapture", "name"=>"admin", "pos"=>20}]], "pos"=>0}, {"klass"=>"AST::SchemaDefinition", "name"=>"Admin", "schema_expr"=>{"klass"=>"AST::SchemaIntersect", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"User", "pos"=>44}, "rhs"=>[["admin", {"klass"=>"AST::Bool", "value"=>true, "pos"=>60}]], "pos"=>49}, "pos"=>29}])
+  end
 end

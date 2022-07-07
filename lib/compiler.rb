@@ -111,6 +111,8 @@ class Compiler
       eval_simple_schema_assignment node
     when AST::SchemaUnion
       eval_schema_union node
+    when AST::SchemaIntersect
+      eval_schema_intersect node
     when AST::Assign
       eval_assignment node
     when AST::ArrayLiteral
@@ -189,6 +191,16 @@ class Compiler
 
   def eval_simple_schema_assignment(node)
     "#{node.name} = s.verify(#{node.schema_name}, #{eval_expr node.expr})"
+  end
+
+  def unpack_object(object_str)
+    assert { object_str[0] == "{" }
+    assert { object_str[-1] == "}" }
+    object_str[1...-1].strip
+  end
+
+  def eval_schema_intersect(node)
+    "{ ...#{eval_expr node.lhs}, #{unpack_object eval_expr(node.rhs)} }"
   end
 
   def eval_schema_union(node)

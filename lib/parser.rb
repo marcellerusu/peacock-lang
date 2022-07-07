@@ -681,6 +681,7 @@ class SchemaObjectParser < Parser
     SimpleStringParser,
     ShortAnonFnParser,
     SchemaCaptureParser,
+    BoolParser,
   ]
 
   def parse_value!(key_name, pos)
@@ -708,6 +709,8 @@ class SchemaExprParser < Parser
     SchemaObjectParser,
     IntParser,
     SimpleStringParser,
+    IdentifierLookupParser,
+    BoolParser,
   ]
 
   def parse!
@@ -727,6 +730,18 @@ class SchemaUnionParser < Parser
   end
 end
 
+class SchemaIntersectParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :"&"
+  end
+
+  def parse!(lhs_expr_n)
+    union_t = consume! :"&"
+    rhs_expr_n = consume_parser! SchemaExprParser
+    AST::SchemaIntersect.new(lhs_expr_n, rhs_expr_n, union_t.pos)
+  end
+end
+
 class SchemaDefinitionParser < Parser
   def self.can_parse?(_self)
     _self.current_token.type == :schema
@@ -734,6 +749,7 @@ class SchemaDefinitionParser < Parser
 
   OP_PARSERS = [
     SchemaUnionParser,
+    SchemaIntersectParser,
   ]
 
   def parse!
