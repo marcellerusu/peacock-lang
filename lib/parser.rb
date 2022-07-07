@@ -64,16 +64,25 @@ class Parser
 
   def consume_first_valid_parser!(parser_klasses)
     parser_klass = parser_klasses.find { |klass| klass.can_parse? self }
-    parser_not_implemented! parser_klasses if !parser_klass
+    if !parser_klass
+      parser_not_implemented! parser_klasses
+    end
     consume_parser! parser_klass
   end
 
-  def consume!(token_type = nil)
-    # puts "#{token_type} #{current_token.type}"
-    # binding.pry if token_type && token_type != current_token.type
-    assert { token_type == current_token.type } unless token_type.nil?
+  def consume!(token_type)
+    assert { token_type == current_token.type }
     @pos += 1
     return prev_token
+  end
+
+  def consume_any!
+    @pos += 1
+    return prev_token
+  end
+
+  def consume_if_present!(token_type)
+    consume! token_type if current_token.type == token_type
   end
 
   def parse!
@@ -197,7 +206,7 @@ class OperatorParser < Parser
   end
 
   def parse!(lhs_n)
-    operator_t = consume!
+    operator_t = consume_any!
     rhs_n = consume_parser! ExprParser
     AST::Op.new(lhs_n, operator_t.type, rhs_n, lhs_n.pos)
   end
@@ -304,7 +313,7 @@ class ObjectParser < Parser
     values = []
     loop do
       values.push consume_first_valid_parser! ENTRY_PARSERS
-      consume! :comma if current_token&.type == :comma
+      consume_if_present! :comma
       break if current_token.type == :"}"
     end
     consume! :"}"
@@ -322,8 +331,8 @@ class ArrayParser < Parser
     elems = []
     loop do
       elems.push consume_parser! ExprParser
+      consume_if_present! :comma
       break if current_token.type == :"]"
-      consume! :comma
     end
     consume! :"]"
     AST::ArrayLiteral.new(elems, open_sq_b_t.pos)
@@ -406,8 +415,8 @@ class FunctionCallWithArgs < Parser
     args = []
     loop do
       args.push consume_parser! ExprParser
+      consume_if_present! :comma
       break if current_token.type == :close_paren
-      consume! :comma
     end
     consume! :close_paren
 

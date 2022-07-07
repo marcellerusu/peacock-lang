@@ -12,13 +12,13 @@ describe Lexer, "#tokenize" do
     it "true" do
       res = Lexer::tokenize("true")
       expect(res).to eq([
-        Lexer::Token.new(:true),
+        Lexer::Token.new(:bool_lit, true),
       ])
     end
 
     it "false" do
       res = Lexer::tokenize("false")
-      expect(res).to eq([Lexer::Token.new(:false)])
+      expect(res).to eq([Lexer::Token.new(:bool_lit, false)])
     end
 
     it "should ignore comments" do

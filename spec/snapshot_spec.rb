@@ -159,21 +159,21 @@ end")
     expect(ast).to eq([{ "klass" => "AST::SimpleAssignment", "name" => "arr", "expr" => { "klass" => "AST::ArrayLiteral", "value" => [{ "klass" => "AST::ObjectLiteral", "value" => [{ "klass" => "AST::SimpleObjectEntry", "key_name" => "num", "value" => { "klass" => "AST::Int", "value" => 10, "pos" => 15 }, "pos" => 10 }], "pos" => 8 }, { "klass" => "AST::ObjectLiteral", "value" => [{ "klass" => "AST::SimpleObjectEntry", "key_name" => "num", "value" => { "klass" => "AST::Int", "value" => 11, "pos" => 28 }, "pos" => 23 }], "pos" => 21 }], "pos" => 7 }, "pos" => 0 }, { "klass" => "AST::ForOfObjDeconstructLoop", "iter_properties" => ["num"], "arr_expr" => { "klass" => "AST::IdLookup", "value" => "arr", "pos" => 50 }, "body" => [{ "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::IdLookup", "value" => "num", "pos" => 68 }], "expr" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "console", "pos" => 56 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "log", "pos" => 64 }, "pos" => 63 }, "pos" => 67 }], "pos" => 35 }])
   end
   it "2022-07-04 23:14:35 -0400" do
-    ast = parse('PMath := {
+    ast = parse("PMath := {
   function add(a, b)
     a + b
   end
 }
-')
-    expect(ast).to eq([{"klass"=>"AST::SimpleAssignment", "name"=>"PMath", "expr"=>{"klass"=>"AST::ObjectLiteral", "value"=>[{"klass"=>"AST::FunctionObjectEntry", "key_name"=>"add", "value"=>{"klass"=>"AST::MultilineDefWithArgs", "name"=>"add", "args"=>{"klass"=>"AST::SimpleFnArgs", "value"=>[{"klass"=>"AST::SimpleArg", "name"=>"a", "pos"=>26}, {"klass"=>"AST::SimpleArg", "name"=>"b", "pos"=>29}], "pos"=>25}, "body"=>[{"klass"=>"AST::Return", "value"=>{"klass"=>"AST::Op", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"a", "pos"=>36}, "type"=>:+, "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"b", "pos"=>40}, "pos"=>36}, "pos"=>36}], "pos"=>13}, "pos"=>13}], "pos"=>9}, "pos"=>0}])
+")
+    expect(ast).to eq([{ "klass" => "AST::SimpleAssignment", "name" => "PMath", "expr" => { "klass" => "AST::ObjectLiteral", "value" => [{ "klass" => "AST::FunctionObjectEntry", "key_name" => "add", "value" => { "klass" => "AST::MultilineDefWithArgs", "name" => "add", "args" => { "klass" => "AST::SimpleFnArgs", "value" => [{ "klass" => "AST::SimpleArg", "name" => "a", "pos" => 26 }, { "klass" => "AST::SimpleArg", "name" => "b", "pos" => 29 }], "pos" => 25 }, "body" => [{ "klass" => "AST::Return", "value" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::IdLookup", "value" => "a", "pos" => 36 }, "type" => :+, "rhs" => { "klass" => "AST::IdLookup", "value" => "b", "pos" => 40 }, "pos" => 36 }, "pos" => 36 }], "pos" => 13 }, "pos" => 13 }], "pos" => 9 }, "pos" => 0 }])
   end
   it "2022-07-04 23:42:53 -0400" do
-    ast = parse('o1 := { ...o }
-')
-    expect(ast).to eq([{"klass"=>"AST::SimpleAssignment", "name"=>"o1", "expr"=>{"klass"=>"AST::ObjectLiteral", "value"=>[{"klass"=>"AST::SpreadObjectEntry", "value"=>{"klass"=>"AST::IdLookup", "value"=>"o", "pos"=>11}, "pos"=>8}], "pos"=>6}, "pos"=>0}])
+    ast = parse("o1 := { ...o }
+")
+    expect(ast).to eq([{ "klass" => "AST::SimpleAssignment", "name" => "o1", "expr" => { "klass" => "AST::ObjectLiteral", "value" => [{ "klass" => "AST::SpreadObjectEntry", "value" => { "klass" => "AST::IdLookup", "value" => "o", "pos" => 11 }, "pos" => 8 }], "pos" => 6 }, "pos" => 0 }])
   end
   it "2022-07-04 23:52:00 -0400" do
-    ast = parse('console.log false')
-    expect(ast).to eq([{"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::Bool", "value"=>false, "pos"=>12}], "expr"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"console", "pos"=>0}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"log", "pos"=>8}, "pos"=>7}, "pos"=>12}])
+    ast = parse("console.log false")
+    expect(ast).to eq([{ "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::Bool", "value" => false, "pos" => 12 }], "expr" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "console", "pos" => 0 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "log", "pos" => 8 }, "pos" => 7 }, "pos" => 12 }])
   end
 end

@@ -1,1 +1,3 @@
-console.log false
+PMath := {
+  add(a, b) => a + b,
+}
