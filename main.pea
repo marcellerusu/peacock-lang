@@ -1,3 +1,1 @@
-schema User = { id, admin }
-
-schema Admin = User & { admin: true }
+schema Nums = 1 | 2 | 3

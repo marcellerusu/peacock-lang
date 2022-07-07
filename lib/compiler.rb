@@ -204,7 +204,7 @@ class Compiler
   end
 
   def eval_schema_union(node)
-    "s.union(#{eval_expr node.lhs}, #{eval_expr node.rhs})"
+    "s.union(#{node.schema_exprs.map { |expr| eval_expr expr }.join ", "})"
   end
 
   def eval_schema_object_literal(node)
