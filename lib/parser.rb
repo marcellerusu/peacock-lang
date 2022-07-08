@@ -726,7 +726,7 @@ class SchemaUnionParser < Parser
   def parse!(first_schema_expr_n)
     schema_exprs = [first_schema_expr_n]
     loop do
-      break if !SchemaUnionParser.can_parse?(self)
+      break if !self.class.can_parse?(self)
       consume! :"|"
       schema_exprs.push consume_parser! SchemaExprParser
     end
@@ -741,9 +741,15 @@ class SchemaIntersectParser < Parser
   end
 
   def parse!(first_schema_expr_n)
-    and_t = consume! :"&"
-    rhs_expr_n = consume_parser! SchemaExprParser
-    AST::SchemaIntersect.new(first_schema_expr_n, rhs_expr_n, and_t.pos)
+    schema_exprs = [first_schema_expr_n]
+
+    loop do
+      break if !self.class.can_parse?(self)
+      consume! :"&"
+      schema_exprs.push consume_parser! SchemaExprParser
+    end
+
+    AST::SchemaIntersect.new(schema_exprs, first_schema_expr_n.pos)
   end
 end
 

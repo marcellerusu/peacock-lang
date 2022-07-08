@@ -200,7 +200,18 @@ class Compiler
   end
 
   def eval_schema_intersect(node)
-    "{ ...#{eval_expr node.lhs}, #{unpack_object eval_expr(node.rhs)} }"
+    schema = "{ "
+    schema += node.schema_exprs.map do |expr|
+      case expr
+      when AST::IdLookup
+        "...#{eval_expr expr}"
+      when AST::SchemaObjectLiteral
+        unpack_object eval_expr(expr)
+      else
+        assert_not_reached!
+      end
+    end.join ", "
+    schema + " }"
   end
 
   def eval_schema_union(node)
