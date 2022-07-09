@@ -479,8 +479,7 @@ class ShortAnonFnParser < Parser
   def parse!
     open_anon_t = consume! :"#\{"
     return_expr_n = consume_parser! ExprParser
-    consume! :"}"
-    AST::ShortFn.new(return_expr_n, open_anon_t.pos)
+    return_expr_n ||= AST::Empty.new
   end
 end
 

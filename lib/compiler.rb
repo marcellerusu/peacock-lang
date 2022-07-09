@@ -152,6 +152,8 @@ class Compiler
       eval_short_fn node
     when AST::AnonIdLookup
       eval_anon_id_lookup
+    when AST::Empty
+      ""
     when AST::Return
       eval_return node
     when AST::FnCall
@@ -402,7 +404,7 @@ class Compiler
   end
 
   def eval_arrow_fn_without_args(node)
-    "() => #{eval_expr node.return_expr}"
+    "(() => { return #{eval_expr node.return_expr}; })"
   end
 
   def eval_anon_id_lookup
@@ -410,7 +412,7 @@ class Compiler
   end
 
   def eval_short_fn(node)
-    "(#{eval_anon_id_lookup} => #{eval_expr node.return_expr})"
+    "(#{eval_anon_id_lookup} => { return #{eval_expr node.return_expr}; })"
   end
 
   def eval_return(node)
