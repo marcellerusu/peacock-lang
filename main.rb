@@ -14,7 +14,9 @@ parser = Parser.new(tokens, content)
 
 case ARGV[1]
 when "-t"
-  pp tokens
+  puts "["
+  puts "  #{tokens.map(&:to_s).join ",\n  "}"
+  puts "]"
 when /-a+/
   ast = parser.parse!
   pp ast.map(&:to_h)
