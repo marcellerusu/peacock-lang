@@ -233,13 +233,13 @@ class Compiler
 
   def eval_for_of_obj_descontruct_loop(node)
     properties = node.iter_properties.join ", "
-    for_loop = "for ({ #{properties} } of #{eval_expr node.arr_expr}) {\n"
+    for_loop = "for (let { #{properties} } of #{eval_expr node.arr_expr}) {\n"
     for_loop += Compiler.new(node.body, @indent + 2).eval + "\n"
     for_loop += "}"
   end
 
   def eval_simple_for_of_loop(node)
-    for_loop = "for (#{node.iter_name} of #{eval_expr node.arr_expr}) {\n"
+    for_loop = "for (let #{node.iter_name} of #{eval_expr node.arr_expr}) {\n"
     for_loop += Compiler.new(node.body, @indent + 2).eval + "\n"
     for_loop += "}"
   end
