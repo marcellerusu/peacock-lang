@@ -2,21 +2,35 @@ require "utils"
 require "ast"
 require "lexer"
 
+class ParserError
+  attr_reader :msg, :start_pos, :end_pos
+
+  def initialize(msg, start_pos, end_pos)
+    @msg = msg
+    @start_pos
+    @end_pos = end_pos
+  end
+end
+
+class SimpleAssignmentError < ParserError
+end
+
 class Parser
-  attr_reader :tokens, :program_string, :pos
+  attr_reader :tokens, :program_string, :pos, :errors
 
   def self.can_parse?(_self)
     not_implemented!
   end
 
   def self.from(_self)
-    self.new(_self.tokens, _self.program_string, _self.pos)
+    self.new(_self.tokens, _self.program_string, _self.pos, _self.errors)
   end
 
-  def initialize(tokens, program_string, pos = 0)
+  def initialize(tokens, program_string, pos = 0, errors = [])
     @tokens = tokens
     @program_string = program_string
     @pos = pos
+    @errors = errors
   end
 
   def consume_parser!(parser_klass, *parse_args)
@@ -31,13 +45,13 @@ class Parser
   end
 
   def rest_of_line
-    rest_of_program = @program_string[current_token.pos..]
+    rest_of_program = @program_string[current_token.start_pos..]
     rest_of_program[0..rest_of_program.index("\n")]
   end
 
   def new_line?
     return true if !prev_token || !current_token
-    @program_string[prev_token.pos..current_token.pos].include? "\n"
+    @program_string[prev_token.start_pos..current_token.start_pos].include? "\n"
   end
 
   def prev_token
@@ -92,7 +106,7 @@ end
 
 class SimpleSchemaArgParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :identifier &&
+    _self.current_token&.type == :identifier &&
       _self.peek_token.type == :open_paren &&
       _self.peek_token_twice.type == :identifier &&
       _self.peek_token_thrice.type == :close_paren
@@ -103,20 +117,25 @@ class SimpleSchemaArgParser < Parser
     schema_name_t = consume! :identifier
     consume! :open_paren
     var_t = consume! :identifier
-    consume! :close_paren
-    AST::SimpleSchemaArg.new(schema_name_t.value, var_t.value, schema_name_t.pos)
+    close_t = consume! :close_paren
+    AST::SimpleSchemaArg.new(
+      schema_name_t.value,
+      var_t.value,
+      schema_name_t.start_pos,
+      close_t.end_pos
+    )
   end
 end
 
 class SimpleArgParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :identifier &&
+    _self.current_token&.type == :identifier &&
       _self.peek_token.is_one_of?(:comma, :close_paren)
   end
 
   def parse!
     name_t = consume! :identifier
-    AST::SimpleArg.new(name_t.value, name_t.pos)
+    AST::SimpleArg.new(name_t.value, name_t.start_pos, name_t.end_pos)
   end
 end
 
@@ -130,8 +149,8 @@ class SimpleFnArgsParser < Parser
     open_t = consume! :open_paren
 
     if current_token.type == :close_paren
-      consume! :close_paren
-      return AST::SimpleFnArgs.new([], open_t.pos)
+      close_t = consume! :close_paren
+      return AST::SimpleFnArgs.new([], open_t.start_pos, close_t.end_pos)
     end
 
     args = []
@@ -141,15 +160,15 @@ class SimpleFnArgsParser < Parser
       break if current_token.type == :close_paren
       consume! :comma
     end
-    consume! :close_paren
+    close_t = consume! :close_paren
 
-    AST::SimpleFnArgs.new(args, open_t.pos)
+    AST::SimpleFnArgs.new(args, open_t.start_pos, close_t.end_pos)
   end
 end
 
 class SingleLineDefWithArgsParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :function &&
+    _self.current_token&.type == :function &&
       _self.peek_token.type == :identifier &&
       _self.peek_token_twice.type == :open_paren &&
       _self.rest_of_line.include?("=")
@@ -162,13 +181,19 @@ class SingleLineDefWithArgsParser < Parser
     consume! :"="
     return_value_n = consume_parser! ExprParser
 
-    AST::SingleLineDefWithArgs.new(fn_name_t.value, args_n, return_value_n, function_t.pos)
+    AST::SingleLineDefWithArgs.new(
+      fn_name_t.value,
+      args_n,
+      return_value_n,
+      function_t.start_pos,
+      return_value_n.end_pos
+    )
   end
 end
 
 class MultilineDefWithoutArgsParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :function &&
+    _self.current_token&.type == :function &&
       _self.peek_token.type == :identifier
   end
 
@@ -176,14 +201,19 @@ class MultilineDefWithoutArgsParser < Parser
     function_t = consume! :function
     fn_name_t = consume! :identifier
     body = consume_parser! FunctionBodyParser
-    consume! :end
-    AST::MultilineDefWithoutArgs.new(fn_name_t.value, body, function_t.pos)
+    end_t = consume! :end
+    AST::MultilineDefWithoutArgs.new(
+      fn_name_t.value,
+      body,
+      function_t.start_pos,
+      end_t.end_pos
+    )
   end
 end
 
 class MultilineDefWithArgsParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :function &&
+    _self.current_token&.type == :function &&
       _self.peek_token.type == :identifier &&
       _self.peek_token_twice.type == :open_paren
   end
@@ -193,8 +223,14 @@ class MultilineDefWithArgsParser < Parser
     fn_name_t = consume! :identifier
     args_n = consume_parser! SimpleFnArgsParser
     body = consume_parser! FunctionBodyParser
-    consume! :end
-    AST::MultilineDefWithArgs.new(fn_name_t.value, args_n, body, function_t.pos)
+    end_t = consume! :end
+    AST::MultilineDefWithArgs.new(
+      fn_name_t.value,
+      args_n,
+      body,
+      function_t.start_pos,
+      end_t.end_pos
+    )
   end
 end
 
@@ -208,7 +244,7 @@ class OperatorParser < Parser
   def parse!(lhs_n)
     operator_t = consume_any!
     rhs_n = consume_parser! ExprParser
-    AST::Op.new(lhs_n, operator_t.type, rhs_n, lhs_n.pos)
+    AST::Op.new(lhs_n, operator_t.type, rhs_n, lhs_n.start_pos, rhs_n.end_pos)
   end
 end
 
@@ -216,7 +252,7 @@ end
 
 class SimpleObjectEntryParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :identifier &&
+    _self.current_token&.type == :identifier &&
       _self.peek_token.type == :colon
   end
 
@@ -225,13 +261,13 @@ class SimpleObjectEntryParser < Parser
     consume! :colon
     value_n = consume_parser! ExprParser
 
-    AST::SimpleObjectEntry.new(key_t.value, value_n, key_t.pos)
+    AST::SimpleObjectEntry.new(key_t.value, value_n, key_t.start_pos, value_n.end_pos)
   end
 end
 
 class ArrowMethodObjectEntryParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :identifier &&
+    _self.current_token&.type == :identifier &&
       _self.peek_token.type == :open_paren &&
       _self.rest_of_line.include?("=>")
   end
@@ -246,40 +282,40 @@ class ArrowMethodObjectEntryParser < Parser
       AST::SingleLineArrowFnWithArgs.new(
         args_n,
         return_expr_n,
-        # TODO: incorrect
-        # this should be position of (
-        key_t.pos
+        args_n.start_pos,
+        return_expr_n.end_pos
       ),
-      key_t.pos
+      key_t.start_pos,
+      return_expr_n.end_pos
     )
   end
 end
 
 class FunctionObjectEntryParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :function
+    _self.current_token&.type == :function
   end
 
   def parse!
     fn_n = consume_first_valid_parser! function_parsers
-    AST::FunctionObjectEntry.new(fn_n.name, fn_n, fn_n.pos)
+    AST::FunctionObjectEntry.new(fn_n.name, fn_n, fn_n.start_pos, fn_n.end_pos)
   end
 end
 
 class IdentifierLookupParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :identifier
+    _self.current_token&.type == :identifier
   end
 
   def parse!
     id_t = consume! :identifier
-    AST::IdLookup.new(id_t.value, id_t.pos)
+    AST::IdLookup.new(id_t.value, id_t.start_pos, id_t.end_pos)
   end
 end
 
 class SpreadObjectEntryParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :"..."
+    _self.current_token&.type == :"..."
   end
 
   def parsers
@@ -292,13 +328,13 @@ class SpreadObjectEntryParser < Parser
   def parse!
     spread_t = consume! :"..."
     expr_n = consume_first_valid_parser! parsers
-    AST::SpreadObjectEntry.new(expr_n, spread_t.pos)
+    AST::SpreadObjectEntry.new(expr_n, spread_t.start_pos, spread_t.end_pos)
   end
 end
 
 class ObjectParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :"{"
+    _self.current_token&.type == :"{"
   end
 
   ENTRY_PARSERS = [
@@ -316,14 +352,14 @@ class ObjectParser < Parser
       consume_if_present! :comma
       break if current_token.type == :"}"
     end
-    consume! :"}"
-    AST::ObjectLiteral.new(values, open_brace_t.pos)
+    close_brace_t = consume! :"}"
+    AST::ObjectLiteral.new(values, open_brace_t.start_pos, close_brace_t.end_pos)
   end
 end
 
 class ArrayParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :"["
+    _self.current_token&.type == :"["
   end
 
   def parse!
@@ -334,8 +370,8 @@ class ArrayParser < Parser
       consume_if_present! :comma
       break if current_token.type == :"]"
     end
-    consume! :"]"
-    AST::ArrayLiteral.new(elems, open_sq_b_t.pos)
+    close_sq_b_t = consume! :"]"
+    AST::ArrayLiteral.new(elems, open_sq_b_t.start_pos, close_sq_b_t.end_pos)
   end
 end
 
@@ -343,34 +379,34 @@ end
 
 class IntParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :int_lit
+    _self.current_token&.type == :int_lit
   end
 
   def parse!
     int_t = consume! :int_lit
-    AST::Int.new(int_t.value, int_t.pos)
+    AST::Int.new(int_t.value, int_t.start_pos, int_t.end_pos)
   end
 end
 
 class FloatParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :float_lit
+    _self.current_token&.type == :float_lit
   end
 
   def parse!
-    int_t = consume! :float_lit
-    AST::Float.new(int_t.value, int_t.pos)
+    float_t = consume! :float_lit
+    AST::Float.new(float_t.value, float_t.start_pos, float_t.end_pos)
   end
 end
 
 class SimpleStringParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :str_lit
+    _self.current_token&.type == :str_lit
   end
 
   def parse!
-    int_t = consume! :str_lit
-    AST::SimpleString.new(int_t.value, int_t.pos)
+    str_t = consume! :str_lit
+    AST::SimpleString.new(str_t.value, str_t.start_pos, str_t.end_pos)
   end
 end
 
@@ -378,7 +414,7 @@ end
 
 class SimpleAssignmentParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :identifier &&
+    _self.current_token&.type == :identifier &&
       _self.peek_token.type == :assign
   end
 
@@ -387,21 +423,21 @@ class SimpleAssignmentParser < Parser
     consume! :assign
     expr_n = consume_parser! ExprParser
 
-    AST::SimpleAssignment.new(id_t.value, expr_n, id_t.pos)
+    AST::SimpleAssignment.new(id_t.value, expr_n, id_t.start_pos, expr_n.end_pos)
   end
 end
 
 class FunctionCallWithoutArgs < Parser
   def self.can_parse?(_self)
     _self.current_token&.type == :open_paren &&
-    _self.peek_token.type == :close_paren
+      _self.peek_token.type == :close_paren
   end
 
   def parse!(lhs_n)
     open_p_t = consume! :open_paren
-    consume! :close_paren
+    close_p_t = consume! :close_paren
 
-    AST::FnCall.new([], lhs_n, open_p_t.pos)
+    AST::FnCall.new([], lhs_n, open_p_t.start_pos, close_p_t.end_pos)
   end
 end
 
@@ -418,15 +454,15 @@ class FunctionCallWithArgs < Parser
       consume_if_present! :comma
       break if current_token.type == :close_paren
     end
-    consume! :close_paren
+    close_p_t = consume! :close_paren
 
-    AST::FnCall.new(args, lhs_n, open_p_t.pos)
+    AST::FnCall.new(args, lhs_n, open_p_t.start_pos, close_p_t.end_pos)
   end
 end
 
 class FunctionCallWithArgsWithoutParens < Parser
   def self.can_parse?(_self)
-    _self.current_token&.is_not_one_of?(:comma, :"]", :"#\{", :close_paren, :"}") &&
+    _self.current_token&.is_not_one_of?(:assign, :comma, :"]", :close_paren, :"}") &&
       !_self.new_line?
   end
 
@@ -443,7 +479,7 @@ class FunctionCallWithArgsWithoutParens < Parser
       consume! :comma
     end
 
-    AST::FnCall.new(args, lhs_n, args.first.pos)
+    AST::FnCall.new(args, lhs_n, lhs_n.end_pos, args.last.end_pos)
   end
 end
 
@@ -455,42 +491,44 @@ class DotParser < Parser
   def parse!(lhs_n)
     dot_t = consume! :dot
     rhs_n = consume_parser! IdentifierLookupParser
-    AST::Dot.new(lhs_n, ".", rhs_n, dot_t.pos)
+    AST::Dot.new(lhs_n, ".", rhs_n, dot_t.start_pos, rhs_n.end_pos)
   end
 end
 
 class ReturnParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :return
+    _self.current_token&.type == :return
   end
 
   def parse!
     return_t = consume! :return
     expr_n = consume_parser! ExprParser
-    AST::Return.new(expr_n, return_t.pos)
+    AST::Return.new(expr_n, return_t.start_pos, expr_n.end_pos)
   end
 end
 
 class ShortAnonFnParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :"#\{"
+    _self.current_token&.type == :"#\{"
   end
 
   def parse!
     open_anon_t = consume! :"#\{"
     return_expr_n = consume_parser! ExprParser
     return_expr_n ||= AST::Empty.new
+    end_t = consume! :"}"
+    AST::ShortFn.new(return_expr_n, open_anon_t.start_pos, end_t.end_pos)
   end
 end
 
 class AnonIdLookupParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :it
+    _self.current_token&.type == :it
   end
 
   def parse!
     id_t = consume! :it
-    AST::AnonIdLookup.new(id_t.pos)
+    AST::AnonIdLookup.new(id_t.start_pos, id_t.end_pos)
   end
 end
 
@@ -506,7 +544,11 @@ class SingleLineArrowFnWithoutArgsParser < Parser
     consume! :close_paren
     consume! :"=>"
     return_expr_n = consume_parser! ExprParser
-    AST::SingleLineArrowFnWithoutArgs.new(return_expr_n, open_p_t.pos)
+    AST::SingleLineArrowFnWithoutArgs.new(
+      return_expr_n,
+      open_p_t.start_pos,
+      return_expr_n.end_pos
+    )
   end
 end
 
@@ -522,8 +564,8 @@ class MultiLineArrowFnWithArgsParser < Parser
     consume! :"=>"
     consume! :"{"
     body_n = consume_parser! FunctionBodyParser
-    consume! :"}"
-    AST::MultiLineArrowFnWithArgs.new(args_n, body_n, args_n.pos)
+    end_t = consume! :"}"
+    AST::MultiLineArrowFnWithArgs.new(args_n, body_n, args_n.start_pos, end_t.end_pos)
   end
 end
 
@@ -537,7 +579,7 @@ class SingleLineArrowFnWithArgsParser < Parser
     args_n = consume_parser! SimpleFnArgsParser
     consume! :"=>"
     return_expr_n = consume_parser! ExprParser
-    AST::SingleLineArrowFnWithArgs.new(args_n, return_expr_n, args_n.pos)
+    AST::SingleLineArrowFnWithArgs.new(args_n, return_expr_n, args_n.start_pos, return_expr_n.end_pos)
   end
 end
 
@@ -551,13 +593,13 @@ class SingleLineArrowFnWithOneArgParser < Parser
     arg_t = consume! :identifier
     consume! :"=>"
     return_expr_n = consume_parser! ExprParser
-    AST::SingleLineArrowFnWithOneArg.new(arg_t.value, return_expr_n, arg_t.pos)
+    AST::SingleLineArrowFnWithOneArg.new(arg_t.value, return_expr_n, arg_t.start_pos, return_expr_n.end_pos)
   end
 end
 
 class SimpleForOfLoopParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :for &&
+    _self.current_token&.type == :for &&
       _self.peek_token.type == :identifier &&
       _self.peek_token_twice.type == :of
   end
@@ -568,31 +610,31 @@ class SimpleForOfLoopParser < Parser
     consume! :of
     arr_expr_n = consume_parser! ExprParser
     body = consume_parser! ProgramParser
-    consume! :end
-    AST::SimpleForOfLoop.new(iter_var_t.value, arr_expr_n, body, for_t.pos)
+    end_t = consume! :end
+    AST::SimpleForOfLoop.new(iter_var_t.value, arr_expr_n, body, for_t.start_pos, end_t.end_pos)
   end
 end
 
 class AwaitParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :await
+    _self.current_token&.type == :await
   end
 
   def parse!
     await_t = consume! :await
     expr_n = consume_parser! ExprParser
-    AST::Await.new(expr_n, await_t.pos)
+    AST::Await.new(expr_n, await_t.start_pos, expr_n.end_pos)
   end
 end
 
 class BoolParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :bool_lit
+    _self.current_token&.type == :bool_lit
   end
 
   def parse!
     bool_t = consume! :bool_lit
-    AST::Bool.new(bool_t.value, bool_t.pos)
+    AST::Bool.new(bool_t.value, bool_t.start_pos, bool_t.end_pos)
   end
 end
 
@@ -636,7 +678,7 @@ end
 
 class ForOfObjDeconstructLoopParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :for &&
+    _self.current_token&.type == :for &&
       _self.peek_token.type == :"{"
   end
 
@@ -653,25 +695,25 @@ class ForOfObjDeconstructLoopParser < Parser
     consume! :of
     arr_expr_n = consume_parser! ExprParser
     body = consume_parser! ProgramParser
-    consume! :end
-    AST::ForOfObjDeconstructLoop.new(properties, arr_expr_n, body, for_t.pos)
+    end_t = consume! :end
+    AST::ForOfObjDeconstructLoop.new(properties, arr_expr_n, body, for_t.start_pos, end_t.end_pos)
   end
 end
 
 class SchemaCaptureParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :capture
+    _self.current_token&.type == :capture
   end
 
   def parse!
     id_t = consume! :capture
-    AST::SchemaCapture.new(id_t.value, id_t.pos)
+    AST::SchemaCapture.new(id_t.value, id_t.start_pos, id_t.end_pos)
   end
 end
 
 class SchemaObjectParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :"{"
+    _self.current_token&.type == :"{"
   end
 
   VALUE_PARSERS = [
@@ -683,8 +725,8 @@ class SchemaObjectParser < Parser
     BoolParser,
   ]
 
-  def parse_value!(key_name, pos)
-    return AST::SchemaCapture.new(key_name, pos) if current_token.type != :colon
+  def parse_value!(key_name, start_pos, end_pos)
+    return AST::SchemaCapture.new(key_name, start_pos, end_pos) if current_token.type != :colon
     consume! :colon
     consume_first_valid_parser! VALUE_PARSERS
   end
@@ -694,12 +736,12 @@ class SchemaObjectParser < Parser
     properties = []
     loop do
       property_t = consume! :identifier
-      properties.push [property_t.value, parse_value!(property_t.value, property_t.pos)]
+      properties.push [property_t.value, parse_value!(property_t.value, property_t.start_pos, property_t.end_pos)]
       break if current_token.type == :"}"
       consume! :comma
     end
-    consume! :"}"
-    AST::SchemaObjectLiteral.new(properties, open_b_t.pos)
+    end_b_t = consume! :"}"
+    AST::SchemaObjectLiteral.new(properties, open_b_t.start_pos, end_b_t.end_pos)
   end
 end
 
@@ -730,7 +772,7 @@ class SchemaUnionParser < Parser
       schema_exprs.push consume_parser! SchemaExprParser
     end
 
-    AST::SchemaUnion.new(schema_exprs, first_schema_expr_n.pos)
+    AST::SchemaUnion.new(schema_exprs, first_schema_expr_n.start_pos, schema_exprs[-1].end_pos)
   end
 end
 
@@ -748,13 +790,13 @@ class SchemaIntersectParser < Parser
       schema_exprs.push consume_parser! SchemaExprParser
     end
 
-    AST::SchemaIntersect.new(schema_exprs, first_schema_expr_n.pos)
+    AST::SchemaIntersect.new(schema_exprs, first_schema_expr_n.start_pos, schema_exprs[-1].end_pos)
   end
 end
 
 class SchemaDefinitionParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :schema
+    _self.current_token&.type == :schema
   end
 
   OP_PARSERS = [
@@ -776,13 +818,13 @@ class SchemaDefinitionParser < Parser
       expr_n = consume_parser! op_parser_klass, expr_n
     end
 
-    AST::SchemaDefinition.new(name_t.value, expr_n, schema_t.pos)
+    AST::SchemaDefinition.new(name_t.value, expr_n, schema_t.start_pos, expr_n.end_pos)
   end
 end
 
 class SimpleSchemaAssignmentParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :identifier &&
+    _self.current_token&.type == :identifier &&
       _self.peek_token.type == :open_paren &&
       _self.peek_token_twice.type == :identifier &&
       _self.peek_token_thrice.type == :close_paren
@@ -795,7 +837,13 @@ class SimpleSchemaAssignmentParser < Parser
     consume! :close_paren
     consume! :assign
     expr_n = consume_parser! ExprParser
-    AST::SimpleSchemaAssignment.new(schema_name_t.value, var_t.value, expr_n, schema_name_t.pos)
+    AST::SimpleSchemaAssignment.new(
+      schema_name_t.value,
+      var_t.value,
+      expr_n,
+      schema_name_t.start_pos,
+      expr_n.end_pos
+    )
   end
 end
 
@@ -827,14 +875,15 @@ class ProgramParser < Parser
   end
 
   def parse!(additional_parsers = [])
-    while current_token && current_token.is_not_one_of?(:end, :"}")
+    while current_token&.is_not_one_of?(:end, :"}")
       klass = (ALLOWED_PARSERS + additional_parsers).find { |klass| klass.can_parse?(self) }
 
       if !klass
         klass = ExprParser
       end
 
-      consume_parser! klass
+      expr_n = consume_parser! klass
+      break if !expr_n
     end
 
     @body
@@ -851,9 +900,13 @@ class FunctionBodyParser < ProgramParser
 
     last_n = @body[-1]
     if last_n.is_a? AST::SimpleAssignment
-      @body.push AST::Return.new(AST::IdLookup.new(last_n.name, last_n.pos), last_n.pos)
+      @body.push AST::Return.new(
+        AST::IdLookup.new(last_n.name, last_n.start_pos, last_n.end_pos),
+        last_n.start_pos,
+        last_n.end_pos
+      )
     elsif last_n.is_not_a? AST::Return
-      @body[-1] = AST::Return.new(last_n, last_n.pos)
+      @body[-1] = AST::Return.new(last_n, last_n.start_pos, last_n.end_pos)
     end
 
     @body

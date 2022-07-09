@@ -2,11 +2,12 @@ require "pry"
 
 module AST
   class Node
-    attr_reader :value, :pos
+    attr_reader :value, :start_pos, :end_pos
 
-    def initialize(value, pos)
+    def initialize(value, start_pos, end_pos)
       @value = value
-      @pos = pos
+      @start_pos = start_pos
+      @end_pos = end_pos
     end
 
     def to_h
@@ -31,8 +32,12 @@ module AST
       !is_a?(klass)
     end
 
-    def pos=(val)
-      @pos = val
+    def start_pos=(val)
+      @start_pos = val
+    end
+
+    def end_pos=(val)
+      @end_pos = val
     end
 
     def sub_symbols
@@ -47,50 +52,47 @@ module AST
   end
 
   class Int < Node
-    def self.from_token(token)
-      Int.new(token.value, token.pos)
-    end
-
-    def initialize(value, pos)
+    def initialize(value, start_pos, end_pos)
       @value = value
-      @pos = pos
+      @start_pos = start_pos
+      @end_pos = end_pos
     end
   end
 
   class Float < Node
-    def self.from_token(token)
-      Float.new(token.value, token.pos)
-    end
-
-    def initialize(value, pos)
+    def initialize(value, start_pos, end_pos)
       @value = value
-      @pos = pos
+      @start_pos = start_pos
+      @end_pos = end_pos
     end
   end
 
   class Bool < Node
-    def initialize(value, pos)
+    def initialize(value, start_pos, end_pos)
       @value = value
-      @pos = pos
+      @start_pos = start_pos
+      @end_pos = end_pos
     end
   end
 
   class SimpleArg < Node
     attr_reader :name
 
-    def initialize(name, pos)
+    def initialize(name, start_pos, end_pos)
       @name = name
-      @pos = pos
+      @start_pos = start_pos
+      @end_pos = end_pos
     end
   end
 
   class SimpleSchemaArg < Node
     attr_reader :schema_name, :name
 
-    def initialize(schema_name, name, pos)
+    def initialize(schema_name, name, start_pos, end_pos)
       @schema_name = schema_name
       @name = name
-      @pos = pos
+      @start_pos = start_pos
+      @end_pos = end_pos
     end
   end
 
@@ -116,10 +118,11 @@ module AST
   class ObjectEntry < Node
     attr_reader :key_name
 
-    def initialize(key_name, value, pos)
+    def initialize(key_name, value, start_pos, end_pos)
       @key_name = key_name
       @value = value
-      @pos = pos
+      @start_pos = start_pos
+      @end_pos = end_pos
     end
   end
 
@@ -135,19 +138,14 @@ module AST
   class SpreadObjectEntry < Node
   end
 
-  class SchemaAny < Node
-    def initialize(pos)
-      @pos = pos
-    end
-  end
-
   class SchemaDefinition < Node
     attr_reader :name, :schema_expr
 
-    def initialize(name, schema_expr, pos)
+    def initialize(name, schema_expr, start_pos, end_pos)
       @name = name
       @schema_expr = schema_expr
-      @pos = pos
+      @start_pos = start_pos
+      @end_pos = end_pos
     end
   end
 
@@ -162,16 +160,18 @@ module AST
       props
     end
 
-    def initialize(properties, pos)
+    def initialize(properties, start_pos, end_pos)
       @properties = properties
-      @pos = pos
+      @start_pos = start_pos
+      @end_pos = end_pos
     end
   end
 
   class Return < Node
-    def initialize(value, pos = value.pos)
+    def initialize(value, start_pos, end_pos)
       @value = value
-      @pos = pos
+      @start_pos = start_pos
+      @end_pos = end_pos
     end
   end
 
@@ -179,11 +179,12 @@ module AST
     attr_reader :pass, :fail, :value
     attr_writer :pass, :fail
 
-    def initialize(value, pass, _fail, pos)
+    def initialize(value, pass, _fail, start_pos, end_pos)
       @value = value
       @pass = pass
       @fail = _fail
-      @pos = pos
+      @start_pos = start_pos
+      @end_pos = end_pos
     end
 
     def has_return?
@@ -195,118 +196,114 @@ module AST
   class FnCall < Node
     attr_reader :args, :expr
 
-    def initialize(args, return_expr_n, pos)
+    def initialize(args, return_expr_n, start_pos, end_pos)
       assert { args.is_a? Array }
       @args = args
       @expr = return_expr_n
-      @pos = pos
+      @start_pos = start_pos
+      @end_pos = end_pos
     end
 
     def as_op
-      OpCall.new(args, expr, pos)
+      OpCall.new(args, expr, start_pos, end_pos)
     end
   end
 
   class OpCall < FnCall
   end
 
-  class Fn < Node
-    attr_reader :args, :body
-
-    def initialize(args, body, pos)
-      @args = args
-      @body = body
-      @pos = pos
-    end
-
-    def declare_with(name, schema)
-      Declare.new(name, schema, self, pos)
-    end
-  end
-
   class SingleLineDefWithArgs < Node
     attr_reader :return_value, :name, :args
 
-    def initialize(name, args, return_value, pos)
+    def initialize(name, args, return_value, start_pos, end_pos)
       @name = name
       @args = args
       @return_value = return_value
-      @pos = pos
+      @start_pos = start_pos
+      @end_pos = end_pos
     end
   end
 
   class MultilineDefWithoutArgs < Node
     attr_reader :body, :name
 
-    def initialize(name, body, pos)
+    def initialize(name, body, start_pos, end_pos)
       @name = name
       @body = body
-      @pos = pos
+      @start_pos = start_pos
+      @end_pos = end_pos
     end
   end
 
   class MultilineDefWithArgs < Node
     attr_reader :body, :args, :name
 
-    def initialize(name, args, body, pos)
+    def initialize(name, args, body, start_pos, end_pos)
       @name = name
       @args = args
       @body = body
-      @pos = pos
+      @start_pos = start_pos
+      @end_pos = end_pos
     end
   end
 
   class ShortFn < Node
-    attr_reader :return_expr, :pos
+    attr_reader :return_expr
 
-    def initialize(return_expr, pos)
+    def initialize(return_expr, start_pos, end_pos)
       @return_expr = return_expr
-      @pos = pos
+      @start_pos = start_pos
+      @end_pos = end_pos
     end
   end
 
   class MultiLineArrowFnWithArgs < Node
-    attr_reader :args, :body, :pos
+    attr_reader :args, :body
 
-    def initialize(args, body, pos)
+    def initialize(args, body, start_pos, end_pos)
       @args = args
       @body = body
-      @pos = pos
+      @start_pos = start_pos
+      @end_pos = end_pos
     end
   end
 
   class SingleLineArrowFnWithoutArgs < Node
-    attr_reader :return_expr, :pos
+    attr_reader :return_expr
 
-    def initialize(return_expr, pos)
+    def initialize(return_expr, start_pos, end_pos)
       @return_expr = return_expr
-      @pos = pos
+      @start_pos = start_pos
+      @end_pos = end_pos
     end
   end
 
   class SingleLineArrowFnWithArgs < Node
-    attr_reader :args, :return_expr, :pos
+    attr_reader :args, :return_expr
 
-    def initialize(args, return_expr, pos)
+    def initialize(args, return_expr, start_pos, end_pos)
       @args = args
       @return_expr = return_expr
-      @pos = pos
+      @start_pos = start_pos
+      @end_pos = end_pos
     end
   end
 
   class SingleLineArrowFnWithOneArg < Node
-    attr_reader :arg, :return_expr, :pos
+    attr_reader :arg, :return_expr
 
-    def initialize(arg, return_expr, pos)
+    def initialize(arg, return_expr, start_pos, end_pos)
       @arg = arg
       @return_expr = return_expr
-      @pos = pos
+      @start_pos = start_pos
+      @end_pos = end_pos
     end
   end
 
   class AnonIdLookup < Node
-    def initialize(pos)
-      @pos = pos
+    def initialize(start_pos, end_pos)
+      @start_pos = start_pos
+      @end_pos = end_pos
     end
   end
 
@@ -327,11 +324,12 @@ module AST
   class Declare < Node
     attr_reader :name, :schema, :expr
 
-    def initialize(name, schema, return_expr_n, pos)
+    def initialize(name, schema, return_expr_n, start_pos, end_pos)
       @name = name
       @schema = schema
       @expr = return_expr_n
-      @pos = pos
+      @start_pos = start_pos
+      @end_pos = end_pos
     end
 
     def exportable?
@@ -342,9 +340,10 @@ module AST
   class SchemaCapture < Node
     attr_reader :name
 
-    def initialize(name, pos)
+    def initialize(name, start_pos, end_pos)
       @name = name
-      @pos = pos
+      @start_pos = start_pos
+      @end_pos = end_pos
     end
 
     def captures
@@ -355,33 +354,36 @@ module AST
   class SimpleForOfLoop < Node
     attr_reader :iter_name, :arr_expr, :body
 
-    def initialize(iter_name, arr_expr, body, pos)
+    def initialize(iter_name, arr_expr, body, start_pos, end_pos)
       @iter_name = iter_name
       @arr_expr = arr_expr
       @body = body
-      @pos = pos
+      @start_pos = start_pos
+      @end_pos = end_pos
     end
   end
 
   class ForOfObjDeconstructLoop < Node
     attr_reader :iter_properties, :arr_expr, :body
 
-    def initialize(iter_properties, arr_expr, body, pos)
+    def initialize(iter_properties, arr_expr, body, start_pos, end_pos)
       @iter_properties = iter_properties
       @arr_expr = arr_expr
       @body = body
-      @pos = pos
+      @start_pos = start_pos
+      @end_pos = end_pos
     end
   end
 
   class Op < Node
     attr_reader :lhs, :type, :rhs
 
-    def initialize(lhs, type, rhs, pos)
+    def initialize(lhs, type, rhs, start_pos, end_pos)
       @lhs = lhs
       @type = type
       @rhs = rhs
-      @pos = pos
+      @start_pos = start_pos
+      @end_pos = end_pos
     end
   end
 
@@ -391,28 +393,36 @@ module AST
   class SchemaUnion < Node
     attr_reader :schema_exprs
 
-    def initialize(schema_exprs, pos)
+    def initialize(schema_exprs, start_pos, end_pos)
       @schema_exprs = schema_exprs
-      @pos = pos
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
+
+  class Empty < Node
+    def initialize
     end
   end
 
   class SchemaIntersect < Node
     attr_reader :schema_exprs
 
-    def initialize(schema_exprs, pos)
+    def initialize(schema_exprs, start_pos, end_pos)
       @schema_exprs = schema_exprs
-      @pos = pos
+      @start_pos = start_pos
+      @end_pos = end_pos
     end
   end
 
   class Assign < Node
     attr_reader :name, :expr
 
-    def initialize(name, return_expr_n, pos = return_expr_n.pos)
+    def initialize(name, return_expr_n, start_pos, end_pos)
       @name = name
       @expr = return_expr_n
-      @pos = pos || return_expr_n.pos
+      @start_pos = start_pos
+      @end_pos = end_pos
     end
 
     def exportable?
@@ -423,24 +433,43 @@ module AST
   class Await < Node
   end
 
+  # Schema(a) := b
   class SimpleSchemaAssignment < Assign
     attr_reader :schema_name
 
-    def initialize(schema_name, name, expr, pos)
+    def initialize(schema_name, name, expr, start_pos, end_pos)
       @schema_name = schema_name
       @name = name
       @expr = expr
-      @pos = pos
+      @start_pos = start_pos
+      @end_pos = end_pos
     end
   end
 
+  # a := 1
   class SimpleAssignment < Assign
     attr_reader :name, :expr
 
-    def initialize(name, return_expr_n, pos = return_expr_n.pos)
+    def initialize(name, return_expr_n, start_pos, end_pos)
       @name = name
       @expr = return_expr_n
-      @pos = pos || return_expr_n.pos
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+
+    def captures
+      [name]
+    end
+  end
+
+  # a :=
+  class ImcompleteSimpleAssignment < Assign
+    attr_reader :name
+
+    def initialize(name, start_pos, end_pos)
+      @name = name
+      @start_pos = start_pos
+      @end_pos = end_pos
     end
 
     def captures
