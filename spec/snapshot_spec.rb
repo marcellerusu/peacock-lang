@@ -201,4 +201,16 @@ end
 ')
     expect(ast).to eq([{"klass"=>"AST::ExprComponentWithAttributes", "name"=>"ProfileCard", "attributes"=>[["name", {"klass"=>"AST::SchemaCapture", "name"=>"name", "start_pos"=>24, "end_pos"=>28}]], "expr"=>{"klass"=>"AST::SimpleString", "value"=>"\n    <div>\n      profile\n      <div>${name}</div>\n    </div>\n  ", "start_pos"=>36, "end_pos"=>101}, "start_pos"=>0, "end_pos"=>105}])
   end
+  it "2022-07-13 22:55:36 -0400" do
+    ast = parse('component CardEntry 
+  name := "string"
+in
+"
+  <div>${this.name}</div>
+"
+end
+
+')
+    expect(ast).to eq([{"klass"=>"AST::BodyComponentWithoutAttrs", "name"=>"CardEntry", "constructor_body"=>[{"klass"=>"AST::SimpleAssignment", "name"=>"name", "expr"=>{"klass"=>"AST::SimpleString", "value"=>"string", "start_pos"=>31, "end_pos"=>39}, "start_pos"=>23, "end_pos"=>39}], "expr"=>{"klass"=>"AST::SimpleString", "value"=>"\n  <div>${this.name}</div>\n", "start_pos"=>43, "end_pos"=>72}, "start_pos"=>0, "end_pos"=>76}])
+  end
 end

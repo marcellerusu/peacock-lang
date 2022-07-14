@@ -185,6 +185,8 @@ class Compiler
       eval_expr_component node
     when AST::ExprComponentWithAttributes
       eval_expr_component_with_attrs node
+    when AST::BodyComponentWithoutAttrs
+      eval_body_component_without_attrs node
     else
       binding.pry
       puts "no case matched node_type: #{node.class}"
@@ -196,32 +198,62 @@ class Compiler
     name.gsub(/([a-z\d])([A-Z])/, '\1-\2').downcase
   end
 
+  def create_shadow_root
+    "this.attachShadow({ mode: 'open' });"
+  end
+
+  def define_component(node)
+    "customElements.define('#{kebab_case node.name}', #{node.name});"
+  end
+
+  def eval_body_component_without_attrs(node)
+    c = "class #{node.name} extends HTMLElement {\n"
+    node.constructor_body
+      .select { |node| node.is_a? AST::SimpleAssignment }
+      .each do |node|
+      c += "  #{node.name} = #{eval_expr node.expr};\n"
+    end
+    c += "  constructor() {\n"
+    c += "    super();\n"
+    c += "    #{create_shadow_root}\n"
+    c += "  }\n"
+    c += "  connectedCallback() {\n"
+    c += "    this.shadowRoot.innerHTML = #{eval_expr node.expr};\n"
+    c += "  }\n"
+    c += "}\n"
+    c + define_component(node)
+  end
+
+  def assign_attributes(node, padding)
+    node.attributes.properties.map do |attr, schema|
+      assert { schema.is_a? AST::SchemaCapture }
+      "#{padding}this.#{attr} = this.getAttribute('#{attr}');"
+    end.join "\n"
+  end
+
   def eval_expr_component_with_attrs(node)
     c = "class #{node.name} extends HTMLElement {\n"
     c += "  constructor() {\n"
     c += "    super();\n"
-    c += "    let shadowRoot = this.attachShadow({ mode: 'open' });\n"
+    c += "    #{create_shadow_root}\n"
     c += "  }\n"
     c += "  connectedCallback() {"
-    node.attributes.properties.each do |attr, schema|
-      assert { schema.is_a? AST::SchemaCapture }
-      c += "    let #{attr} = this.getAttribute('#{attr}')\n"
-    end
+    c += assign_attributes("    ")
     c += "    this.shadowRoot.innerHTML = #{eval_expr node.expr};\n"
     c += "  }\n"
     c += "}\n"
-    c += "customElements.define('#{kebab_case node.name}', #{node.name})"
+    c + define_component(node)
   end
 
   def eval_expr_component(node)
     c = "class #{node.name} extends HTMLElement {\n"
     c += "  constructor() {\n"
     c += "    super();\n"
-    c += "    let shadowRoot = this.attachShadow({ mode: 'open' });\n"
-    c += "    shadowRoot.innerHTML = #{eval_expr node.expr};\n"
+    c += "    #{create_shadow_root}\n"
+    c += "    this.shadowRoot.innerHTML = #{eval_expr node.expr};\n"
     c += "  }\n"
     c += "}\n"
-    c += "customElements.define('#{kebab_case node.name}', #{node.name})"
+    c + define_component(node)
   end
 
   def eval_await(node)

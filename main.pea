@@ -1,16 +1,8 @@
-component ProfileCard { name } in
-  "
-    <div>
-      profile
-      <div>${name}</div>
-    </div>
-  "
+component CardEntry 
+  name := "string"
+in
+"
+  <div>${this.name}</div>
+"
 end
 
-component MainEntry in
-  "<profile-card name=marcelle />"
-end
-
-main := document.createElement "main-entry"
-
-document.body.appendChild main

@@ -278,6 +278,18 @@ module AST
     end
   end
 
+  class BodyComponentWithoutAttrs < Node
+    attr_reader :name, :constructor_body, :expr
+
+    def initialize(name, constructor_body, expr, start_pos, end_pos)
+      @name = name
+      @constructor_body = constructor_body
+      @expr = expr
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
+
   class ExprComponentWithAttributes < Node
     attr_reader :name, :attributes, :expr
 

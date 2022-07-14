@@ -234,7 +234,7 @@ class MultilineDefWithArgsParser < Parser
   end
 end
 
-OPERATORS = [:+, :-, :*, :/, :in, :"&&", :"||", :"===", :"!==", :>, :<, :">=", :"<="]
+OPERATORS = [:+, :-, :*, :/, :"&&", :"||", :"===", :"!==", :>, :<, :">=", :"<="]
 
 class OperatorParser < Parser
   def self.can_parse?(_self)
@@ -855,6 +855,29 @@ def function_parsers
   ]
 end
 
+class BodyComponentWithoutAttrsParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :component
+  end
+
+  def parse!
+    component_t = consume! :component
+    name_t = consume! :identifier
+    constructor_body = consume_parser! ComponentConstructorParser
+    assert { constructor_body.all? { |node| node.is_a? AST::SimpleAssignment } }
+    consume! :in
+    expr_n = consume_parser! ExprParser
+    end_t = consume! :end
+    AST::BodyComponentWithoutAttrs.new(
+      name_t.value,
+      constructor_body,
+      expr_n,
+      component_t.start_pos,
+      end_t.end_pos
+    )
+  end
+end
+
 class SimpleComponentWithAttrsParser < Parser
   def self.can_parse?(_self)
     _self.current_token.type == :component &&
@@ -914,6 +937,7 @@ class ProgramParser < Parser
     SimpleSchemaAssignmentParser,
     SimpleComponentWithAttrsParser,
     SimpleComponentParser,
+    BodyComponentWithoutAttrsParser,
   ]
 
   def consume_parser!(parser_klass)
@@ -921,8 +945,8 @@ class ProgramParser < Parser
     @body.push expr_n
   end
 
-  def parse!(additional_parsers = [])
-    while current_token&.is_not_one_of?(:end, :"}")
+  def parse!(additional_parsers: [], end_tokens: [])
+    while current_token&.is_not_one_of?(*end_tokens, :end, :"}")
       klass = (ALLOWED_PARSERS + additional_parsers).find { |klass| klass.can_parse?(self) }
 
       if !klass
@@ -937,13 +961,19 @@ class ProgramParser < Parser
   end
 end
 
+class ComponentConstructorParser < ProgramParser
+  def parse!
+    super end_tokens: [:in]
+  end
+end
+
 class FunctionBodyParser < ProgramParser
   ALLOWED_PARSERS = [
     ReturnParser,
   ]
 
   def parse!
-    super ALLOWED_PARSERS
+    super additional_parsers: ALLOWED_PARSERS
 
     last_n = @body[-1]
     if last_n.is_a? AST::SimpleAssignment
