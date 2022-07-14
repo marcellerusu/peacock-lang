@@ -1,4 +1,3 @@
 component CardEntry { name } in
-  <div></div>
+  <div>{name}</div>
 end
-

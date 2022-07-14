@@ -278,6 +278,9 @@ module AST
     end
   end
 
+  class EscapedElementExpr < Node
+  end
+
   class SimpleElement < Node
     attr_reader :name, :children
 

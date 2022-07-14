@@ -666,8 +666,28 @@ class SimpleElementParser < Parser
   end
 end
 
+class EscapedElementExprParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :"{"
+  end
+
+  def parse!
+    open_t = consume! :"{"
+    expr_n = consume_parser! ExprParser
+    close_t = consume! :"}"
+    AST::EscapedElementExpr.new(
+      expr_n,
+      open_t.start_pos,
+      close_t.end_pos
+    )
+  end
+end
+
 class ElementParser < Parser
-  PARSERS = [SimpleElementParser]
+  PARSERS = [
+    SimpleElementParser,
+    EscapedElementExprParser,
+  ]
 
   def self.can_parse?(_self)
     PARSERS.any? { |klass| klass.can_parse? _self }

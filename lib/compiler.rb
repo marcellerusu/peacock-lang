@@ -187,11 +187,23 @@ class Compiler
       eval_expr_component_with_attrs node
     when AST::BodyComponentWithoutAttrs
       eval_body_component_without_attrs node
+    when AST::EscapedElementExpr
+      eval_escaped_element_expr node
     else
       binding.pry
       puts "no case matched node_type: #{node.class}"
       assert_not_reached!
     end
+  end
+
+  def eval_escaped_element_expr(node)
+    node = node.value
+    value = if node.is_a?(AST::IdLookup)
+        "this.#{node.value} || #{node.value}"
+      else
+        eval_expr node.value
+      end
+    "${#{value}}"
   end
 
   def kebab_case(name)
@@ -203,7 +215,7 @@ class Compiler
   end
 
   def define_component(node)
-    "customElements.define('#{kebab_case node.name}', #{node.name});"
+    "customElements.define('#{kebab_case node.name}', #{node.name})"
   end
 
   def eval_body_component_without_attrs(node)
@@ -224,6 +236,10 @@ class Compiler
     c + define_component(node)
   end
 
+  def get_attr_names(node)
+    node.attributes.properties.map { |attr, _| attr }
+  end
+
   def assign_attributes(node, padding)
     node.attributes.properties.map do |attr, schema|
       assert { schema.is_a? AST::SchemaCapture }
@@ -231,28 +247,53 @@ class Compiler
     end.join "\n"
   end
 
+  def get_var_queries(elem, path = elem.expr.name)
+    assert { elem.expr.children.size == 1 }
+    assert { elem.expr.children[0].is_a? AST::EscapedElementExpr }
+    assert { elem.expr.children[0].value.is_a? AST::IdLookup }
+    {
+      elem.expr.children[0].value.value => {
+        :path => path,
+        :expr => elem.expr.children[0],
+      },
+    }
+  end
+
   def eval_expr_component_with_attrs(node)
     c = "class #{node.name} extends HTMLElement {\n"
+    c += "  static get observedAttributes() {\n"
+    c += "    return #{get_attr_names(node).to_s};\n"
+    c += "  }\n"
     c += "  constructor() {\n"
     c += "    super();\n"
     c += "    #{create_shadow_root}\n"
     c += "  }\n"
     c += "  connectedCallback() {\n"
     c += "#{assign_attributes(node, "    ")}\n"
-    c += "    #{eval_render node};\n"
+    c += "    #{eval_render node}\n"
+    c += "  }\n"
+    c += "  attributeChangedCallback(name, oldValue, newValue) {\n"
+    c += "    if (this.shadowRoot.innerHTML.trim() === '') return;\n"
+    var_name_to_query = get_var_queries node
+    var_name_to_query.each do |key, value|
+      c += "    if (name === '#{key}') {\n"
+      c += "      this.#{key} = newValue;\n"
+      c += "      this.shadowRoot.querySelector('#{value[:path]}').innerHTML = `#{eval_expr value[:expr]}`;\n"
+      c += "    }\n"
+    end
     c += "  }\n"
     c += "}\n"
     c + define_component(node)
   end
 
   def eval_render(node)
-    "this.shadowRoot.innerHTML = #{eval_simple_element node.expr};\n"
+    "this.shadowRoot.innerHTML = #{eval_simple_element node.expr};"
   end
 
   def eval_simple_element(node)
     assert { node.is_a? AST::SimpleElement }
     e = "`<#{node.name}>"
-    e += "  #{node.children.map { |el| eval_simple_element el }.join("\n")}"
+    e += "  #{node.children.map { |el| eval_expr el }.join("\n")}"
     e += "</#{node.name}>`"
   end
 

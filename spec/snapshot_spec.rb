@@ -221,4 +221,11 @@ end
 ')
     expect(ast).to eq([{"klass"=>"AST::ExprComponentWithAttributes", "name"=>"CardEntry", "attributes"=>[["name", {"klass"=>"AST::SchemaCapture", "name"=>"name", "start_pos"=>22, "end_pos"=>26}]], "expr"=>{"klass"=>"AST::SimpleElement", "name"=>"div", "children"=>[], "start_pos"=>34, "end_pos"=>45}, "start_pos"=>0, "end_pos"=>49}])
   end
+  it "2022-07-14 01:24:13 -0400" do
+    ast = parse('component CardEntry { name } in
+  <div>{name}</div>
+end
+')
+    expect(ast).to eq([{"klass"=>"AST::ExprComponentWithAttributes", "name"=>"CardEntry", "attributes"=>[["name", {"klass"=>"AST::SchemaCapture", "name"=>"name", "start_pos"=>22, "end_pos"=>26}]], "expr"=>{"klass"=>"AST::SimpleElement", "name"=>"div", "children"=>[{"klass"=>"AST::EscapedElementExpr", "value"=>{"klass"=>"AST::IdLookup", "value"=>"name", "start_pos"=>40, "end_pos"=>44}, "start_pos"=>39, "end_pos"=>45}], "start_pos"=>34, "end_pos"=>51}, "start_pos"=>0, "end_pos"=>55}])
+  end
 end
