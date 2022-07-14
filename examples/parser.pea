@@ -1,0 +1,79 @@
+import { Tokens } from "./lexer"
+
+class Parser
+  static function from(that)
+    new this(that.tokens, that.program_string, that.pos)
+  end
+
+  case function constructor
+  when (tokens, program_string, pos)
+    this.tokens := tokens
+    this.program_string := program_string
+    this.pos := pos
+  when (tokens, program_string)
+    new this(tokens, program_string, 0)
+  end
+
+  get current_token() = this.tokens[this.pos]
+  get prev_token() = this.tokens[this.pos - 1]
+  get peek_token() = this.tokens[this.pos + 1]
+
+  function consume_parser!(parser_klass)
+    parser := parser_klass.from(this)
+    expr_n := parser.parse!
+    this.pos = parser.pos
+    return expr_n
+  end
+
+  case function consume!
+  when (token_type)
+    assert token_type === this.current_token.type
+    return this.consume!
+  else
+    this.pos += 1
+    return this.prev_token
+  end
+
+  function parse!
+    ProgramParser.from(this).parse!
+  end
+end
+
+class ProgramParser < Parser
+  body = []
+
+  ALLOWED_PARSERS = [
+    SimpleAssignmentParser
+  ]
+
+  function consume_parser!(parser_klass)
+    this.body.push super(parser_klass)
+  end
+
+  function parse!
+    while this.current_token?.is_not_one_of?("end", "}")
+      consume_parser! this.ALLOWED_PARSERS.find #{ it.can_parse? this }
+    end
+
+    return this.body
+  end  
+end
+
+class SimpleAssignmentParser < Parser
+  static function can_parse?(that)
+    that.current_token?.type == "identifier" &&
+      that.peek_type?.type == "assign"
+  end
+
+  function parse!
+    id_t := consume! "identifier"
+    consume! "assign"
+    expr_n := consume_parser! ExprParser
+    new AST.SimpleAssignment(
+      id_t.value,
+      expr_n,
+      id_t.start_pos,
+      id_t.end_pos
+    )
+  end
+end
