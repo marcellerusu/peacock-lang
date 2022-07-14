@@ -6,3 +6,11 @@ component ProfileCard { name } in
     </div>
   "
 end
+
+component MainEntry in
+  "<profile-card name=marcelle />"
+end
+
+main := document.createElement "main-entry"
+
+document.body.appendChild main

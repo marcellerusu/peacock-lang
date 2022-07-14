@@ -33,8 +33,9 @@ when "-h"
   puts "
   <!DOCTYPE html>
   <html>
+    <body></body>
     <script>
-      #{js}
+#{js}
     </script>
   </html>
   "
