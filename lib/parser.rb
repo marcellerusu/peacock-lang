@@ -855,6 +855,27 @@ def function_parsers
   ]
 end
 
+class SimpleComponentParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :component &&
+      _self.peek_token_twice.type == :in
+  end
+
+  def parse!
+    component_t = consume! :component
+    name_t = consume! :identifier
+    consume! :in
+    expr_n = consume_parser! ExprParser
+    end_t = consume! :end
+    AST::ExprComponent.new(
+      name_t.value,
+      expr_n,
+      component_t.start_pos,
+      end_t.end_pos
+    )
+  end
+end
+
 class ProgramParser < Parser
   def initialize(*args)
     super(*args)
@@ -867,6 +888,7 @@ class ProgramParser < Parser
     SimpleForOfLoopParser,
     SchemaDefinitionParser,
     SimpleSchemaAssignmentParser,
+    SimpleComponentParser,
   ]
 
   def consume_parser!(parser_klass)

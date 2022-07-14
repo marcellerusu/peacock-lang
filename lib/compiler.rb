@@ -47,7 +47,8 @@ class Compiler
   end
 
   def std_lib
-    schema_lib
+    ""
+    # schema_lib
   end
 
   def schema_lib
@@ -180,11 +181,28 @@ class Compiler
       eval_schema_object_literal node
     when AST::Await
       eval_await node
+    when AST::ExprComponent
+      eval_expr_component node
     else
       binding.pry
       puts "no case matched node_type: #{node.class}"
       assert_not_reached!
     end
+  end
+
+  def kebab_case(name)
+    name.gsub(/([a-z\d])([A-Z])/, '\1-\2').downcase
+  end
+
+  def eval_expr_component(node)
+    c = "class #{node.name} extends HTMLElement {\n"
+    c += "  constructor() {\n"
+    c += "    super();\n"
+    c += "    let shadowRoot = this.attachShadow({ mode: 'open' });\n"
+    c += "    shadowRoot.innerHTML = #{eval_expr node.expr};\n"
+    c += "  }\n"
+    c += "}\n"
+    c += "customElements.define('#{kebab_case node.name}', #{node.name})"
   end
 
   def eval_await(node)
@@ -282,7 +300,11 @@ class Compiler
   end
 
   def eval_simple_string(node)
-    "\"#{node.value}\""
+    if node.value.include?("\n")
+      "`#{node.value}`"
+    else
+      "\"#{node.value}\""
+    end
   end
 
   def eval_int(node)

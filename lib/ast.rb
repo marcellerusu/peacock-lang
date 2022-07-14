@@ -278,6 +278,29 @@ module AST
     end
   end
 
+  class ExprComponentWithAttributes < Node
+    attr_reader :name, :attributes, :expr
+
+    def initialize(name, attributes, expr, start_pos, end_pos)
+      @name = name
+      @attributes = attributes
+      @expr = expr
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
+
+  class ExprComponent < Node
+    attr_reader :name, :expr
+
+    def initialize(name, expr, start_pos, end_pos)
+      @name = name
+      @expr = expr
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
+
   class SingleLineArrowFnWithArgs < Node
     attr_reader :args, :return_expr
 

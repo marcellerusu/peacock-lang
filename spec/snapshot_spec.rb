@@ -180,4 +180,13 @@ end")
 schema Admin = User & { admin: true }")
     expect(ast).to eq([{ "klass" => "AST::SchemaDefinition", "name" => "User", "schema_expr" => [["id", { "klass" => "AST::SchemaCapture", "name" => "id", "start_pos" => 16, "end_pos" => 18 }], ["admin", { "klass" => "AST::SchemaCapture", "name" => "admin", "start_pos" => 20, "end_pos" => 25 }]], "start_pos" => 0, "end_pos" => 27 }, { "klass" => "AST::SchemaDefinition", "name" => "Admin", "schema_expr" => { "klass" => "AST::SchemaIntersect", "schema_exprs" => [{ "klass" => "AST::IdLookup", "value" => "User", "start_pos" => 44, "end_pos" => 48 }, [["admin", { "klass" => "AST::Bool", "value" => true, "start_pos" => 60, "end_pos" => 64 }]]], "start_pos" => 44, "end_pos" => 66 }, "start_pos" => 29, "end_pos" => 66 }])
   end
+  it "2022-07-13 20:47:08 -0400" do
+    ast = parse('component WordCount in
+  "
+    <div>test</div>
+  "
+end
+')
+    expect(ast).to eq([{"klass"=>"AST::ExprComponent", "name"=>"WordCount", "expr"=>{"klass"=>"AST::SimpleString", "value"=>"\n    <div>test</div>\n  ", "start_pos"=>25, "end_pos"=>50}, "start_pos"=>0, "end_pos"=>54}])
+  end
 end

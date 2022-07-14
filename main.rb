@@ -27,6 +27,17 @@ when "-c"
   ast = TypeChecker.new(ast, content).step!
   js = Compiler.new(ast).eval
   puts js
+when "-h"
+  ast = parser.parse!
+  js = Compiler.new(ast).eval
+  puts "
+  <!DOCTYPE html>
+  <html>
+    <script>
+      #{js}
+    </script>
+  </html>
+  "
 else
   ast = parser.parse!
   js = Compiler.new(ast).eval
