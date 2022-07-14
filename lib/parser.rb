@@ -638,6 +638,46 @@ class BoolParser < Parser
   end
 end
 
+class SimpleElementParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :< &&
+      _self.peek_token.type == :identifier &&
+      _self.peek_token_twice.type == :>
+  end
+
+  def parse!
+    open_t = consume! :<
+    name_t = consume! :identifier
+    consume! :>
+    children = []
+    loop do
+      break if !ElementParser.can_parse?(self)
+      children.push consume_parser! ElementParser
+    end
+    consume! :"</"
+    consume! :identifier
+    close_t = consume! :>
+    AST::SimpleElement.new(
+      name_t.value,
+      children,
+      open_t.start_pos,
+      close_t.end_pos
+    )
+  end
+end
+
+class ElementParser < Parser
+  PARSERS = [SimpleElementParser]
+
+  def self.can_parse?(_self)
+    PARSERS.any? { |klass| klass.can_parse? _self }
+  end
+
+  def parse!
+    consume_first_valid_parser! PARSERS
+  end
+end
+
 class ExprParser < Parser
   # order matters
   PRIMARY_PARSERS = [
@@ -655,6 +695,7 @@ class ExprParser < Parser
     SingleLineArrowFnWithoutArgsParser,
     SingleLineArrowFnWithArgsParser,
     AwaitParser,
+    ElementParser,
   ]
 
   SECONDARY_PARSERS = [

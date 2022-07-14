@@ -278,6 +278,17 @@ module AST
     end
   end
 
+  class SimpleElement < Node
+    attr_reader :name, :children
+
+    def initialize(name, children, start_pos, end_pos)
+      @name = name
+      @children = children
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
+
   class BodyComponentWithoutAttrs < Node
     attr_reader :name, :constructor_body, :expr
 

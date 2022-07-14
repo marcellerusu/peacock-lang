@@ -122,20 +122,6 @@ module Lexer
         tokens.push Token.new(scanner.matched, :null)
       when scanner.scan(/undefined(?!\?)\b/)
         tokens.push Token.new(scanner.matched, :undefined)
-      when scanner.scan(/<([A-Z][a-zA-Z1-9_]*)/)
-        assert { scanner.captures.size == 1 }
-        tokens.push Token.new(scanner.matched, :open_custom_element_tag, scanner.captures.first)
-      when scanner.scan(/<([a-z][a-z1-9_]*)/)
-        assert { scanner.captures.size == 1 }
-        tokens.push Token.new(scanner.matched, :open_html_tag, scanner.captures.first)
-      when scanner.scan(/\/>/)
-        tokens.push Token.new(scanner.matched, :self_close_html_tag)
-      when scanner.scan(/<\/([a-z][a-z1-9_]*)>/)
-        assert { scanner.captures.size == 1 }
-        tokens.push Token.new(scanner.matched, :close_html_tag, scanner.captures.first)
-      when scanner.scan(/<\/([A-Z][a-z1-9_]*)>/)
-        assert { scanner.captures.size == 1 }
-        tokens.push Token.new(scanner.matched, :close_custom_element_tag, scanner.captures.first)
       when scanner.scan(/self\b/)
         tokens.push Token.new(scanner.matched, :self)
       when scanner.scan(/do\b/)
@@ -162,6 +148,8 @@ module Lexer
         tokens.push Token.new(scanner.matched, :else)
       when scanner.scan(/end\b/)
         tokens.push Token.new(scanner.matched, :end)
+      when scanner.scan(/<\//)
+        tokens.push Token.new(scanner.matched, :"</")
       when scanner.scan(/=>/)
         tokens.push Token.new(scanner.matched, :"=>")
       when scanner.scan(/!==/)

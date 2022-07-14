@@ -1,8 +1,4 @@
-component CardEntry 
-  name := "string"
-in
-"
-  <div>${this.name}</div>
-"
+component CardEntry { name } in
+  <div></div>
 end
 

@@ -218,7 +218,7 @@ class Compiler
     c += "    #{create_shadow_root}\n"
     c += "  }\n"
     c += "  connectedCallback() {\n"
-    c += "    this.shadowRoot.innerHTML = #{eval_expr node.expr};\n"
+    c += "    #{eval_render node};\n"
     c += "  }\n"
     c += "}\n"
     c + define_component(node)
@@ -237,12 +237,23 @@ class Compiler
     c += "    super();\n"
     c += "    #{create_shadow_root}\n"
     c += "  }\n"
-    c += "  connectedCallback() {"
-    c += assign_attributes("    ")
-    c += "    this.shadowRoot.innerHTML = #{eval_expr node.expr};\n"
+    c += "  connectedCallback() {\n"
+    c += "#{assign_attributes(node, "    ")}\n"
+    c += "    #{eval_render node};\n"
     c += "  }\n"
     c += "}\n"
     c + define_component(node)
+  end
+
+  def eval_render(node)
+    "this.shadowRoot.innerHTML = #{eval_simple_element node.expr};\n"
+  end
+
+  def eval_simple_element(node)
+    assert { node.is_a? AST::SimpleElement }
+    e = "`<#{node.name}>"
+    e += "  #{node.children.map { |el| eval_simple_element el }.join("\n")}"
+    e += "</#{node.name}>`"
   end
 
   def eval_expr_component(node)
@@ -250,7 +261,7 @@ class Compiler
     c += "  constructor() {\n"
     c += "    super();\n"
     c += "    #{create_shadow_root}\n"
-    c += "    this.shadowRoot.innerHTML = #{eval_expr node.expr};\n"
+    c += "    #{eval_render node};\n"
     c += "  }\n"
     c += "}\n"
     c + define_component(node)
