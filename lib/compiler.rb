@@ -183,6 +183,8 @@ class Compiler
       eval_await node
     when AST::ExprComponent
       eval_expr_component node
+    when AST::ExprComponentWithAttributes
+      eval_expr_component_with_attrs node
     else
       binding.pry
       puts "no case matched node_type: #{node.class}"
@@ -192,6 +194,23 @@ class Compiler
 
   def kebab_case(name)
     name.gsub(/([a-z\d])([A-Z])/, '\1-\2').downcase
+  end
+
+  def eval_expr_component_with_attrs(node)
+    c = "class #{node.name} extends HTMLElement {\n"
+    c += "  constructor() {\n"
+    c += "    super();\n"
+    c += "    let shadowRoot = this.attachShadow({ mode: 'open' });\n"
+    c += "  }\n"
+    c += "  connectedCallback() {"
+    node.attributes.properties.each do |attr, schema|
+      assert { schema.is_a? AST::SchemaCapture }
+      c += "    let #{attr} = this.getAttribute('#{attr}')\n"
+    end
+    c += "    this.shadowRoot.innerHTML = #{eval_expr node.expr};\n"
+    c += "  }\n"
+    c += "}\n"
+    c += "customElements.define('#{kebab_case node.name}', #{node.name})"
   end
 
   def eval_expr_component(node)

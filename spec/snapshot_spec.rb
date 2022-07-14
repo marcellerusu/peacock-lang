@@ -189,4 +189,16 @@ end
 ')
     expect(ast).to eq([{"klass"=>"AST::ExprComponent", "name"=>"WordCount", "expr"=>{"klass"=>"AST::SimpleString", "value"=>"\n    <div>test</div>\n  ", "start_pos"=>25, "end_pos"=>50}, "start_pos"=>0, "end_pos"=>54}])
   end
+  it "2022-07-13 21:12:04 -0400" do
+    ast = parse('component ProfileCard { name } in
+  "
+    <div>
+      profile
+      <div>${name}</div>
+    </div>
+  "
+end
+')
+    expect(ast).to eq([{"klass"=>"AST::ExprComponentWithAttributes", "name"=>"ProfileCard", "attributes"=>[["name", {"klass"=>"AST::SchemaCapture", "name"=>"name", "start_pos"=>24, "end_pos"=>28}]], "expr"=>{"klass"=>"AST::SimpleString", "value"=>"\n    <div>\n      profile\n      <div>${name}</div>\n    </div>\n  ", "start_pos"=>36, "end_pos"=>101}, "start_pos"=>0, "end_pos"=>105}])
+  end
 end

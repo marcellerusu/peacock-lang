@@ -1,5 +1,8 @@
-component WordCount in
+component ProfileCard { name } in
   "
-    <div>test</div>
+    <div>
+      profile
+      <div>${name}</div>
+    </div>
   "
 end
