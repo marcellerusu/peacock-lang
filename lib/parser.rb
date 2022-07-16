@@ -767,6 +767,24 @@ class NewParser < Parser
   end
 end
 
+class DynamicLookupParser < Parser
+  def self.can_parse?(_self, lhs)
+    _self.current_token&.type == :"["
+  end
+
+  def parse!(lhs)
+    open_t = consume! :"["
+    expr_n = consume_parser! ExprParser
+    close_t = consume! :"]"
+    AST::DynamicLookup.new(
+      lhs,
+      expr_n,
+      open_t.start_pos,
+      close_t.end_pos
+    )
+  end
+end
+
 class ExprParser < Parser
   # order matters
   PRIMARY_PARSERS = [
@@ -793,6 +811,7 @@ class ExprParser < Parser
     OperatorParser,
     DotAssignmentParser,
     DotParser,
+    DynamicLookupParser,
     FunctionCallWithoutArgs,
     FunctionCallWithArgs,
     FunctionCallWithArgsWithoutParens,

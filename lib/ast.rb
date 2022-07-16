@@ -182,6 +182,17 @@ module AST
     end
   end
 
+  class DynamicLookup < Node
+    attr_reader :lhs, :expr
+
+    def initialize(lhs, expr, start_pos, end_pos)
+      @lhs = lhs
+      @expr = expr
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
+
   class Return < Node
     def initialize(value, start_pos, end_pos)
       @value = value

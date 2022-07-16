@@ -1,7 +1,1 @@
-class Parser
-  function constructor(@tokens, @program_string, @pos)
-
-  static function from(that)
-    new this(that.tokens, that.program_string, that.pos)
-  end
-end
+arr[1]

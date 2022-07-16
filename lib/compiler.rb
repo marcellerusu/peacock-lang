@@ -201,11 +201,17 @@ class Compiler
       eval_new node
     when AST::ShortHandConstructor
       eval_short_hand_constructor node
+    when AST::DynamicLookup
+      eval_dynamic_lookup node
     else
       binding.pry
       puts "no case matched node_type: #{node.class}"
       assert_not_reached!
     end
+  end
+
+  def eval_dynamic_lookup(node)
+    "#{eval_expr node.lhs}[#{eval_expr node.expr}]"
   end
 
   def eval_short_hand_constructor(node)
