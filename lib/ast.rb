@@ -28,6 +28,10 @@ module AST
       hash
     end
 
+    def is_not_one_of?(*klasses)
+      !klasses.any? { |klass| is_a? klass }
+    end
+
     def is_not_a?(klass)
       !is_a?(klass)
     end
@@ -235,6 +239,9 @@ module AST
     end
   end
 
+  class ConstructorWithoutArgs < MultilineDefWithoutArgs
+  end
+
   class MultilineDefWithArgs < Node
     attr_reader :body, :args, :name
 
@@ -245,6 +252,9 @@ module AST
       @start_pos = start_pos
       @end_pos = end_pos
     end
+  end
+
+  class ConstructorWithArgs < MultilineDefWithArgs
   end
 
   class ShortFn < Node
@@ -263,6 +273,32 @@ module AST
     def initialize(args, body, start_pos, end_pos)
       @args = args
       @body = body
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
+
+  class This < Node
+  end
+
+  class DotAssignment < Node
+    attr_reader :lhs, :expr
+
+    def initialize(lhs, expr, start_pos, end_pos)
+      @lhs = lhs
+      @expr = expr
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
+
+  class Class < Node
+    attr_reader :name, :parent_class, :entries
+
+    def initialize(name, parent_class, entries, start_pos, end_pos)
+      @name = name
+      @parent_class = parent_class
+      @entries = entries
       @start_pos = start_pos
       @end_pos = end_pos
     end

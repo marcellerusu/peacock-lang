@@ -1,3 +1,5 @@
-component CardEntry { name } in
-  <div>{name}</div>
+class Parser
+  function constructor(name)
+    this.name := name
+  end
 end

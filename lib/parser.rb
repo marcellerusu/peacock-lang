@@ -237,7 +237,7 @@ end
 OPERATORS = [:+, :-, :*, :/, :"&&", :"||", :"===", :"!==", :>, :<, :">=", :"<="]
 
 class OperatorParser < Parser
-  def self.can_parse?(_self)
+  def self.can_parse?(_self, lhs_n)
     _self.current_token&.is_one_of?(*OPERATORS)
   end
 
@@ -428,7 +428,7 @@ class SimpleAssignmentParser < Parser
 end
 
 class FunctionCallWithoutArgs < Parser
-  def self.can_parse?(_self)
+  def self.can_parse?(_self, lhs)
     _self.current_token&.type == :open_paren &&
       _self.peek_token.type == :close_paren
   end
@@ -442,7 +442,7 @@ class FunctionCallWithoutArgs < Parser
 end
 
 class FunctionCallWithArgs < Parser
-  def self.can_parse?(_self)
+  def self.can_parse?(_self, lhs)
     _self.current_token&.type == :open_paren
   end
 
@@ -461,7 +461,7 @@ class FunctionCallWithArgs < Parser
 end
 
 class FunctionCallWithArgsWithoutParens < Parser
-  def self.can_parse?(_self)
+  def self.can_parse?(_self, lhs)
     _self.current_token&.is_not_one_of?(:assign, :comma, :"]", :close_paren, :"}") &&
       !_self.new_line?
   end
@@ -484,7 +484,7 @@ class FunctionCallWithArgsWithoutParens < Parser
 end
 
 class DotParser < Parser
-  def self.can_parse?(_self)
+  def self.can_parse?(_self, lhs)
     _self.current_token&.type == :dot
   end
 
@@ -698,11 +698,41 @@ class ElementParser < Parser
   end
 end
 
+class DotAssignmentParser < Parser
+  def self.can_parse?(_self, lhs)
+    lhs.is_a?(AST::Dot) &&
+      _self.current_token&.type == :assign
+  end
+
+  def parse!(lhs_n)
+    assign_t = consume! :assign
+    expr_n = consume_parser! ExprParser
+    AST::DotAssignment.new(
+      lhs_n,
+      expr_n,
+      assign_t.start_pos,
+      expr_n.end_pos
+    )
+  end
+end
+
+class ThisParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :this
+  end
+
+  def parse!
+    this_t = consume! :this
+    AST::This.new(this_t.value, this_t.start_pos, this_t.end_pos)
+  end
+end
+
 class ExprParser < Parser
   # order matters
   PRIMARY_PARSERS = [
     IntParser,
     FloatParser,
+    ThisParser,
     BoolParser,
     SimpleStringParser,
     ArrayParser,
@@ -720,6 +750,7 @@ class ExprParser < Parser
 
   SECONDARY_PARSERS = [
     OperatorParser,
+    DotAssignmentParser,
     DotParser,
     FunctionCallWithoutArgs,
     FunctionCallWithArgs,
@@ -729,7 +760,7 @@ class ExprParser < Parser
   def parse!
     expr_n = consume_first_valid_parser! PRIMARY_PARSERS
     loop do
-      secondary_klass = SECONDARY_PARSERS.find { |parser_klass| parser_klass.can_parse?(self) }
+      secondary_klass = SECONDARY_PARSERS.find { |parser_klass| parser_klass.can_parse?(self, expr_n) }
       break if !secondary_klass
       expr_n = consume_parser! secondary_klass, expr_n
     end
@@ -984,6 +1015,87 @@ class SimpleComponentParser < Parser
   end
 end
 
+class ConstructorWithoutArgsParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :function &&
+      _self.peek_token&.value == "constructor"
+  end
+
+  def parse!
+    function_t = consume! :function
+    fn_name_t = consume! :identifier
+    body = consume_parser! ConstructorBodyParser
+    end_t = consume! :end
+    AST::ConstructorWithoutArgs.new(
+      fn_name_t.value,
+      body,
+      function_t.start_pos,
+      end_t.end_pos
+    )
+  end
+end
+
+class ConstructorWithArgsParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :function &&
+      _self.peek_token&.value == "constructor" &&
+      _self.peek_token_twice.type == :open_paren
+  end
+
+  def parse!
+    function_t = consume! :function
+    fn_name_t = consume! :identifier
+    args_n = consume_parser! SimpleFnArgsParser
+    body = consume_parser! ConstructorBodyParser
+    end_t = consume! :end
+    AST::ConstructorWithArgs.new(
+      fn_name_t.value,
+      args_n,
+      body,
+      function_t.start_pos,
+      end_t.end_pos
+    )
+  end
+end
+
+class ClassParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :class
+  end
+
+  PARSERS = [
+    ConstructorWithArgsParser,
+    ConstructorWithoutArgsParser,
+    *function_parsers,
+  ]
+
+  def parse_parent_class!
+    return nil if current_token.type != :<
+    consume! :<
+    parent_class_t = consume! :identifier
+    return parent_class_t.value
+  end
+
+  def parse!
+    class_t = consume! :class
+    class_name_t = consume! :identifier
+    parent_class = parse_parent_class!
+    entries = []
+    loop do
+      break if !PARSERS.any? { |klass| klass.can_parse? self }
+      entries.push consume_first_valid_parser! PARSERS
+    end
+    end_t = consume! :end
+    AST::Class.new(
+      class_name_t.value,
+      parent_class,
+      entries,
+      class_t.start_pos,
+      end_t.end_pos
+    )
+  end
+end
+
 class ProgramParser < Parser
   def initialize(*args)
     super(*args)
@@ -999,6 +1111,7 @@ class ProgramParser < Parser
     SimpleComponentWithAttrsParser,
     SimpleComponentParser,
     BodyComponentWithoutAttrsParser,
+    ClassParser,
   ]
 
   def consume_parser!(parser_klass)
@@ -1026,6 +1139,9 @@ class ComponentConstructorParser < ProgramParser
   def parse!
     super end_tokens: [:in]
   end
+end
+
+class ConstructorBodyParser < ProgramParser
 end
 
 class FunctionBodyParser < ProgramParser

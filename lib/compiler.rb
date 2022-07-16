@@ -104,6 +104,8 @@ class Compiler
 
   def eval_expr(node)
     case node
+    when AST::Class
+      eval_class node
     when AST::Declare
       eval_declaration node
     when AST::SimpleAssignment
@@ -165,6 +167,8 @@ class Compiler
       eval_if_expression node
     when AST::SchemaCapture
       eval_schema_capture node
+    when AST::DotAssignment
+      eval_dot_assignment node
     when AST::Dot
       eval_dot node
     when AST::Op
@@ -189,11 +193,28 @@ class Compiler
       eval_body_component_without_attrs node
     when AST::EscapedElementExpr
       eval_escaped_element_expr node
+    when AST::This
+      "this"
     else
       binding.pry
       puts "no case matched node_type: #{node.class}"
       assert_not_reached!
     end
+  end
+
+  def eval_dot_assignment(node)
+    "#{eval_expr node.lhs} = #{eval_expr node.expr}"
+  end
+
+  def eval_class(node)
+    super_class = " extends #{node.parent_class}" if node.parent_class
+    c = "class #{node.name}#{super_class} {\n"
+    indent!
+    for entry in node.entries
+      c += "#{eval_expr entry}\n"
+    end
+    dedent!
+    c += "}"
   end
 
   def eval_escaped_element_expr(node)

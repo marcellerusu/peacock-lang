@@ -228,4 +228,12 @@ end
 ')
     expect(ast).to eq([{"klass"=>"AST::ExprComponentWithAttributes", "name"=>"CardEntry", "attributes"=>[["name", {"klass"=>"AST::SchemaCapture", "name"=>"name", "start_pos"=>22, "end_pos"=>26}]], "expr"=>{"klass"=>"AST::SimpleElement", "name"=>"div", "children"=>[{"klass"=>"AST::EscapedElementExpr", "value"=>{"klass"=>"AST::IdLookup", "value"=>"name", "start_pos"=>40, "end_pos"=>44}, "start_pos"=>39, "end_pos"=>45}], "start_pos"=>34, "end_pos"=>51}, "start_pos"=>0, "end_pos"=>55}])
   end
+  it "2022-07-16 13:52:01 -0400" do
+    ast = parse('class Parser
+  function constructor(name)
+    this.name := name
+  end
+end')
+    expect(ast).to eq([{"klass"=>"AST::Class", "name"=>"Parser", "parent_class"=>nil, "entries"=>[{"klass"=>"AST::ConstructorWithArgs", "name"=>"constructor", "args"=>{"klass"=>"AST::SimpleFnArgs", "value"=>[{"klass"=>"AST::SimpleArg", "name"=>"name", "start_pos"=>36, "end_pos"=>40}], "start_pos"=>35, "end_pos"=>41}, "body"=>[{"klass"=>"AST::DotAssignment", "lhs"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::This", "value"=>nil, "start_pos"=>46, "end_pos"=>50}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"name", "start_pos"=>51, "end_pos"=>55}, "start_pos"=>50, "end_pos"=>55}, "expr"=>{"klass"=>"AST::IdLookup", "value"=>"name", "start_pos"=>59, "end_pos"=>63}, "start_pos"=>56, "end_pos"=>63}], "start_pos"=>15, "end_pos"=>69}], "start_pos"=>0, "end_pos"=>73}])
+  end
 end
