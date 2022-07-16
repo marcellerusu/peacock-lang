@@ -253,6 +253,16 @@ module AST
   class ConstructorWithoutArgs < MultilineDefWithoutArgs
   end
 
+  class ShortHandConstructor < Node
+    attr_reader :instance_vars
+
+    def initialize(instance_vars, start_pos, end_pos)
+      @instance_vars = instance_vars
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
+
   class MultilineDefWithArgs < Node
     attr_reader :body, :args, :name
 

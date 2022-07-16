@@ -199,11 +199,22 @@ class Compiler
       "this"
     when AST::New
       eval_new node
+    when AST::ShortHandConstructor
+      eval_short_hand_constructor node
     else
       binding.pry
       puts "no case matched node_type: #{node.class}"
       assert_not_reached!
     end
+  end
+
+  def eval_short_hand_constructor(node)
+    args = node.instance_vars.join ", "
+    c = "#{padding}function constructor(#{args}) {\n"
+    for arg in node.instance_vars
+      c += "#{padding}  this.#{arg} = #{arg};\n"
+    end
+    c += "#{padding}}"
   end
 
   def eval_new(node)
