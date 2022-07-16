@@ -14,9 +14,9 @@ class Parser
     new this(tokens, program_string, 0)
   end
 
-  get current_token() = this.tokens[this.pos]
-  get prev_token() = this.tokens[this.pos - 1]
-  get peek_token() = this.tokens[this.pos + 1]
+  get current_token = this.tokens[this.pos]
+  get prev_token = this.tokens[this.pos - 1]
+  get peek_token = this.tokens[this.pos + 1]
 
   function consume_parser!(parser_klass)
     parser := parser_klass.from(this)

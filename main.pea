@@ -1,5 +1,11 @@
 class Parser
-  function constructor(name)
-    this.name := name
+  static function from(that)
+    new this(that.tokens, that.program_string, that.pos)
+  end
+
+  function constructor(tokens, program_string, pos)
+    this.tokens := tokens
+    this.program_string := program_string
+    this.pos := pos
   end
 end

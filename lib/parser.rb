@@ -727,6 +727,46 @@ class ThisParser < Parser
   end
 end
 
+class ConstructableParser < Parser
+  PARSERS = [
+    IdentifierLookupParser,
+    ThisParser,
+  ]
+
+  def self.can_parse?(_self)
+    PARSERS.any? { |klass| klass.can_parse? _self }
+  end
+
+  def parse!
+    consume_first_valid_parser! PARSERS
+  end
+end
+
+class NewParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :new
+  end
+
+  def parse!
+    new_t = consume! :new
+    class_expr_n = consume_parser! ConstructableParser
+    open_p_t = consume! :open_paren
+    args = []
+    loop do
+      args.push consume_parser! ExprParser
+      consume_if_present! :comma
+      break if current_token.type == :close_paren
+    end
+    close_p_t = consume! :close_paren
+    AST::New.new(
+      class_expr_n,
+      args,
+      new_t.start_pos,
+      close_p_t.end_pos
+    )
+  end
+end
+
 class ExprParser < Parser
   # order matters
   PRIMARY_PARSERS = [
@@ -735,9 +775,10 @@ class ExprParser < Parser
     ThisParser,
     BoolParser,
     SimpleStringParser,
+    AnonIdLookupParser,
+    NewParser,
     ArrayParser,
     ObjectParser,
-    AnonIdLookupParser,
     MultiLineArrowFnWithArgsParser,
     SingleLineArrowFnWithOneArgParser,
     IdentifierLookupParser,
@@ -1058,6 +1099,29 @@ class ConstructorWithArgsParser < Parser
   end
 end
 
+class StaticMethodWithArgsParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :static &&
+      _self.peek_token.type == :function
+  end
+
+  def parse!
+    static_t = consume! :static
+    consume! :function
+    name_t = consume! :identifier
+    args_n = consume_parser! SimpleFnArgsParser
+    body = consume_parser! FunctionBodyParser
+    end_t = consume! :end
+    AST::StaticMethod.new(
+      name_t.value,
+      args_n,
+      body,
+      static_t.start_pos,
+      end_t.end_pos
+    )
+  end
+end
+
 class ClassParser < Parser
   def self.can_parse?(_self)
     _self.current_token.type == :class
@@ -1066,6 +1130,7 @@ class ClassParser < Parser
   PARSERS = [
     ConstructorWithArgsParser,
     ConstructorWithoutArgsParser,
+    StaticMethodWithArgsParser,
     *function_parsers,
   ]
 

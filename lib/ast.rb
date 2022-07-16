@@ -171,6 +171,17 @@ module AST
     end
   end
 
+  class New < Node
+    attr_reader :class_expr, :args
+
+    def initialize(class_expr, args, start_pos, end_pos)
+      @class_expr = class_expr
+      @args = args
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
+
   class Return < Node
     def initialize(value, start_pos, end_pos)
       @value = value
@@ -252,6 +263,9 @@ module AST
       @start_pos = start_pos
       @end_pos = end_pos
     end
+  end
+
+  class StaticMethod < MultilineDefWithArgs
   end
 
   class ConstructorWithArgs < MultilineDefWithArgs

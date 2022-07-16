@@ -147,6 +147,8 @@ class Compiler
       eval_arrow_fn_with_args node
     when AST::SingleLineArrowFnWithOneArg
       eval_arrow_fn_with_one_arg node
+    when AST::StaticMethod
+      eval_static_method node
     when AST::MultilineDefWithoutArgs
       eval_multiline_def_without_args node
     when AST::MultilineDefWithArgs
@@ -195,11 +197,22 @@ class Compiler
       eval_escaped_element_expr node
     when AST::This
       "this"
+    when AST::New
+      eval_new node
     else
       binding.pry
       puts "no case matched node_type: #{node.class}"
       assert_not_reached!
     end
+  end
+
+  def eval_new(node)
+    args = node.args.map { |node| eval_expr node }.join ", "
+    "new #{eval_expr node.class_expr}(#{args})"
+  end
+
+  def eval_static_method(node)
+    "#{padding}static #{eval_multiline_def_with_args(node).lstrip}"
   end
 
   def eval_dot_assignment(node)
