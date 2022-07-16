@@ -203,11 +203,19 @@ class Compiler
       eval_short_hand_constructor node
     when AST::DynamicLookup
       eval_dynamic_lookup node
+    when AST::OneLineGetter
+      eval_one_line_getter node
     else
       binding.pry
       puts "no case matched node_type: #{node.class}"
       assert_not_reached!
     end
+  end
+
+  def eval_one_line_getter(node)
+    m = "#{padding}get #{node.name}() {\n"
+    m += "#{padding}  return #{eval_expr node.expr};\n"
+    m += "#{padding}}\n"
   end
 
   def eval_dynamic_lookup(node)

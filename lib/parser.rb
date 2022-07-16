@@ -1169,6 +1169,27 @@ class ShortHandConstructorParser < Parser
   end
 end
 
+class OneLineGetterParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :get &&
+      _self.peek_token.type == :identifier &&
+      _self.peek_token_twice.type == :"="
+  end
+
+  def parse!
+    get_t = consume! :get
+    name_t = consume! :identifier
+    consume! :"="
+    expr_n = consume_parser! ExprParser
+    AST::OneLineGetter.new(
+      name_t.value,
+      expr_n,
+      get_t.start_pos,
+      expr_n.end_pos
+    )
+  end
+end
+
 class ClassParser < Parser
   def self.can_parse?(_self)
     _self.current_token.type == :class
@@ -1179,6 +1200,7 @@ class ClassParser < Parser
     ConstructorWithArgsParser,
     ConstructorWithoutArgsParser,
     StaticMethodWithArgsParser,
+    OneLineGetterParser,
     *function_parsers,
   ]
 

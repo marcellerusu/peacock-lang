@@ -134,6 +134,8 @@ module Lexer
         tokens.push Token.new(scanner.matched, :function)
       when scanner.scan(/class\b/)
         tokens.push Token.new(scanner.matched, :class)
+      when scanner.scan(/get\b/)
+        tokens.push Token.new(scanner.matched, :get)
       when scanner.scan(/for\b/)
         tokens.push Token.new(scanner.matched, :for)
       when scanner.scan(/of\b/)
