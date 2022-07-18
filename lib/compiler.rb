@@ -205,11 +205,17 @@ class Compiler
       eval_dynamic_lookup node
     when AST::OneLineGetter
       eval_one_line_getter node
+    when AST::InstanceProperty
+      eval_instance_property node
     else
       binding.pry
       puts "no case matched node_type: #{node.class}"
       assert_not_reached!
     end
+  end
+
+  def eval_instance_property(node)
+    "#{padding}#{node.name} = #{eval_expr node.expr};"
   end
 
   def eval_one_line_getter(node)

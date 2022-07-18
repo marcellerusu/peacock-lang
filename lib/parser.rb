@@ -366,9 +366,9 @@ class ArrayParser < Parser
     open_sq_b_t = consume! :"["
     elems = []
     loop do
+      break if current_token.type == :"]"
       elems.push consume_parser! ExprParser
       consume_if_present! :comma
-      break if current_token.type == :"]"
     end
     close_sq_b_t = consume! :"]"
     AST::ArrayLiteral.new(elems, open_sq_b_t.start_pos, close_sq_b_t.end_pos)
@@ -1190,12 +1190,32 @@ class OneLineGetterParser < Parser
   end
 end
 
+class InstancePropertyParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :identifier &&
+      _self.peek_token.type == :assign
+  end
+
+  def parse!
+    id_t = consume! :identifier
+    consume! :assign
+    expr_n = consume_parser! ExprParser
+    AST::InstanceProperty.new(
+      id_t.value,
+      expr_n,
+      id_t.start_pos,
+      expr_n.end_pos
+    )
+  end
+end
+
 class ClassParser < Parser
   def self.can_parse?(_self)
     _self.current_token.type == :class
   end
 
   PARSERS = [
+    InstancePropertyParser,
     ShortHandConstructorParser,
     ConstructorWithArgsParser,
     ConstructorWithoutArgsParser,

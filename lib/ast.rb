@@ -182,6 +182,17 @@ module AST
     end
   end
 
+  class InstanceProperty < Node
+    attr_reader :name, :expr
+
+    def initialize(name, expr, start_pos, end_pos)
+      @name = name
+      @expr = expr
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
+
   class OneLineGetter < Node
     attr_reader :name, :expr
 

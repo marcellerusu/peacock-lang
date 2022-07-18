@@ -269,4 +269,11 @@ end
 ')
     expect(ast).to eq([{"klass"=>"AST::Class", "name"=>"Parser", "parent_class"=>nil, "entries"=>[{"klass"=>"AST::OneLineGetter", "name"=>"current_token", "expr"=>{"klass"=>"AST::DynamicLookup", "lhs"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::This", "value"=>nil, "start_pos"=>35, "end_pos"=>39}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"tokens", "start_pos"=>40, "end_pos"=>46}, "start_pos"=>39, "end_pos"=>46}, "expr"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::This", "value"=>nil, "start_pos"=>47, "end_pos"=>51}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"pos", "start_pos"=>52, "end_pos"=>55}, "start_pos"=>51, "end_pos"=>55}, "start_pos"=>46, "end_pos"=>56}, "start_pos"=>15, "end_pos"=>56}], "start_pos"=>0, "end_pos"=>62}])
   end
+  it "2022-07-18 18:46:38 -0400" do
+    ast = parse('class Parser
+  body := []
+end
+')
+    expect(ast).to eq([{"klass"=>"AST::Class", "name"=>"Parser", "parent_class"=>nil, "entries"=>[{"klass"=>"AST::InstanceProperty", "name"=>"body", "expr"=>{"klass"=>"AST::ArrayLiteral", "value"=>[], "start_pos"=>23, "end_pos"=>25}, "start_pos"=>15, "end_pos"=>25}], "start_pos"=>0, "end_pos"=>29}])
+  end
 end
