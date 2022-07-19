@@ -184,6 +184,8 @@ module Lexer
         tokens.push Token.new(scanner.matched, :"]")
       when scanner.scan(/\.\.\./)
         tokens.push Token.new(scanner.matched, :"...")
+      when scanner.scan(/\?\./)
+        tokens.push Token.new(scanner.matched, :"?.")
       when scanner.scan(/::/)
         tokens.push Token.new(scanner.matched, :"::")
       when scanner.scan(/\./)
@@ -230,11 +232,11 @@ module Lexer
         tokens.push Token.new(scanner.matched, :return)
       when scanner.scan(/schema\b/)
         tokens.push Token.new(scanner.matched, :schema)
-      when scanner.scan(/:[a-zA-Z][a-zA-Z0-9\_!?]*/)
+      when scanner.scan(/:[a-zA-Z][a-zA-Z0-9\_!]*/)
         tokens.push Token.new(scanner.matched, :capture, scanner.matched[1..])
       when scanner.scan(/:/)
         tokens.push Token.new(scanner.matched, :colon)
-      when scanner.scan(/[a-zA-Z][a-zA-Z0-9\_!?]*/)
+      when scanner.scan(/[a-zA-Z][a-zA-Z0-9\_!]*/)
         tokens.push Token.new(scanner.matched, :identifier, scanner.matched)
       else
         raise AssertionError

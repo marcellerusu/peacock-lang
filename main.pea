@@ -1,5 +1,3 @@
-function length
-  this.length
-end
+a := {}
 
-console.log "abc"::length(10, 20)
+console.log a?.b

@@ -373,6 +373,7 @@ class ObjectParser < Parser
     open_brace_t = consume! :"{"
     values = []
     loop do
+      break if current_token.type == :"}"
       values.push consume_first_valid_parser! ENTRY_PARSERS
       consume_if_present! :comma
       break if current_token.type == :"}"
@@ -544,6 +545,23 @@ class BindParser < Parser
     fn_name_n = consume_parser! IdentifierLookupParser
     args = parse_args!
     AST::Bind.new(lhs_n, fn_name_n, args)
+  end
+end
+
+class OptionalChainParser < Parser
+  def self.can_parse?(_self, lhs)
+    _self.current_token&.type == :"?."
+  end
+
+  def parse!(lhs)
+    q_t = consume! :"?."
+    property_t = consume! :identifier
+    AST::OptionalChain.new(
+      lhs,
+      property_t.value,
+      q_t.start_pos,
+      property_t.end_pos
+    )
   end
 end
 
@@ -864,6 +882,7 @@ class ExprParser < Parser
     DotAssignmentParser,
     DotParser,
     BindParser,
+    OptionalChainParser,
     DynamicLookupParser,
     FunctionCallWithoutArgs,
     FunctionCallWithArgs,

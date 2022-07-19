@@ -214,11 +214,17 @@ class Compiler
       eval_case_function_definition node
     when AST::Bind
       eval_bind node
+    when AST::OptionalChain
+      eval_optional_chain node
     else
       binding.pry
       puts "no case matched node_type: #{node.class}"
       assert_not_reached!
     end
+  end
+
+  def eval_optional_chain(node)
+    "#{padding}#{eval_expr node.lhs}?.#{node.property}"
   end
 
   def eval_bind(node)

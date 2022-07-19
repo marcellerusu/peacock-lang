@@ -370,6 +370,17 @@ module AST
     end
   end
 
+  class OptionalChain < Node
+    attr_reader :lhs, :property
+
+    def initialize(lhs, property, start_pos, end_pos)
+      @lhs = lhs
+      @property = property
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
+
   class DotAssignment < Node
     attr_reader :lhs, :expr
 
