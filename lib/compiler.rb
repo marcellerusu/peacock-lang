@@ -47,8 +47,7 @@ class Compiler
   end
 
   def std_lib
-    ""
-    # schema_lib
+    schema_lib
   end
 
   def schema_lib
@@ -207,11 +206,45 @@ class Compiler
       eval_one_line_getter node
     when AST::InstanceProperty
       eval_instance_property node
+    when AST::CaseFunctionDefinition
+      eval_case_function_definition node
     else
       binding.pry
       puts "no case matched node_type: #{node.class}"
       assert_not_reached!
     end
+  end
+
+  def eval_case_function_definition(node)
+    f = "#{padding}function #{node.name}(...args) {\n"
+    node.patterns.each_with_index do |s_case, i|
+      if s_case.patterns.all? { |arg| arg.is_a? AST::SimpleSchemaArg }
+        schemas = s_case.patterns.map(&:schema_name)
+        args = s_case.patterns.map(&:name)
+      elsif s_case.patterns.all? { |arg| arg.is_a? AST::Int }
+        schemas = s_case.patterns.map(&:value)
+        args = []
+      else
+        assert_not_reached!
+      end
+      if i == 0
+        f += "#{padding}  if "
+      else
+        f += " else if "
+      end
+      f += "(s.check([#{schemas.join ", "}], args)) {\n"
+
+      args.each_with_index do |arg, i|
+        f += "#{padding}    let #{arg} = args[#{i}];\n"
+      end
+      f += "#{padding}#{Compiler.new(s_case.body, @indent + 4).eval}\n"
+      if i == node.patterns.size - 1
+        f += "#{padding}  }\n"
+      else
+        f += "#{padding}  }"
+      end
+    end
+    f + "}"
   end
 
   def eval_instance_property(node)

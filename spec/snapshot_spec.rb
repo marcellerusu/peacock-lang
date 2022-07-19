@@ -187,7 +187,7 @@ schema Admin = User & { admin: true }")
   "
 end
 ')
-    expect(ast).to eq([{"klass"=>"AST::ExprComponent", "name"=>"WordCount", "expr"=>{"klass"=>"AST::SimpleString", "value"=>"\n    <div>test</div>\n  ", "start_pos"=>25, "end_pos"=>50}, "start_pos"=>0, "end_pos"=>54}])
+    expect(ast).to eq([{ "klass" => "AST::ExprComponent", "name" => "WordCount", "expr" => { "klass" => "AST::SimpleString", "value" => "\n    <div>test</div>\n  ", "start_pos" => 25, "end_pos" => 50 }, "start_pos" => 0, "end_pos" => 54 }])
   end
   it "2022-07-13 21:12:04 -0400" do
     ast = parse('component ProfileCard { name } in
@@ -199,7 +199,7 @@ end
   "
 end
 ')
-    expect(ast).to eq([{"klass"=>"AST::ExprComponentWithAttributes", "name"=>"ProfileCard", "attributes"=>[["name", {"klass"=>"AST::SchemaCapture", "name"=>"name", "start_pos"=>24, "end_pos"=>28}]], "expr"=>{"klass"=>"AST::SimpleString", "value"=>"\n    <div>\n      profile\n      <div>${name}</div>\n    </div>\n  ", "start_pos"=>36, "end_pos"=>101}, "start_pos"=>0, "end_pos"=>105}])
+    expect(ast).to eq([{ "klass" => "AST::ExprComponentWithAttributes", "name" => "ProfileCard", "attributes" => [["name", { "klass" => "AST::SchemaCapture", "name" => "name", "start_pos" => 24, "end_pos" => 28 }]], "expr" => { "klass" => "AST::SimpleString", "value" => "\n    <div>\n      profile\n      <div>${name}</div>\n    </div>\n  ", "start_pos" => 36, "end_pos" => 101 }, "start_pos" => 0, "end_pos" => 105 }])
   end
   it "2022-07-13 22:55:36 -0400" do
     ast = parse('component CardEntry 
@@ -211,33 +211,33 @@ in
 end
 
 ')
-    expect(ast).to eq([{"klass"=>"AST::BodyComponentWithoutAttrs", "name"=>"CardEntry", "constructor_body"=>[{"klass"=>"AST::SimpleAssignment", "name"=>"name", "expr"=>{"klass"=>"AST::SimpleString", "value"=>"string", "start_pos"=>31, "end_pos"=>39}, "start_pos"=>23, "end_pos"=>39}], "expr"=>{"klass"=>"AST::SimpleString", "value"=>"\n  <div>${this.name}</div>\n", "start_pos"=>43, "end_pos"=>72}, "start_pos"=>0, "end_pos"=>76}])
+    expect(ast).to eq([{ "klass" => "AST::BodyComponentWithoutAttrs", "name" => "CardEntry", "constructor_body" => [{ "klass" => "AST::SimpleAssignment", "name" => "name", "expr" => { "klass" => "AST::SimpleString", "value" => "string", "start_pos" => 31, "end_pos" => 39 }, "start_pos" => 23, "end_pos" => 39 }], "expr" => { "klass" => "AST::SimpleString", "value" => "\n  <div>${this.name}</div>\n", "start_pos" => 43, "end_pos" => 72 }, "start_pos" => 0, "end_pos" => 76 }])
   end
   it "2022-07-13 23:53:09 -0400" do
-    ast = parse('component CardEntry { name } in
+    ast = parse("component CardEntry { name } in
   <div></div>
 end
 
-')
-    expect(ast).to eq([{"klass"=>"AST::ExprComponentWithAttributes", "name"=>"CardEntry", "attributes"=>[["name", {"klass"=>"AST::SchemaCapture", "name"=>"name", "start_pos"=>22, "end_pos"=>26}]], "expr"=>{"klass"=>"AST::SimpleElement", "name"=>"div", "children"=>[], "start_pos"=>34, "end_pos"=>45}, "start_pos"=>0, "end_pos"=>49}])
+")
+    expect(ast).to eq([{ "klass" => "AST::ExprComponentWithAttributes", "name" => "CardEntry", "attributes" => [["name", { "klass" => "AST::SchemaCapture", "name" => "name", "start_pos" => 22, "end_pos" => 26 }]], "expr" => { "klass" => "AST::SimpleElement", "name" => "div", "children" => [], "start_pos" => 34, "end_pos" => 45 }, "start_pos" => 0, "end_pos" => 49 }])
   end
   it "2022-07-14 01:24:13 -0400" do
-    ast = parse('component CardEntry { name } in
+    ast = parse("component CardEntry { name } in
   <div>{name}</div>
 end
-')
-    expect(ast).to eq([{"klass"=>"AST::ExprComponentWithAttributes", "name"=>"CardEntry", "attributes"=>[["name", {"klass"=>"AST::SchemaCapture", "name"=>"name", "start_pos"=>22, "end_pos"=>26}]], "expr"=>{"klass"=>"AST::SimpleElement", "name"=>"div", "children"=>[{"klass"=>"AST::EscapedElementExpr", "value"=>{"klass"=>"AST::IdLookup", "value"=>"name", "start_pos"=>40, "end_pos"=>44}, "start_pos"=>39, "end_pos"=>45}], "start_pos"=>34, "end_pos"=>51}, "start_pos"=>0, "end_pos"=>55}])
+")
+    expect(ast).to eq([{ "klass" => "AST::ExprComponentWithAttributes", "name" => "CardEntry", "attributes" => [["name", { "klass" => "AST::SchemaCapture", "name" => "name", "start_pos" => 22, "end_pos" => 26 }]], "expr" => { "klass" => "AST::SimpleElement", "name" => "div", "children" => [{ "klass" => "AST::EscapedElementExpr", "value" => { "klass" => "AST::IdLookup", "value" => "name", "start_pos" => 40, "end_pos" => 44 }, "start_pos" => 39, "end_pos" => 45 }], "start_pos" => 34, "end_pos" => 51 }, "start_pos" => 0, "end_pos" => 55 }])
   end
   it "2022-07-16 13:52:01 -0400" do
-    ast = parse('class Parser
+    ast = parse("class Parser
   function constructor(name)
     this.name := name
   end
-end')
-    expect(ast).to eq([{"klass"=>"AST::Class", "name"=>"Parser", "parent_class"=>nil, "entries"=>[{"klass"=>"AST::ConstructorWithArgs", "name"=>"constructor", "args"=>{"klass"=>"AST::SimpleFnArgs", "value"=>[{"klass"=>"AST::SimpleArg", "name"=>"name", "start_pos"=>36, "end_pos"=>40}], "start_pos"=>35, "end_pos"=>41}, "body"=>[{"klass"=>"AST::DotAssignment", "lhs"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::This", "value"=>nil, "start_pos"=>46, "end_pos"=>50}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"name", "start_pos"=>51, "end_pos"=>55}, "start_pos"=>50, "end_pos"=>55}, "expr"=>{"klass"=>"AST::IdLookup", "value"=>"name", "start_pos"=>59, "end_pos"=>63}, "start_pos"=>56, "end_pos"=>63}], "start_pos"=>15, "end_pos"=>69}], "start_pos"=>0, "end_pos"=>73}])
+end")
+    expect(ast).to eq([{ "klass" => "AST::Class", "name" => "Parser", "parent_class" => nil, "entries" => [{ "klass" => "AST::ConstructorWithArgs", "name" => "constructor", "args" => { "klass" => "AST::SimpleFnArgs", "value" => [{ "klass" => "AST::SimpleArg", "name" => "name", "start_pos" => 36, "end_pos" => 40 }], "start_pos" => 35, "end_pos" => 41 }, "body" => [{ "klass" => "AST::DotAssignment", "lhs" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::This", "value" => nil, "start_pos" => 46, "end_pos" => 50 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "name", "start_pos" => 51, "end_pos" => 55 }, "start_pos" => 50, "end_pos" => 55 }, "expr" => { "klass" => "AST::IdLookup", "value" => "name", "start_pos" => 59, "end_pos" => 63 }, "start_pos" => 56, "end_pos" => 63 }], "start_pos" => 15, "end_pos" => 69 }], "start_pos" => 0, "end_pos" => 73 }])
   end
   it "2022-07-16 16:38:25 -0400" do
-    ast = parse('class Parser
+    ast = parse("class Parser
   static function from(that)
     new this(that.tokens, that.program_string, that.pos)
   end
@@ -248,32 +248,47 @@ end')
     this.pos := pos
   end
 end
-')
-    expect(ast).to eq([{"klass"=>"AST::Class", "name"=>"Parser", "parent_class"=>nil, "entries"=>[{"klass"=>"AST::StaticMethod", "name"=>"from", "args"=>{"klass"=>"AST::SimpleFnArgs", "value"=>[{"klass"=>"AST::SimpleArg", "name"=>"that", "start_pos"=>36, "end_pos"=>40}], "start_pos"=>35, "end_pos"=>41}, "body"=>[{"klass"=>"AST::Return", "value"=>{"klass"=>"AST::New", "class_expr"=>{"klass"=>"AST::This", "value"=>nil, "start_pos"=>50, "end_pos"=>54}, "args"=>[{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"that", "start_pos"=>55, "end_pos"=>59}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"tokens", "start_pos"=>60, "end_pos"=>66}, "start_pos"=>59, "end_pos"=>66}, {"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"that", "start_pos"=>68, "end_pos"=>72}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"program_string", "start_pos"=>73, "end_pos"=>87}, "start_pos"=>72, "end_pos"=>87}, {"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"that", "start_pos"=>89, "end_pos"=>93}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"pos", "start_pos"=>94, "end_pos"=>97}, "start_pos"=>93, "end_pos"=>97}], "start_pos"=>46, "end_pos"=>98}, "start_pos"=>46, "end_pos"=>98}], "start_pos"=>15, "end_pos"=>104}, {"klass"=>"AST::ConstructorWithArgs", "name"=>"constructor", "args"=>{"klass"=>"AST::SimpleFnArgs", "value"=>[{"klass"=>"AST::SimpleArg", "name"=>"tokens", "start_pos"=>129, "end_pos"=>135}, {"klass"=>"AST::SimpleArg", "name"=>"program_string", "start_pos"=>137, "end_pos"=>151}, {"klass"=>"AST::SimpleArg", "name"=>"pos", "start_pos"=>153, "end_pos"=>156}], "start_pos"=>128, "end_pos"=>157}, "body"=>[{"klass"=>"AST::DotAssignment", "lhs"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::This", "value"=>nil, "start_pos"=>162, "end_pos"=>166}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"tokens", "start_pos"=>167, "end_pos"=>173}, "start_pos"=>166, "end_pos"=>173}, "expr"=>{"klass"=>"AST::IdLookup", "value"=>"tokens", "start_pos"=>177, "end_pos"=>183}, "start_pos"=>174, "end_pos"=>183}, {"klass"=>"AST::DotAssignment", "lhs"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::This", "value"=>nil, "start_pos"=>188, "end_pos"=>192}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"program_string", "start_pos"=>193, "end_pos"=>207}, "start_pos"=>192, "end_pos"=>207}, "expr"=>{"klass"=>"AST::IdLookup", "value"=>"program_string", "start_pos"=>211, "end_pos"=>225}, "start_pos"=>208, "end_pos"=>225}, {"klass"=>"AST::DotAssignment", "lhs"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::This", "value"=>nil, "start_pos"=>230, "end_pos"=>234}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"pos", "start_pos"=>235, "end_pos"=>238}, "start_pos"=>234, "end_pos"=>238}, "expr"=>{"klass"=>"AST::IdLookup", "value"=>"pos", "start_pos"=>242, "end_pos"=>245}, "start_pos"=>239, "end_pos"=>245}], "start_pos"=>108, "end_pos"=>251}], "start_pos"=>0, "end_pos"=>255}])
+")
+    expect(ast).to eq([{ "klass" => "AST::Class", "name" => "Parser", "parent_class" => nil, "entries" => [{ "klass" => "AST::StaticMethod", "name" => "from", "args" => { "klass" => "AST::SimpleFnArgs", "value" => [{ "klass" => "AST::SimpleArg", "name" => "that", "start_pos" => 36, "end_pos" => 40 }], "start_pos" => 35, "end_pos" => 41 }, "body" => [{ "klass" => "AST::Return", "value" => { "klass" => "AST::New", "class_expr" => { "klass" => "AST::This", "value" => nil, "start_pos" => 50, "end_pos" => 54 }, "args" => [{ "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "that", "start_pos" => 55, "end_pos" => 59 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "tokens", "start_pos" => 60, "end_pos" => 66 }, "start_pos" => 59, "end_pos" => 66 }, { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "that", "start_pos" => 68, "end_pos" => 72 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "program_string", "start_pos" => 73, "end_pos" => 87 }, "start_pos" => 72, "end_pos" => 87 }, { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "that", "start_pos" => 89, "end_pos" => 93 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "pos", "start_pos" => 94, "end_pos" => 97 }, "start_pos" => 93, "end_pos" => 97 }], "start_pos" => 46, "end_pos" => 98 }, "start_pos" => 46, "end_pos" => 98 }], "start_pos" => 15, "end_pos" => 104 }, { "klass" => "AST::ConstructorWithArgs", "name" => "constructor", "args" => { "klass" => "AST::SimpleFnArgs", "value" => [{ "klass" => "AST::SimpleArg", "name" => "tokens", "start_pos" => 129, "end_pos" => 135 }, { "klass" => "AST::SimpleArg", "name" => "program_string", "start_pos" => 137, "end_pos" => 151 }, { "klass" => "AST::SimpleArg", "name" => "pos", "start_pos" => 153, "end_pos" => 156 }], "start_pos" => 128, "end_pos" => 157 }, "body" => [{ "klass" => "AST::DotAssignment", "lhs" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::This", "value" => nil, "start_pos" => 162, "end_pos" => 166 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "tokens", "start_pos" => 167, "end_pos" => 173 }, "start_pos" => 166, "end_pos" => 173 }, "expr" => { "klass" => "AST::IdLookup", "value" => "tokens", "start_pos" => 177, "end_pos" => 183 }, "start_pos" => 174, "end_pos" => 183 }, { "klass" => "AST::DotAssignment", "lhs" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::This", "value" => nil, "start_pos" => 188, "end_pos" => 192 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "program_string", "start_pos" => 193, "end_pos" => 207 }, "start_pos" => 192, "end_pos" => 207 }, "expr" => { "klass" => "AST::IdLookup", "value" => "program_string", "start_pos" => 211, "end_pos" => 225 }, "start_pos" => 208, "end_pos" => 225 }, { "klass" => "AST::DotAssignment", "lhs" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::This", "value" => nil, "start_pos" => 230, "end_pos" => 234 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "pos", "start_pos" => 235, "end_pos" => 238 }, "start_pos" => 234, "end_pos" => 238 }, "expr" => { "klass" => "AST::IdLookup", "value" => "pos", "start_pos" => 242, "end_pos" => 245 }, "start_pos" => 239, "end_pos" => 245 }], "start_pos" => 108, "end_pos" => 251 }], "start_pos" => 0, "end_pos" => 255 }])
   end
   it "2022-07-16 16:58:26 -0400" do
-    ast = parse('class Parser
+    ast = parse("class Parser
   function constructor(@tokens, @program_string, @pos)
 
   static function from(that)
     new this(that.tokens, that.program_string, that.pos)
   end
 end
-')
-    expect(ast).to eq([{"klass"=>"AST::Class", "name"=>"Parser", "parent_class"=>nil, "entries"=>[{"klass"=>"AST::ShortHandConstructor", "instance_vars"=>["tokens", "program_string", "pos"], "start_pos"=>15, "end_pos"=>67}, {"klass"=>"AST::StaticMethod", "name"=>"from", "args"=>{"klass"=>"AST::SimpleFnArgs", "value"=>[{"klass"=>"AST::SimpleArg", "name"=>"that", "start_pos"=>92, "end_pos"=>96}], "start_pos"=>91, "end_pos"=>97}, "body"=>[{"klass"=>"AST::Return", "value"=>{"klass"=>"AST::New", "class_expr"=>{"klass"=>"AST::This", "value"=>nil, "start_pos"=>106, "end_pos"=>110}, "args"=>[{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"that", "start_pos"=>111, "end_pos"=>115}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"tokens", "start_pos"=>116, "end_pos"=>122}, "start_pos"=>115, "end_pos"=>122}, {"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"that", "start_pos"=>124, "end_pos"=>128}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"program_string", "start_pos"=>129, "end_pos"=>143}, "start_pos"=>128, "end_pos"=>143}, {"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"that", "start_pos"=>145, "end_pos"=>149}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"pos", "start_pos"=>150, "end_pos"=>153}, "start_pos"=>149, "end_pos"=>153}], "start_pos"=>102, "end_pos"=>154}, "start_pos"=>102, "end_pos"=>154}], "start_pos"=>71, "end_pos"=>160}], "start_pos"=>0, "end_pos"=>164}])
+")
+    expect(ast).to eq([{ "klass" => "AST::Class", "name" => "Parser", "parent_class" => nil, "entries" => [{ "klass" => "AST::ShortHandConstructor", "instance_vars" => ["tokens", "program_string", "pos"], "start_pos" => 15, "end_pos" => 67 }, { "klass" => "AST::StaticMethod", "name" => "from", "args" => { "klass" => "AST::SimpleFnArgs", "value" => [{ "klass" => "AST::SimpleArg", "name" => "that", "start_pos" => 92, "end_pos" => 96 }], "start_pos" => 91, "end_pos" => 97 }, "body" => [{ "klass" => "AST::Return", "value" => { "klass" => "AST::New", "class_expr" => { "klass" => "AST::This", "value" => nil, "start_pos" => 106, "end_pos" => 110 }, "args" => [{ "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "that", "start_pos" => 111, "end_pos" => 115 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "tokens", "start_pos" => 116, "end_pos" => 122 }, "start_pos" => 115, "end_pos" => 122 }, { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "that", "start_pos" => 124, "end_pos" => 128 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "program_string", "start_pos" => 129, "end_pos" => 143 }, "start_pos" => 128, "end_pos" => 143 }, { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "that", "start_pos" => 145, "end_pos" => 149 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "pos", "start_pos" => 150, "end_pos" => 153 }, "start_pos" => 149, "end_pos" => 153 }], "start_pos" => 102, "end_pos" => 154 }, "start_pos" => 102, "end_pos" => 154 }], "start_pos" => 71, "end_pos" => 160 }], "start_pos" => 0, "end_pos" => 164 }])
   end
   it "2022-07-16 18:02:41 -0400" do
-    ast = parse('class Parser
+    ast = parse("class Parser
   get current_token = this.tokens[this.pos]  
 end
-')
-    expect(ast).to eq([{"klass"=>"AST::Class", "name"=>"Parser", "parent_class"=>nil, "entries"=>[{"klass"=>"AST::OneLineGetter", "name"=>"current_token", "expr"=>{"klass"=>"AST::DynamicLookup", "lhs"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::This", "value"=>nil, "start_pos"=>35, "end_pos"=>39}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"tokens", "start_pos"=>40, "end_pos"=>46}, "start_pos"=>39, "end_pos"=>46}, "expr"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::This", "value"=>nil, "start_pos"=>47, "end_pos"=>51}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"pos", "start_pos"=>52, "end_pos"=>55}, "start_pos"=>51, "end_pos"=>55}, "start_pos"=>46, "end_pos"=>56}, "start_pos"=>15, "end_pos"=>56}], "start_pos"=>0, "end_pos"=>62}])
+")
+    expect(ast).to eq([{ "klass" => "AST::Class", "name" => "Parser", "parent_class" => nil, "entries" => [{ "klass" => "AST::OneLineGetter", "name" => "current_token", "expr" => { "klass" => "AST::DynamicLookup", "lhs" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::This", "value" => nil, "start_pos" => 35, "end_pos" => 39 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "tokens", "start_pos" => 40, "end_pos" => 46 }, "start_pos" => 39, "end_pos" => 46 }, "expr" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::This", "value" => nil, "start_pos" => 47, "end_pos" => 51 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "pos", "start_pos" => 52, "end_pos" => 55 }, "start_pos" => 51, "end_pos" => 55 }, "start_pos" => 46, "end_pos" => 56 }, "start_pos" => 15, "end_pos" => 56 }], "start_pos" => 0, "end_pos" => 62 }])
   end
   it "2022-07-18 18:46:38 -0400" do
-    ast = parse('class Parser
+    ast = parse("class Parser
   body := []
 end
-')
-    expect(ast).to eq([{"klass"=>"AST::Class", "name"=>"Parser", "parent_class"=>nil, "entries"=>[{"klass"=>"AST::InstanceProperty", "name"=>"body", "expr"=>{"klass"=>"AST::ArrayLiteral", "value"=>[], "start_pos"=>23, "end_pos"=>25}, "start_pos"=>15, "end_pos"=>25}], "start_pos"=>0, "end_pos"=>29}])
+")
+    expect(ast).to eq([{ "klass" => "AST::Class", "name" => "Parser", "parent_class" => nil, "entries" => [{ "klass" => "AST::InstanceProperty", "name" => "body", "expr" => { "klass" => "AST::ArrayLiteral", "value" => [], "start_pos" => 23, "end_pos" => 25 }, "start_pos" => 15, "end_pos" => 25 }], "start_pos" => 0, "end_pos" => 29 }])
+  end
+  it "2022-07-18 20:58:43 -0400" do
+    ast = parse('schema Gt1 = #{ it > 1 }
+
+case function factorial
+when (Gt1(n))
+  factorial(n - 1) + factorial(n - 2)
+when (1)
+  1
+when (0)
+  0
+end
+
+console.log factorial(20)')
+    expect(ast).to eq([{"klass"=>"AST::SchemaDefinition", "name"=>"Gt1", "schema_expr"=>{"klass"=>"AST::ShortFn", "return_expr"=>{"klass"=>"AST::Op", "lhs"=>{"klass"=>"AST::AnonIdLookup", "start_pos"=>16, "end_pos"=>18}, "type"=>:>, "rhs"=>{"klass"=>"AST::Int", "value"=>1, "start_pos"=>21, "end_pos"=>22}, "start_pos"=>16, "end_pos"=>22}, "start_pos"=>13, "end_pos"=>24}, "start_pos"=>0, "end_pos"=>24}, {"klass"=>"AST::CaseFunctionDefinition", "name"=>"factorial", "patterns"=>[{"klass"=>"AST::CaseFnPattern", "patterns"=>[{"klass"=>"AST::SimpleSchemaArg", "schema_name"=>"Gt1", "name"=>"n", "start_pos"=>56, "end_pos"=>62}], "body"=>[{"klass"=>"AST::Return", "value"=>{"klass"=>"AST::Op", "lhs"=>{"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::Op", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"n", "start_pos"=>76, "end_pos"=>77}, "type"=>:-, "rhs"=>{"klass"=>"AST::Int", "value"=>1, "start_pos"=>80, "end_pos"=>81}, "start_pos"=>76, "end_pos"=>81}], "expr"=>{"klass"=>"AST::IdLookup", "value"=>"factorial", "start_pos"=>66, "end_pos"=>75}, "start_pos"=>75, "end_pos"=>82}, "type"=>:+, "rhs"=>{"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::Op", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"n", "start_pos"=>95, "end_pos"=>96}, "type"=>:-, "rhs"=>{"klass"=>"AST::Int", "value"=>2, "start_pos"=>99, "end_pos"=>100}, "start_pos"=>95, "end_pos"=>100}], "expr"=>{"klass"=>"AST::IdLookup", "value"=>"factorial", "start_pos"=>85, "end_pos"=>94}, "start_pos"=>94, "end_pos"=>101}, "start_pos"=>75, "end_pos"=>101}, "start_pos"=>75, "end_pos"=>101}], "start_pos"=>50, "end_pos"=>101}, {"klass"=>"AST::CaseFnPattern", "patterns"=>[{"klass"=>"AST::Int", "value"=>1, "start_pos"=>108, "end_pos"=>109}], "body"=>[{"klass"=>"AST::Return", "value"=>{"klass"=>"AST::Int", "value"=>1, "start_pos"=>113, "end_pos"=>114}, "start_pos"=>113, "end_pos"=>114}], "start_pos"=>102, "end_pos"=>114}, {"klass"=>"AST::CaseFnPattern", "patterns"=>[{"klass"=>"AST::Int", "value"=>0, "start_pos"=>121, "end_pos"=>122}], "body"=>[{"klass"=>"AST::Return", "value"=>{"klass"=>"AST::Int", "value"=>0, "start_pos"=>126, "end_pos"=>127}, "start_pos"=>126, "end_pos"=>127}], "start_pos"=>115, "end_pos"=>127}], "start_pos"=>26, "end_pos"=>131}, {"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::Int", "value"=>20, "start_pos"=>155, "end_pos"=>157}], "expr"=>{"klass"=>"AST::IdLookup", "value"=>"factorial", "start_pos"=>145, "end_pos"=>154}, "start_pos"=>154, "end_pos"=>158}], "expr"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"console", "start_pos"=>133, "end_pos"=>140}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"log", "start_pos"=>141, "end_pos"=>144}, "start_pos"=>140, "end_pos"=>144}, "start_pos"=>144, "end_pos"=>158}])
   end
 end

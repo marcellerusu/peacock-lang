@@ -21,7 +21,7 @@ class Parser
   function consume_parser!(parser_klass)
     parser := parser_klass.from(this)
     expr_n := parser.parse!
-    this.pos = parser.pos
+    this.pos := parser.pos
     return expr_n
   end
 

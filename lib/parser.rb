@@ -33,9 +33,9 @@ class Parser
     @errors = errors
   end
 
-  def consume_parser!(parser_klass, *parse_args)
+  def consume_parser!(parser_klass, *parse_args, **parse_opts)
     parser = parser_klass.from(self)
-    expr_n = parser.parse! *parse_args
+    expr_n = parser.parse! *parse_args, **parse_opts
     @pos = parser.pos
     expr_n
   end
@@ -124,6 +124,31 @@ class SimpleSchemaArgParser < Parser
       schema_name_t.start_pos,
       close_t.end_pos
     )
+  end
+end
+
+class SchemaIntParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :int_lit
+  end
+
+  def parse!
+    consume_parser! IntParser
+  end
+end
+
+class SchemaArgParser < Parser
+  PARSERS = [
+    SimpleSchemaArgParser,
+    SchemaIntParser,
+  ]
+
+  def self.can_parse?(_self)
+    PARSERS.any? { |klass| klass.can_parse? _self }
+  end
+
+  def parse!
+    consume_first_valid_parser! PARSERS
   end
 end
 
@@ -297,7 +322,7 @@ class FunctionObjectEntryParser < Parser
   end
 
   def parse!
-    fn_n = consume_first_valid_parser! function_parsers
+    fn_n = consume_parser! FunctionDefinitionParser
     AST::FunctionObjectEntry.new(fn_n.name, fn_n, fn_n.start_pos, fn_n.end_pos)
   end
 end
@@ -904,6 +929,7 @@ class SchemaExprParser < Parser
     SimpleStringParser,
     IdentifierLookupParser,
     BoolParser,
+    ShortAnonFnParser,
   ]
 
   def parse!
@@ -999,12 +1025,55 @@ class SimpleSchemaAssignmentParser < Parser
   end
 end
 
-def function_parsers
-  [
+class CaseFunctionParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :case &&
+      _self.peek_token.type == :function
+  end
+
+  def parse!
+    case_t = consume! :case
+    consume! :function
+    name_t = consume! :identifier
+    patterns = []
+    while current_token.type != :end
+      when_t = consume! :when
+      consume! :open_paren
+      arg_patterns = []
+      loop do
+        arg_patterns.push consume_parser! SchemaArgParser
+        break if current_token.type == :close_paren
+        consume! :comma
+      end
+      consume! :close_paren
+      body_n = consume_parser! FunctionBodyParser, end_tokens: [:when]
+      patterns.push AST::CaseFnPattern.new(arg_patterns, body_n, when_t.start_pos, body_n[-1].end_pos)
+    end
+    end_t = consume! :end
+    AST::CaseFunctionDefinition.new(
+      name_t.value,
+      patterns,
+      case_t.start_pos,
+      end_t.end_pos
+    )
+  end
+end
+
+class FunctionDefinitionParser < Parser
+  PARSERS = [
     SingleLineDefWithArgsParser,
     MultilineDefWithArgsParser,
     MultilineDefWithoutArgsParser,
+    CaseFunctionParser,
   ]
+
+  def self.can_parse?(_self)
+    PARSERS.find { |klass| klass.can_parse? _self }
+  end
+
+  def parse!
+    consume_first_valid_parser! PARSERS
+  end
 end
 
 class BodyComponentWithoutAttrsParser < Parser
@@ -1221,7 +1290,7 @@ class ClassParser < Parser
     ConstructorWithoutArgsParser,
     StaticMethodWithArgsParser,
     OneLineGetterParser,
-    *function_parsers,
+    FunctionDefinitionParser,
   ]
 
   def parse_parent_class!
@@ -1257,7 +1326,8 @@ class ProgramParser < Parser
     @body = []
   end
 
-  ALLOWED_PARSERS = function_parsers + [
+  ALLOWED_PARSERS = [
+    FunctionDefinitionParser,
     SimpleAssignmentParser,
     ForOfObjDeconstructLoopParser,
     SimpleForOfLoopParser,
@@ -1304,8 +1374,8 @@ class FunctionBodyParser < ProgramParser
     ReturnParser,
   ]
 
-  def parse!
-    super additional_parsers: ALLOWED_PARSERS
+  def parse!(end_tokens: [])
+    super additional_parsers: ALLOWED_PARSERS, end_tokens: end_tokens
 
     last_n = @body[-1]
     if last_n.is_a? AST::SimpleAssignment

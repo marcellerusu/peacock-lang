@@ -182,6 +182,28 @@ module AST
     end
   end
 
+  class CaseFnPattern < Node
+    attr_reader :patterns, :body
+
+    def initialize(patterns, body, start_pos, end_pos)
+      @patterns = patterns
+      @body = body
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
+
+  class CaseFunctionDefinition < Node
+    attr_reader :name, :patterns
+
+    def initialize(name, patterns, start_pos, end_pos)
+      @name = name
+      @patterns = patterns
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
+
   class InstanceProperty < Node
     attr_reader :name, :expr
 
