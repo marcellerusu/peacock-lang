@@ -216,6 +216,28 @@ class SingleLineDefWithArgsParser < Parser
   end
 end
 
+class SingleLineDefWithoutArgsParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :function &&
+      _self.peek_token.type == :identifier &&
+      _self.rest_of_line.include?("=")
+  end
+
+  def parse!
+    function_t = consume! :function
+    fn_name_t = consume! :identifier
+    consume! :"="
+    return_value_n = consume_parser! ExprParser
+
+    AST::SingleLineDefWithoutArgs.new(
+      fn_name_t.value,
+      return_value_n,
+      function_t.start_pos,
+      return_value_n.end_pos
+    )
+  end
+end
+
 class MultilineDefWithoutArgsParser < Parser
   def self.can_parse?(_self)
     _self.current_token&.type == :function &&
@@ -855,6 +877,17 @@ class DynamicLookupParser < Parser
   end
 end
 
+class SchemaCaptureParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :capture
+  end
+
+  def parse!
+    id_t = consume! :capture
+    AST::SchemaCapture.new(id_t.value, id_t.start_pos, id_t.end_pos)
+  end
+end
+
 class ExprParser < Parser
   # order matters
   PRIMARY_PARSERS = [
@@ -875,6 +908,7 @@ class ExprParser < Parser
     SingleLineArrowFnWithArgsParser,
     AwaitParser,
     ElementParser,
+    SchemaCaptureParser,
   ]
 
   SECONDARY_PARSERS = [
@@ -921,17 +955,6 @@ class ForOfObjDeconstructLoopParser < Parser
     body = consume_parser! ProgramParser
     end_t = consume! :end
     AST::ForOfObjDeconstructLoop.new(properties, arr_expr_n, body, for_t.start_pos, end_t.end_pos)
-  end
-end
-
-class SchemaCaptureParser < Parser
-  def self.can_parse?(_self)
-    _self.current_token&.type == :capture
-  end
-
-  def parse!
-    id_t = consume! :capture
-    AST::SchemaCapture.new(id_t.value, id_t.start_pos, id_t.end_pos)
   end
 end
 
@@ -1109,6 +1132,7 @@ end
 class FunctionDefinitionParser < Parser
   PARSERS = [
     SingleLineDefWithArgsParser,
+    SingleLineDefWithoutArgsParser,
     MultilineDefWithArgsParser,
     MultilineDefWithoutArgsParser,
     CaseFunctionParser,

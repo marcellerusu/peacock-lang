@@ -142,6 +142,8 @@ class Compiler
       eval_simple_string node
     when AST::SingleLineDefWithArgs
       eval_single_line_fn_with_args node
+    when AST::SingleLineDefWithoutArgs
+      eval_single_line_fn_without_args node
     when AST::SingleLineArrowFnWithoutArgs
       eval_arrow_fn_without_args node
     when AST::SingleLineArrowFnWithArgs
@@ -612,6 +614,15 @@ class Compiler
     else
       assignments + "\n"
     end
+  end
+
+  def eval_single_line_fn_without_args(fn_node)
+    fn = "#{padding}function #{fn_node.name}() {\n"
+    indent!
+    fn += "#{padding}return #{eval_expr fn_node.return_value};\n"
+    dedent!
+    fn += "#{padding}}"
+    fn
   end
 
   def eval_single_line_fn_with_args(fn_node)

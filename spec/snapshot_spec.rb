@@ -313,4 +313,8 @@ console.log "abc"::length(10, 20)')
 console.log a?.b')
     expect(ast).to eq([{"klass"=>"AST::SimpleAssignment", "name"=>"a", "expr"=>{"klass"=>"AST::ObjectLiteral", "value"=>[], "start_pos"=>5, "end_pos"=>7}, "start_pos"=>0, "end_pos"=>7}, {"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::OptionalChain", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"a", "start_pos"=>21, "end_pos"=>22}, "property"=>"b", "start_pos"=>22, "end_pos"=>25}], "expr"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"console", "start_pos"=>9, "end_pos"=>16}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"log", "start_pos"=>17, "end_pos"=>20}, "start_pos"=>16, "end_pos"=>20}, "start_pos"=>20, "end_pos"=>25}])
   end
+  it "2022-07-18 23:55:11 -0400" do
+    ast = parse('function ten = 10')
+    expect(ast).to eq([{"klass"=>"AST::SingleLineDefWithoutArgs", "name"=>"ten", "return_value"=>{"klass"=>"AST::Int", "value"=>10, "start_pos"=>15, "end_pos"=>17}, "start_pos"=>0, "end_pos"=>17}])
+  end
 end

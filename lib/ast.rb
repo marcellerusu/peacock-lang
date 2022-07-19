@@ -294,6 +294,17 @@ module AST
     end
   end
 
+  class SingleLineDefWithoutArgs < Node
+    attr_reader :return_value, :name
+
+    def initialize(name, return_value, start_pos, end_pos)
+      @name = name
+      @return_value = return_value
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
+
   class MultilineDefWithoutArgs < Node
     attr_reader :body, :name
 
