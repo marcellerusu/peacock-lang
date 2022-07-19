@@ -47,7 +47,11 @@ class Compiler
   end
 
   def std_lib
-    schema_lib
+    if ARGV[1] == "-s"
+      ""
+    else
+      schema_lib
+    end
   end
 
   def schema_lib
@@ -208,11 +212,21 @@ class Compiler
       eval_instance_property node
     when AST::CaseFunctionDefinition
       eval_case_function_definition node
+    when AST::Bind
+      eval_bind node
     else
       binding.pry
       puts "no case matched node_type: #{node.class}"
       assert_not_reached!
     end
+  end
+
+  def eval_bind(node)
+    args = node.args.map { |arg| eval_expr arg }.join ", "
+    if args.size > 0
+      args = ", #{args}"
+    end
+    "#{padding}#{eval_expr node.function}.call(#{eval_expr node.lhs}#{args})"
   end
 
   def eval_case_function_definition(node)

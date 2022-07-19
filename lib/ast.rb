@@ -360,6 +360,16 @@ module AST
   class This < Node
   end
 
+  class Bind < Node
+    attr_reader :lhs, :function, :args
+
+    def initialize(lhs, function, args)
+      @lhs = lhs
+      @function = function
+      @args = args
+    end
+  end
+
   class DotAssignment < Node
     attr_reader :lhs, :expr
 

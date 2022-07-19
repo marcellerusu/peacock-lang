@@ -520,6 +520,33 @@ class DotParser < Parser
   end
 end
 
+class BindParser < Parser
+  def self.can_parse?(_self, lhs)
+    _self.current_token&.type == :"::"
+  end
+
+  def parse_args!
+    return [] if current_token&.type != :open_paren
+    consume! :open_paren
+    args = []
+    loop do
+      args.push consume_parser! ExprParser
+      break if current_token.type == :close_paren
+      consume! :comma
+    end
+    consume! :close_paren
+
+    args
+  end
+
+  def parse!(lhs_n)
+    bind_t = consume! :"::"
+    fn_name_n = consume_parser! IdentifierLookupParser
+    args = parse_args!
+    AST::Bind.new(lhs_n, fn_name_n, args)
+  end
+end
+
 class ReturnParser < Parser
   def self.can_parse?(_self)
     _self.current_token&.type == :return
@@ -836,6 +863,7 @@ class ExprParser < Parser
     OperatorParser,
     DotAssignmentParser,
     DotParser,
+    BindParser,
     DynamicLookupParser,
     FunctionCallWithoutArgs,
     FunctionCallWithArgs,
