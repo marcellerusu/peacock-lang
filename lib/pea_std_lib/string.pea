@@ -1,0 +1,16 @@
+class StringScanner(@str)
+  index := 0
+  matched := null
+  groups := []
+
+  get rest_of_str = this.str.slice(this.index)
+  get is_end_of_str = this.index >= this.str.length
+
+  function scan(regex)
+    result := this.rest_of_str.match(regex)
+    return false if result === null || result.index !== 0
+    [this.matched, ...this.groups] := Array.from(result)
+    this.index += this.matched.length
+    return true
+  end
+end

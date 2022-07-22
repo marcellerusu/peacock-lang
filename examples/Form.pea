@@ -1,8 +1,7 @@
 component { items }
   newItem := ""
 in
-  <form @submit={function(event)
-    event.preventDefault()
+  <form @submit.preventDefault={function(event)
     items := [...items, newItem]
     newItem := ""
   end}>
