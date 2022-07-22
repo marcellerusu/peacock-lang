@@ -673,6 +673,18 @@ module AST
     end
   end
 
+  class SimpleForInLoop < Node
+    attr_reader :variable, :object_expr, :body
+
+    def initialize(variable, object_expr, body, start_pos, end_pos)
+      @variable = variable
+      @object_expr = object_expr
+      @body = body
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
+
   class ArrayAssignment < Node
     attr_reader :variables, :expr
 

@@ -321,4 +321,15 @@ console.log a?.b')
     ast = parse('[a] := [1]')
     expect(ast).to eq([{"klass"=>"AST::ArrayAssignment", "variables"=>["a"], "expr"=>{"klass"=>"AST::ArrayLiteral", "value"=>[{"klass"=>"AST::Int", "value"=>1, "start_pos"=>8, "end_pos"=>9}], "start_pos"=>7, "end_pos"=>10}, "start_pos"=>0, "end_pos"=>10}])
   end
+  it "2022-07-21 21:55:29 -0400" do
+    ast = parse('obj := {
+  a: 10,
+  b: "str"
+}
+
+for key in obj
+  console.log key
+end')
+    expect(ast).to eq([{"klass"=>"AST::SimpleAssignment", "name"=>"obj", "expr"=>{"klass"=>"AST::ObjectLiteral", "value"=>[{"klass"=>"AST::SimpleObjectEntry", "key_name"=>"a", "value"=>{"klass"=>"AST::Int", "value"=>10, "start_pos"=>14, "end_pos"=>16}, "start_pos"=>11, "end_pos"=>16}, {"klass"=>"AST::SimpleObjectEntry", "key_name"=>"b", "value"=>{"klass"=>"AST::SimpleString", "value"=>"str", "start_pos"=>23, "end_pos"=>28}, "start_pos"=>20, "end_pos"=>28}], "start_pos"=>7, "end_pos"=>30}, "start_pos"=>0, "end_pos"=>30}, {"klass"=>"AST::SimpleForInLoop", "variable"=>"key", "object_expr"=>{"klass"=>"AST::IdLookup", "value"=>"obj", "start_pos"=>43, "end_pos"=>46}, "body"=>[{"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::IdLookup", "value"=>"key", "start_pos"=>61, "end_pos"=>64}], "expr"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"console", "start_pos"=>49, "end_pos"=>56}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"log", "start_pos"=>57, "end_pos"=>60}, "start_pos"=>56, "end_pos"=>60}, "start_pos"=>60, "end_pos"=>64}], "start_pos"=>32, "end_pos"=>68}])
+  end
 end

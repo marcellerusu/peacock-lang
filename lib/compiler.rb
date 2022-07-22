@@ -220,11 +220,19 @@ class Compiler
       eval_optional_chain node
     when AST::ArrayAssignment
       eval_array_assignment node
+    when AST::SimpleForInLoop
+      eval_simple_for_in_loop node
     else
       binding.pry
       puts "no case matched node_type: #{node.class}"
       assert_not_reached!
     end
+  end
+
+  def eval_simple_for_in_loop(node)
+    f = "for (let #{node.variable} in #{eval_expr node.object_expr}) {\n"
+    f += Compiler.new(node.body, @indent + 2).eval + "\n"
+    f += "}"
   end
 
   def eval_array_assignment(node)

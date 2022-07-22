@@ -148,6 +148,8 @@ module Lexer
         tokens.push Token.new(scanner.matched, :component)
       when scanner.scan(/in\b/)
         tokens.push Token.new(scanner.matched, :in)
+      when scanner.scan(/instanceof\b/)
+        tokens.push Token.new(scanner.matched, :instanceof)
       when scanner.scan(/if\b/)
         tokens.push Token.new(scanner.matched, :if)
       when scanner.scan(/unless\b/)

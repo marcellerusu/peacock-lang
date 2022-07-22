@@ -1,1 +1,8 @@
-[a] := [1]
+obj := {
+  a: 10,
+  b: "str"
+}
+
+for key in obj
+  console.log key
+end

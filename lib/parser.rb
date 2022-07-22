@@ -1391,6 +1391,30 @@ class ClassParser < Parser
   end
 end
 
+class SimpleForInLoopParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :for &&
+      _self.peek_token.type == :identifier &&
+      _self.peek_token_twice.type == :in
+  end
+
+  def parse!
+    for_t = consume! :for
+    variable_t = consume! :identifier
+    consume! :in
+    object_n = consume_parser! ExprParser
+    body = consume_parser! ProgramParser
+    end_t = consume! :end
+    AST::SimpleForInLoop.new(
+      variable_t.value,
+      object_n,
+      body,
+      for_t.start_pos,
+      end_t.end_pos
+    )
+  end
+end
+
 class ArrayAssignmentParser < Parser
   def self.can_parse?(_self)
     _self.current_token.type == :"[" &&
@@ -1428,6 +1452,7 @@ class ProgramParser < Parser
     SimpleAssignmentParser,
     ArrayAssignmentParser,
     ForOfObjDeconstructLoopParser,
+    SimpleForInLoopParser,
     SimpleForOfLoopParser,
     SchemaDefinitionParser,
     SimpleSchemaAssignmentParser,
