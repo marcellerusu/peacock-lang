@@ -1,3 +1,6 @@
+class AssertionError < Error
+end
+
 class StringScanner(@str)
   index := 0
   matched := null
