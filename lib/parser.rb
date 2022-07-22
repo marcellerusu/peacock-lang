@@ -1450,10 +1450,14 @@ class AssertParser < Parser
     assert_t = consume! :assert
     expr_n = consume_parser! ExprParser
     str = program_string[expr_n.start_pos...expr_n.end_pos]
-
+    lines = program_string[...expr_n.start_pos].split "\n"
+    line = lines.size
+    col = lines[-1].size
     AST::Assert.new(
       expr_n,
       str,
+      line,
+      col,
       assert_t.start_pos,
       expr_n.end_pos
     )

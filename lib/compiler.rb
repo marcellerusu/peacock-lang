@@ -232,7 +232,7 @@ class Compiler
   end
 
   def eval_assert(node)
-    "console.assert(#{eval_expr node.expr}, `#{node.string}`)"
+    "console.assert(#{eval_expr node.expr}, `@ |line:#{node.line}, col:#{node.col}| \"#{node.string}\"`)"
   end
 
   def eval_simple_for_in_loop(node)

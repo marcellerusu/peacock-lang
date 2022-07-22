@@ -701,11 +701,13 @@ module AST
   end
 
   class Assert < Node
-    attr_reader :expr, :string
+    attr_reader :expr, :string, :line, :col
 
-    def initialize(expr, string, start_pos, end_pos)
+    def initialize(expr, string, line, col, start_pos, end_pos)
       @expr = expr
       @string = string
+      @line = line
+      @col = col
       @start_pos = start_pos
       @end_pos = end_pos
     end
