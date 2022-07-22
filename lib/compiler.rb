@@ -232,9 +232,7 @@ class Compiler
   end
 
   def eval_assert(node)
-    a = "if (!(#{eval_expr node.expr})) {\n"
-    a += "  throw new AssertionError(`\"#{node.string}\"`);\n"
-    a += "}"
+    "console.assert(#{eval_expr node.expr}, `#{node.string}`)"
   end
 
   def eval_simple_for_in_loop(node)
