@@ -332,4 +332,9 @@ for key in obj
 end')
     expect(ast).to eq([{"klass"=>"AST::SimpleAssignment", "name"=>"obj", "expr"=>{"klass"=>"AST::ObjectLiteral", "value"=>[{"klass"=>"AST::SimpleObjectEntry", "key_name"=>"a", "value"=>{"klass"=>"AST::Int", "value"=>10, "start_pos"=>14, "end_pos"=>16}, "start_pos"=>11, "end_pos"=>16}, {"klass"=>"AST::SimpleObjectEntry", "key_name"=>"b", "value"=>{"klass"=>"AST::SimpleString", "value"=>"str", "start_pos"=>23, "end_pos"=>28}, "start_pos"=>20, "end_pos"=>28}], "start_pos"=>7, "end_pos"=>30}, "start_pos"=>0, "end_pos"=>30}, {"klass"=>"AST::SimpleForInLoop", "variable"=>"key", "object_expr"=>{"klass"=>"AST::IdLookup", "value"=>"obj", "start_pos"=>43, "end_pos"=>46}, "body"=>[{"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::IdLookup", "value"=>"key", "start_pos"=>61, "end_pos"=>64}], "expr"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"console", "start_pos"=>49, "end_pos"=>56}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"log", "start_pos"=>57, "end_pos"=>60}, "start_pos"=>56, "end_pos"=>60}, "start_pos"=>60, "end_pos"=>64}], "start_pos"=>32, "end_pos"=>68}])
   end
+  it "2022-07-21 23:04:33 -0400" do
+    ast = parse('assert 1 + 1 === 3
+')
+    expect(ast).to eq([{"klass"=>"AST::Assert", "expr"=>{"klass"=>"AST::Op", "lhs"=>{"klass"=>"AST::Int", "value"=>1, "start_pos"=>7, "end_pos"=>8}, "type"=>:+, "rhs"=>{"klass"=>"AST::Op", "lhs"=>{"klass"=>"AST::Int", "value"=>1, "start_pos"=>11, "end_pos"=>12}, "type"=>:===, "rhs"=>{"klass"=>"AST::Int", "value"=>3, "start_pos"=>17, "end_pos"=>18}, "start_pos"=>11, "end_pos"=>18}, "start_pos"=>7, "end_pos"=>18}, "string"=>"1 + 1 === 3", "start_pos"=>0, "end_pos"=>18}])
+  end
 end

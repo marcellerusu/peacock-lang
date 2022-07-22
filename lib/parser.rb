@@ -1441,6 +1441,25 @@ class ArrayAssignmentParser < Parser
   end
 end
 
+class AssertParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :assert
+  end
+
+  def parse!
+    assert_t = consume! :assert
+    expr_n = consume_parser! ExprParser
+    str = program_string[expr_n.start_pos...expr_n.end_pos]
+
+    AST::Assert.new(
+      expr_n,
+      str,
+      assert_t.start_pos,
+      expr_n.end_pos
+    )
+  end
+end
+
 class ProgramParser < Parser
   def initialize(*args)
     super(*args)
@@ -1448,6 +1467,7 @@ class ProgramParser < Parser
   end
 
   ALLOWED_PARSERS = [
+    AssertParser,
     FunctionDefinitionParser,
     SimpleAssignmentParser,
     ArrayAssignmentParser,

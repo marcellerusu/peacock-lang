@@ -699,4 +699,15 @@ module AST
       @variables
     end
   end
+
+  class Assert < Node
+    attr_reader :expr, :string
+
+    def initialize(expr, string, start_pos, end_pos)
+      @expr = expr
+      @string = string
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
 end
