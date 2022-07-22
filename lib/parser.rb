@@ -1391,6 +1391,32 @@ class ClassParser < Parser
   end
 end
 
+class ArrayAssignmentParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :"[" &&
+      _self.rest_of_line.include?(":=")
+  end
+
+  def parse!
+    open_t = consume! :"["
+    variables = []
+    loop do
+      variables.push consume!(:identifier).value
+      break if current_token.type == :"]"
+      consume! :comma
+    end
+    close_t = consume! :"]"
+    consume! :assign
+    expr_n = consume_parser! ExprParser
+    AST::ArrayAssignment.new(
+      variables,
+      expr_n,
+      open_t.start_pos,
+      expr_n.end_pos
+    )
+  end
+end
+
 class ProgramParser < Parser
   def initialize(*args)
     super(*args)
@@ -1400,6 +1426,7 @@ class ProgramParser < Parser
   ALLOWED_PARSERS = [
     FunctionDefinitionParser,
     SimpleAssignmentParser,
+    ArrayAssignmentParser,
     ForOfObjDeconstructLoopParser,
     SimpleForOfLoopParser,
     SchemaDefinitionParser,

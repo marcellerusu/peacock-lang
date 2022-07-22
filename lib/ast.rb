@@ -672,4 +672,19 @@ module AST
       [name]
     end
   end
+
+  class ArrayAssignment < Node
+    attr_reader :variables, :expr
+
+    def initialize(variables, expr, start_pos, end_pos)
+      @variables = variables
+      @expr = expr
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+
+    def captures
+      @variables
+    end
+  end
 end

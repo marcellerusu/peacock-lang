@@ -218,11 +218,17 @@ class Compiler
       eval_bind node
     when AST::OptionalChain
       eval_optional_chain node
+    when AST::ArrayAssignment
+      eval_array_assignment node
     else
       binding.pry
       puts "no case matched node_type: #{node.class}"
       assert_not_reached!
     end
+  end
+
+  def eval_array_assignment(node)
+    "[#{node.variables.join ", "}] = #{eval_expr node.expr}"
   end
 
   def eval_optional_chain(node)
