@@ -317,4 +317,8 @@ console.log a?.b')
     ast = parse('function ten = 10')
     expect(ast).to eq([{"klass"=>"AST::SingleLineDefWithoutArgs", "name"=>"ten", "return_value"=>{"klass"=>"AST::Int", "value"=>10, "start_pos"=>15, "end_pos"=>17}, "start_pos"=>0, "end_pos"=>17}])
   end
+  it "2022-07-21 20:26:07 -0400" do
+    ast = parse('[a] := [1]')
+    expect(ast).to eq([{"klass"=>"AST::ArrayAssignment", "variables"=>["a"], "expr"=>{"klass"=>"AST::ArrayLiteral", "value"=>[{"klass"=>"AST::Int", "value"=>1, "start_pos"=>8, "end_pos"=>9}], "start_pos"=>7, "end_pos"=>10}, "start_pos"=>0, "end_pos"=>10}])
+  end
 end
