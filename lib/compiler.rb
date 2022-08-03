@@ -222,17 +222,11 @@ class Compiler
       eval_array_assignment node
     when AST::SimpleForInLoop
       eval_simple_for_in_loop node
-    when AST::Assert
-      eval_assert node
     else
       binding.pry
       puts "no case matched node_type: #{node.class}"
       assert_not_reached!
     end
-  end
-
-  def eval_assert(node)
-    "console.assert(#{eval_expr node.expr}, `@ |line:#{node.line}, col:#{node.col}| \"#{node.string}\"`)"
   end
 
   def eval_simple_for_in_loop(node)

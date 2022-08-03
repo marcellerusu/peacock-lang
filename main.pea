@@ -1,4 +1,3 @@
 node := 1
-other := 3
 
-assert node === other
+console.assert node === 2, "Expected 1"
