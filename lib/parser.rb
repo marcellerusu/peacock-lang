@@ -619,6 +619,36 @@ class ReturnParser < Parser
   end
 end
 
+class ShortAnonFnWithNamedArgParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :"#\{" &&
+      _self.peek_token&.type == :"|"
+  end
+
+  def parse_args!
+    args = []
+
+    consume! :"|"
+    loop do
+      args.push consume!(:identifier).value
+      break if current_token.type == :"|"
+      consume! :comma
+    end
+    consume! :"|"
+
+    args
+  end
+
+  def parse!
+    open_anon_t = consume! :"#\{"
+    args = parse_args!
+    return_expr_n = consume_parser! ExprParser
+    return_expr_n ||= AST::Empty.new
+    end_t = consume! :"}"
+    AST::ShortFnWithArgs.new(args, return_expr_n, open_anon_t.start_pos, end_t.end_pos)
+  end
+end
+
 class ShortAnonFnParser < Parser
   def self.can_parse?(_self)
     _self.current_token&.type == :"#\{"
@@ -951,6 +981,7 @@ class ExprParser < Parser
     MultiLineArrowFnWithArgsParser,
     SingleLineArrowFnWithOneArgParser,
     IdentifierLookupParser,
+    ShortAnonFnWithNamedArgParser,
     ShortAnonFnParser,
     SingleLineArrowFnWithoutArgsParser,
     SingleLineArrowFnWithArgsParser,

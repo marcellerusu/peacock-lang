@@ -358,6 +358,17 @@ module AST
   class ConstructorWithArgs < MultilineDefWithArgs
   end
 
+  class ShortFnWithArgs < Node
+    attr_reader :return_expr, :args
+
+    def initialize(args, return_expr, start_pos, end_pos)
+      @args = args
+      @return_expr = return_expr
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
+
   class ShortFn < Node
     attr_reader :return_expr
 

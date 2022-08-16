@@ -162,6 +162,8 @@ class Compiler
       eval_multiline_def_without_args node
     when AST::MultilineDefWithArgs
       eval_multiline_def_with_args node
+    when AST::ShortFnWithArgs
+      eval_short_fn_with_args node
     when AST::ShortFn
       eval_short_fn node
     when AST::AnonIdLookup
@@ -700,12 +702,16 @@ class Compiler
     "(() => { return #{eval_expr node.return_expr}; })"
   end
 
+  def eval_short_fn_with_args(node)
+    "(#{node.args.join ", "} => #{eval_expr node.return_expr})"
+  end
+
   def eval_anon_id_lookup
     "_it"
   end
 
   def eval_short_fn(node)
-    "(#{eval_anon_id_lookup} => { return #{eval_expr node.return_expr}; })"
+    "(#{eval_anon_id_lookup} => #{eval_expr node.return_expr})"
   end
 
   def eval_return(node)
