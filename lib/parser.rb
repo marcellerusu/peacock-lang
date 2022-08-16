@@ -1095,10 +1095,39 @@ class SimpleSchemaAssignmentParser < Parser
   end
 end
 
+class ThisSchemaArgParser < Parser
+  def self.can_parse?(_self)
+    _self.rest_of_line.include?("::")
+  end
+
+  def parse!
+    schema = consume_parser! SchemaExprParser
+    bind_t = consume! :"::"
+    AST::ThisSchemaArg.new(schema, schema.start_pos, bind_t.end_pos)
+  end
+end
+
 class CaseFunctionParser < Parser
   def self.can_parse?(_self)
     _self.current_token.type == :case &&
       _self.peek_token.type == :function
+  end
+
+  def parse_case!
+    when_t = consume! :when
+    this_schema_arg = consume_parser! ThisSchemaArgParser if ThisSchemaArgParser.can_parse? self
+    has_open_paren = !!consume!(:open_paren) if current_token.type == :open_paren
+    arg_patterns = []
+    loop do
+      break if current_token.type == :close_paren
+      arg_patterns.push consume_parser! SchemaArgParser
+      break if current_token.type == :close_paren
+      break if !has_open_paren
+      consume! :comma
+    end
+    consume! :close_paren if has_open_paren
+    body_n = consume_parser! FunctionBodyParser, end_tokens: [:when]
+    AST::CaseFnPattern.new(this_schema_arg, arg_patterns, body_n, when_t.start_pos, body_n[-1].end_pos)
   end
 
   def parse!
@@ -1107,17 +1136,7 @@ class CaseFunctionParser < Parser
     name_t = consume! :identifier
     patterns = []
     while current_token.type != :end
-      when_t = consume! :when
-      consume! :open_paren
-      arg_patterns = []
-      loop do
-        arg_patterns.push consume_parser! SchemaArgParser
-        break if current_token.type == :close_paren
-        consume! :comma
-      end
-      consume! :close_paren
-      body_n = consume_parser! FunctionBodyParser, end_tokens: [:when]
-      patterns.push AST::CaseFnPattern.new(arg_patterns, body_n, when_t.start_pos, body_n[-1].end_pos)
+      patterns.push parse_case!
     end
     end_t = consume! :end
     AST::CaseFunctionDefinition.new(

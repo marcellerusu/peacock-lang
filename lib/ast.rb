@@ -89,6 +89,16 @@ module AST
     end
   end
 
+  class ThisSchemaArg < Node
+    attr_reader :schema
+
+    def initialize(schema, start_pos, end_pos)
+      @schema = schema
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
+
   class SimpleSchemaArg < Node
     attr_reader :schema_name, :name
 
@@ -183,9 +193,10 @@ module AST
   end
 
   class CaseFnPattern < Node
-    attr_reader :patterns, :body
+    attr_reader :this_pattern, :patterns, :body
 
-    def initialize(patterns, body, start_pos, end_pos)
+    def initialize(this_pattern, patterns, body, start_pos, end_pos)
+      @this_pattern = this_pattern
       @patterns = patterns
       @body = body
       @start_pos = start_pos

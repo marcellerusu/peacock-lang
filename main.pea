@@ -1,3 +1,11 @@
-node := 1
+case function to_a
+when Array::()
+  this
+when String::()
+  Array.from this
+when Object::()
+  Object.entries this
+end
 
-console.assert node === 2, "Expected 1"
+console.log { a: 1 }::to_a
+console.log "abc"::to_a

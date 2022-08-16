@@ -214,6 +214,8 @@ class Compiler
       eval_instance_property node
     when AST::CaseFunctionDefinition
       eval_case_function_definition node
+    when AST::ThisSchemaArg
+      eval_this_schema_arg node
     when AST::Bind
       eval_bind node
     when AST::OptionalChain
@@ -227,6 +229,10 @@ class Compiler
       puts "no case matched node_type: #{node.class}"
       assert_not_reached!
     end
+  end
+
+  def eval_this_schema_arg(node)
+    eval_expr node.schema
   end
 
   def eval_simple_for_in_loop(node)
@@ -268,7 +274,11 @@ class Compiler
       else
         f += " else if "
       end
-      f += "(s.check([#{schemas.join ", "}], args)) {\n"
+      f += "("
+      if s_case.this_pattern
+        f += "s.check(#{eval_expr s_case.this_pattern}, this) && "
+      end
+      f += "s.check([#{schemas.join ", "}], args)) {\n"
 
       args.each_with_index do |arg, i|
         f += "#{padding}    let #{arg} = args[#{i}];\n"
