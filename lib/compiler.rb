@@ -598,11 +598,16 @@ class Compiler
   end
 
   def eval_object_literal(node)
-    indent!
-    object_literal = "{\n"
-    object_literal += node.value.map { |node| eval_expr node }.join(",\n")
-    dedent!
-    object_literal += "\n#{padding}}"
+    whitespace = if node.value.size > 3
+        indent!
+        "\n"
+      else
+        " "
+      end
+    object_literal = "{#{whitespace}"
+    object_literal += node.value.map { |node| eval_expr node }.join(",#{whitespace}")
+    dedent! if whitespace != " "
+    object_literal += "#{whitespace}#{padding}}"
   end
 
   def sub_q(sym)
