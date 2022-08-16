@@ -70,17 +70,9 @@ end")
 console.log(add(10, 20))")
     expect(ast).to eq([{ "klass" => "AST::SingleLineDefWithArgs", "name" => "add", "args" => { "klass" => "AST::SimpleFnArgs", "value" => [{ "klass" => "AST::SimpleArg", "name" => "a", "start_pos" => 13, "end_pos" => 14 }, { "klass" => "AST::SimpleArg", "name" => "b", "start_pos" => 16, "end_pos" => 17 }], "start_pos" => 12, "end_pos" => 18 }, "return_value" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::IdLookup", "value" => "a", "start_pos" => 21, "end_pos" => 22 }, "type" => :+, "rhs" => { "klass" => "AST::IdLookup", "value" => "b", "start_pos" => 25, "end_pos" => 26 }, "start_pos" => 21, "end_pos" => 26 }, "start_pos" => 0, "end_pos" => 26 }, { "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::Int", "value" => 10, "start_pos" => 44, "end_pos" => 46 }, { "klass" => "AST::Int", "value" => 20, "start_pos" => 48, "end_pos" => 50 }], "expr" => { "klass" => "AST::IdLookup", "value" => "add", "start_pos" => 40, "end_pos" => 43 }, "start_pos" => 43, "end_pos" => 51 }], "expr" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "console", "start_pos" => 28, "end_pos" => 35 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "log", "start_pos" => 36, "end_pos" => 39 }, "start_pos" => 35, "end_pos" => 39 }, "start_pos" => 39, "end_pos" => 52 }])
   end
-  it "2022-07-09 00:20:59 -0400" do
-    ast = parse('double := #{ it * 2 }')
-    expect(ast).to eq([{ "klass" => "AST::SimpleAssignment", "name" => "double", "expr" => { "klass" => "AST::ShortFn", "return_expr" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::AnonIdLookup", "start_pos" => 13, "end_pos" => 15 }, "type" => :*, "rhs" => { "klass" => "AST::Int", "value" => 2, "start_pos" => 18, "end_pos" => 19 }, "start_pos" => 13, "end_pos" => 19 }, "start_pos" => 10, "end_pos" => 21 }, "start_pos" => 0, "end_pos" => 21 }])
-  end
   it "2022-07-09 00:21:12 -0400" do
     ast = parse("double := (x) => x * 2")
     expect(ast).to eq([{ "klass" => "AST::SimpleAssignment", "name" => "double", "expr" => { "klass" => "AST::SingleLineArrowFnWithArgs", "args" => { "klass" => "AST::SimpleFnArgs", "value" => [{ "klass" => "AST::SimpleArg", "name" => "x", "start_pos" => 11, "end_pos" => 12 }], "start_pos" => 10, "end_pos" => 13 }, "return_expr" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::IdLookup", "value" => "x", "start_pos" => 17, "end_pos" => 18 }, "type" => :*, "rhs" => { "klass" => "AST::Int", "value" => 2, "start_pos" => 21, "end_pos" => 22 }, "start_pos" => 17, "end_pos" => 22 }, "start_pos" => 10, "end_pos" => 22 }, "start_pos" => 0, "end_pos" => 22 }])
-  end
-  it "2022-07-09 00:21:24 -0400" do
-    ast = parse('schema User = { id: #{ it > 10 } }')
-    expect(ast).to eq([{ "klass" => "AST::SchemaDefinition", "name" => "User", "schema_expr" => [["id", { "klass" => "AST::ShortFn", "return_expr" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::AnonIdLookup", "start_pos" => 23, "end_pos" => 25 }, "type" => :>, "rhs" => { "klass" => "AST::Int", "value" => 10, "start_pos" => 28, "end_pos" => 30 }, "start_pos" => 23, "end_pos" => 30 }, "start_pos" => 20, "end_pos" => 32 }]], "start_pos" => 0, "end_pos" => 34 }])
   end
   it "2022-07-09 00:21:34 -0400" do
     ast = parse("function a() = 10")
@@ -276,21 +268,6 @@ end
 ")
     expect(ast).to eq([{ "klass" => "AST::Class", "name" => "Parser", "parent_class" => nil, "entries" => [{ "klass" => "AST::InstanceProperty", "name" => "body", "expr" => { "klass" => "AST::ArrayLiteral", "value" => [], "start_pos" => 23, "end_pos" => 25 }, "start_pos" => 15, "end_pos" => 25 }], "start_pos" => 0, "end_pos" => 29 }])
   end
-  it "2022-07-18 20:58:43 -0400" do
-    ast = parse('schema Gt1 = #{ it > 1 }
-
-case function factorial
-when (Gt1(n))
-  factorial(n - 1) + factorial(n - 2)
-when (1)
-  1
-when (0)
-  0
-end
-
-console.log factorial(20)')
-    expect(ast).to eq([{ "klass" => "AST::SchemaDefinition", "name" => "Gt1", "schema_expr" => { "klass" => "AST::ShortFn", "return_expr" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::AnonIdLookup", "start_pos" => 16, "end_pos" => 18 }, "type" => :>, "rhs" => { "klass" => "AST::Int", "value" => 1, "start_pos" => 21, "end_pos" => 22 }, "start_pos" => 16, "end_pos" => 22 }, "start_pos" => 13, "end_pos" => 24 }, "start_pos" => 0, "end_pos" => 24 }, { "klass" => "AST::CaseFunctionDefinition", "name" => "factorial", "patterns" => [{ "klass" => "AST::CaseFnPattern", "patterns" => [{ "klass" => "AST::SimpleSchemaArg", "schema_name" => "Gt1", "name" => "n", "start_pos" => 56, "end_pos" => 62 }], "body" => [{ "klass" => "AST::Return", "value" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::Op", "lhs" => { "klass" => "AST::IdLookup", "value" => "n", "start_pos" => 76, "end_pos" => 77 }, "type" => :-, "rhs" => { "klass" => "AST::Int", "value" => 1, "start_pos" => 80, "end_pos" => 81 }, "start_pos" => 76, "end_pos" => 81 }], "expr" => { "klass" => "AST::IdLookup", "value" => "factorial", "start_pos" => 66, "end_pos" => 75 }, "start_pos" => 75, "end_pos" => 82 }, "type" => :+, "rhs" => { "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::Op", "lhs" => { "klass" => "AST::IdLookup", "value" => "n", "start_pos" => 95, "end_pos" => 96 }, "type" => :-, "rhs" => { "klass" => "AST::Int", "value" => 2, "start_pos" => 99, "end_pos" => 100 }, "start_pos" => 95, "end_pos" => 100 }], "expr" => { "klass" => "AST::IdLookup", "value" => "factorial", "start_pos" => 85, "end_pos" => 94 }, "start_pos" => 94, "end_pos" => 101 }, "start_pos" => 75, "end_pos" => 101 }, "start_pos" => 75, "end_pos" => 101 }], "start_pos" => 50, "end_pos" => 101 }, { "klass" => "AST::CaseFnPattern", "patterns" => [{ "klass" => "AST::Int", "value" => 1, "start_pos" => 108, "end_pos" => 109 }], "body" => [{ "klass" => "AST::Return", "value" => { "klass" => "AST::Int", "value" => 1, "start_pos" => 113, "end_pos" => 114 }, "start_pos" => 113, "end_pos" => 114 }], "start_pos" => 102, "end_pos" => 114 }, { "klass" => "AST::CaseFnPattern", "patterns" => [{ "klass" => "AST::Int", "value" => 0, "start_pos" => 121, "end_pos" => 122 }], "body" => [{ "klass" => "AST::Return", "value" => { "klass" => "AST::Int", "value" => 0, "start_pos" => 126, "end_pos" => 127 }, "start_pos" => 126, "end_pos" => 127 }], "start_pos" => 115, "end_pos" => 127 }], "start_pos" => 26, "end_pos" => 131 }, { "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::Int", "value" => 20, "start_pos" => 155, "end_pos" => 157 }], "expr" => { "klass" => "AST::IdLookup", "value" => "factorial", "start_pos" => 145, "end_pos" => 154 }, "start_pos" => 154, "end_pos" => 158 }], "expr" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "console", "start_pos" => 133, "end_pos" => 140 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "log", "start_pos" => 141, "end_pos" => 144 }, "start_pos" => 140, "end_pos" => 144 }, "start_pos" => 144, "end_pos" => 158 }])
-  end
   it "2022-07-18 21:30:28 -0400" do
     ast = parse('function length
   this.length
@@ -331,5 +308,29 @@ for key in obj
   console.log key
 end')
     expect(ast).to eq([{ "klass" => "AST::SimpleAssignment", "name" => "obj", "expr" => { "klass" => "AST::ObjectLiteral", "value" => [{ "klass" => "AST::SimpleObjectEntry", "key_name" => "a", "value" => { "klass" => "AST::Int", "value" => 10, "start_pos" => 14, "end_pos" => 16 }, "start_pos" => 11, "end_pos" => 16 }, { "klass" => "AST::SimpleObjectEntry", "key_name" => "b", "value" => { "klass" => "AST::SimpleString", "value" => "str", "start_pos" => 23, "end_pos" => 28 }, "start_pos" => 20, "end_pos" => 28 }], "start_pos" => 7, "end_pos" => 30 }, "start_pos" => 0, "end_pos" => 30 }, { "klass" => "AST::SimpleForInLoop", "variable" => "key", "object_expr" => { "klass" => "AST::IdLookup", "value" => "obj", "start_pos" => 43, "end_pos" => 46 }, "body" => [{ "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::IdLookup", "value" => "key", "start_pos" => 61, "end_pos" => 64 }], "expr" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "console", "start_pos" => 49, "end_pos" => 56 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "log", "start_pos" => 57, "end_pos" => 60 }, "start_pos" => 56, "end_pos" => 60 }, "start_pos" => 60, "end_pos" => 64 }], "start_pos" => 32, "end_pos" => 68 }])
+  end
+  it "2022-08-16 00:07:14 -0400" do
+    ast = parse('double := #{ % * 2 }')
+    expect(ast).to eq([{ "klass" => "AST::SimpleAssignment", "name" => "double", "expr" => { "klass" => "AST::ShortFn", "return_expr" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::AnonIdLookup", "start_pos" => 13, "end_pos" => 14 }, "type" => :*, "rhs" => { "klass" => "AST::Int", "value" => 2, "start_pos" => 17, "end_pos" => 18 }, "start_pos" => 13, "end_pos" => 18 }, "start_pos" => 10, "end_pos" => 20 }, "start_pos" => 0, "end_pos" => 20 }])
+  end
+  it "2022-08-16 00:07:36 -0400" do
+    ast = parse('schema User = { id: #{ % > 10 } }
+')
+    expect(ast).to eq([{ "klass" => "AST::SchemaDefinition", "name" => "User", "schema_expr" => [["id", { "klass" => "AST::ShortFn", "return_expr" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::AnonIdLookup", "start_pos" => 23, "end_pos" => 24 }, "type" => :>, "rhs" => { "klass" => "AST::Int", "value" => 10, "start_pos" => 27, "end_pos" => 29 }, "start_pos" => 23, "end_pos" => 29 }, "start_pos" => 20, "end_pos" => 31 }]], "start_pos" => 0, "end_pos" => 33 }])
+  end
+  it "2022-08-16 00:10:49 -0400" do
+    ast = parse('schema Gt1 = #{ % > 1 }
+
+case function factorial
+when (Gt1(n))
+  factorial(n - 1) + factorial(n - 2)
+when (1)
+  1
+when (0)
+  0
+end
+
+console.log factorial(20)')
+    expect(ast).to eq([{ "klass" => "AST::SchemaDefinition", "name" => "Gt1", "schema_expr" => { "klass" => "AST::ShortFn", "return_expr" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::AnonIdLookup", "start_pos" => 16, "end_pos" => 17 }, "type" => :>, "rhs" => { "klass" => "AST::Int", "value" => 1, "start_pos" => 20, "end_pos" => 21 }, "start_pos" => 16, "end_pos" => 21 }, "start_pos" => 13, "end_pos" => 23 }, "start_pos" => 0, "end_pos" => 23 }, { "klass" => "AST::CaseFunctionDefinition", "name" => "factorial", "patterns" => [{ "klass" => "AST::CaseFnPattern", "patterns" => [{ "klass" => "AST::SimpleSchemaArg", "schema_name" => "Gt1", "name" => "n", "start_pos" => 55, "end_pos" => 61 }], "body" => [{ "klass" => "AST::Return", "value" => { "klass" => "AST::Op", "lhs" => { "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::Op", "lhs" => { "klass" => "AST::IdLookup", "value" => "n", "start_pos" => 75, "end_pos" => 76 }, "type" => :-, "rhs" => { "klass" => "AST::Int", "value" => 1, "start_pos" => 79, "end_pos" => 80 }, "start_pos" => 75, "end_pos" => 80 }], "expr" => { "klass" => "AST::IdLookup", "value" => "factorial", "start_pos" => 65, "end_pos" => 74 }, "start_pos" => 74, "end_pos" => 81 }, "type" => :+, "rhs" => { "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::Op", "lhs" => { "klass" => "AST::IdLookup", "value" => "n", "start_pos" => 94, "end_pos" => 95 }, "type" => :-, "rhs" => { "klass" => "AST::Int", "value" => 2, "start_pos" => 98, "end_pos" => 99 }, "start_pos" => 94, "end_pos" => 99 }], "expr" => { "klass" => "AST::IdLookup", "value" => "factorial", "start_pos" => 84, "end_pos" => 93 }, "start_pos" => 93, "end_pos" => 100 }, "start_pos" => 74, "end_pos" => 100 }, "start_pos" => 74, "end_pos" => 100 }], "start_pos" => 49, "end_pos" => 100 }, { "klass" => "AST::CaseFnPattern", "patterns" => [{ "klass" => "AST::Int", "value" => 1, "start_pos" => 107, "end_pos" => 108 }], "body" => [{ "klass" => "AST::Return", "value" => { "klass" => "AST::Int", "value" => 1, "start_pos" => 112, "end_pos" => 113 }, "start_pos" => 112, "end_pos" => 113 }], "start_pos" => 101, "end_pos" => 113 }, { "klass" => "AST::CaseFnPattern", "patterns" => [{ "klass" => "AST::Int", "value" => 0, "start_pos" => 120, "end_pos" => 121 }], "body" => [{ "klass" => "AST::Return", "value" => { "klass" => "AST::Int", "value" => 0, "start_pos" => 125, "end_pos" => 126 }, "start_pos" => 125, "end_pos" => 126 }], "start_pos" => 114, "end_pos" => 126 }], "start_pos" => 25, "end_pos" => 130 }, { "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::FnCall", "args" => [{ "klass" => "AST::Int", "value" => 20, "start_pos" => 154, "end_pos" => 156 }], "expr" => { "klass" => "AST::IdLookup", "value" => "factorial", "start_pos" => 144, "end_pos" => 153 }, "start_pos" => 153, "end_pos" => 157 }], "expr" => { "klass" => "AST::Dot", "lhs" => { "klass" => "AST::IdLookup", "value" => "console", "start_pos" => 132, "end_pos" => 139 }, "type" => ".", "rhs" => { "klass" => "AST::IdLookup", "value" => "log", "start_pos" => 140, "end_pos" => 143 }, "start_pos" => 139, "end_pos" => 143 }, "start_pos" => 143, "end_pos" => 157 }])
   end
 end

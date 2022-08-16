@@ -615,11 +615,11 @@ end
 
 class AnonIdLookupParser < Parser
   def self.can_parse?(_self)
-    _self.current_token&.type == :it
+    _self.current_token&.type == :%
   end
 
   def parse!
-    id_t = consume! :it
+    id_t = consume! :%
     AST::AnonIdLookup.new(id_t.start_pos, id_t.end_pos)
   end
 end
