@@ -371,4 +371,17 @@ end
 ')
     expect(ast).to eq([{"klass"=>"AST::MultilineDefWithArgs", "name"=>"times", "args"=>{"klass"=>"AST::SimpleFnArgs", "value"=>[{"klass"=>"AST::SimpleArg", "name"=>"callback", "start_pos"=>15, "end_pos"=>23}], "start_pos"=>14, "end_pos"=>24}, "body"=>[{"klass"=>"AST::SimpleForOfLoop", "iter_name"=>"item", "arr_expr"=>{"klass"=>"AST::This", "value"=>nil, "start_pos"=>39, "end_pos"=>43}, "body"=>[{"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::IdLookup", "value"=>"item", "start_pos"=>57, "end_pos"=>61}], "expr"=>{"klass"=>"AST::IdLookup", "value"=>"callback", "start_pos"=>48, "end_pos"=>56}, "start_pos"=>56, "end_pos"=>61}], "start_pos"=>27, "end_pos"=>67}], "start_pos"=>0, "end_pos"=>71}, {"klass"=>"AST::Bind", "lhs"=>{"klass"=>"AST::Range", "lhs"=>{"klass"=>"AST::Int", "value"=>0, "start_pos"=>73, "end_pos"=>74}, "rhs"=>{"klass"=>"AST::Int", "value"=>100, "start_pos"=>76, "end_pos"=>79}, "start_pos"=>73, "end_pos"=>79}, "function"=>{"klass"=>"AST::IdLookup", "value"=>"times", "start_pos"=>81, "end_pos"=>86}, "args"=>[{"klass"=>"AST::ShortFn", "return_expr"=>{"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::AnonIdLookup", "start_pos"=>104, "end_pos"=>105}], "expr"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"console", "start_pos"=>92, "end_pos"=>99}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"log", "start_pos"=>100, "end_pos"=>103}, "start_pos"=>99, "end_pos"=>103}, "start_pos"=>103, "end_pos"=>105}, "start_pos"=>87, "end_pos"=>107}]}])
   end
+  it "2022-08-16 19:32:26 -0400" do
+    ast = parse('function times(callback)
+  for item of this
+    callback item
+  end
+end
+
+0..100::times #{
+  console.log %
+}
+')
+    expect(ast).to eq([{"klass"=>"AST::MultilineDefWithArgs", "name"=>"times", "args"=>{"klass"=>"AST::SimpleFnArgs", "value"=>[{"klass"=>"AST::SimpleArg", "name"=>"callback", "start_pos"=>15, "end_pos"=>23}], "start_pos"=>14, "end_pos"=>24}, "body"=>[{"klass"=>"AST::SimpleForOfLoop", "iter_name"=>"item", "arr_expr"=>{"klass"=>"AST::This", "value"=>nil, "start_pos"=>39, "end_pos"=>43}, "body"=>[{"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::IdLookup", "value"=>"item", "start_pos"=>57, "end_pos"=>61}], "expr"=>{"klass"=>"AST::IdLookup", "value"=>"callback", "start_pos"=>48, "end_pos"=>56}, "start_pos"=>56, "end_pos"=>61}], "start_pos"=>27, "end_pos"=>67}], "start_pos"=>0, "end_pos"=>71}, {"klass"=>"AST::Bind", "lhs"=>{"klass"=>"AST::Range", "lhs"=>{"klass"=>"AST::Int", "value"=>0, "start_pos"=>73, "end_pos"=>74}, "rhs"=>{"klass"=>"AST::Int", "value"=>100, "start_pos"=>76, "end_pos"=>79}, "start_pos"=>73, "end_pos"=>79}, "function"=>{"klass"=>"AST::IdLookup", "value"=>"times", "start_pos"=>81, "end_pos"=>86}, "args"=>[{"klass"=>"AST::ShortFn", "return_expr"=>{"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::AnonIdLookup", "start_pos"=>104, "end_pos"=>105}], "expr"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"console", "start_pos"=>92, "end_pos"=>99}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"log", "start_pos"=>100, "end_pos"=>103}, "start_pos"=>99, "end_pos"=>103}, "start_pos"=>103, "end_pos"=>105}, "start_pos"=>87, "end_pos"=>107}]}])
+  end
 end

@@ -4,6 +4,6 @@ function times(callback)
   end
 end
 
-0..100::times(#{
+0..100::times #{
   console.log %
-})
+}

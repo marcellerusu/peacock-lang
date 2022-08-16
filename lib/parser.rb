@@ -49,6 +49,12 @@ class Parser
     rest_of_program[0..rest_of_program.index("\n")]
   end
 
+  def current_line
+    @program_string[0..current_token&.start_pos]
+      .split("\n")
+      .count
+  end
+
   def new_line?
     return true if !prev_token || !current_token
     @program_string[prev_token.start_pos..current_token.start_pos].include? "\n"
@@ -548,8 +554,22 @@ class BindParser < Parser
     _self.current_token&.type == :"::"
   end
 
+  def parse_args_without_parens!
+    args = []
+
+    start_line = current_line
+    loop do
+      break if current_line != start_line
+      args.push consume_parser! ExprParser
+    end
+
+    args
+  end
+
   def parse_args!
-    return [] if current_token&.type != :open_paren
+    return [] if new_line?
+    return parse_args_without_parens! if current_token.type != :open_paren
+
     consume! :open_paren
     args = []
     loop do
