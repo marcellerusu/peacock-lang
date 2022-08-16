@@ -447,7 +447,7 @@ class Compiler
   end
 
   def eval_simple_schema_assignment(node)
-    "#{node.name} = s.verify(#{node.schema_name}, #{eval_expr node.expr})"
+    "#{node.name} = s.verify(#{node.schema_name}, #{eval_expr node.expr}, '#{node.schema_name}')"
   end
 
   def unpack_object(object_str)
