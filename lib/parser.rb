@@ -281,7 +281,7 @@ class MultilineDefWithArgsParser < Parser
   end
 end
 
-OPERATORS = [:+, :-, :*, :/, :"&&", :"||", :"===", :"!==", :>, :<, :">=", :"<=", :".."]
+OPERATORS = [:+, :-, :*, :/, :"&&", :"||", :"===", :"!==", :>, :<, :">=", :"<="]
 
 class OperatorParser < Parser
   def self.can_parse?(_self, lhs_n)
@@ -888,6 +888,34 @@ class SchemaCaptureParser < Parser
   end
 end
 
+class RangeOperandParser < Parser
+  PARSERS = [
+    IdentifierLookupParser,
+    IntParser,
+    FloatParser,
+  ]
+
+  def self.can_parse?(_self)
+    PARSERS.any? { |klass| klass.can_parse _self }
+  end
+
+  def parse!
+    consume_first_valid_parser! PARSERS
+  end
+end
+
+class RangeParser < Parser
+  def self.can_parse?(_self, lhs_n)
+    _self.current_token&.type == :".."
+  end
+
+  def parse!(lhs_n)
+    consume! :".."
+    rhs_n = consume_parser! RangeOperandParser
+    AST::Range.new(lhs_n, rhs_n, lhs_n.start_pos, rhs_n.end_pos)
+  end
+end
+
 class ExprParser < Parser
   # order matters
   PRIMARY_PARSERS = [
@@ -912,6 +940,7 @@ class ExprParser < Parser
   ]
 
   SECONDARY_PARSERS = [
+    RangeParser,
     OperatorParser,
     DotAssignmentParser,
     DotParser,
@@ -1526,7 +1555,7 @@ class FunctionBodyParser < ProgramParser
         last_n.start_pos,
         last_n.end_pos
       )
-    elsif last_n.is_not_a? AST::Return
+    elsif last_n.is_not_one_of? AST::Return, AST::SimpleForOfLoop, AST::SimpleForInLoop, AST::ForOfObjDeconstructLoop
       @body[-1] = AST::Return.new(last_n, last_n.start_pos, last_n.end_pos)
     end
 

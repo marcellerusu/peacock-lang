@@ -1,11 +1,9 @@
-case function to_a
-when Array::()
-  this
-when String::()
-  Array.from this
-when Object::()
-  Object.entries this
+function times(callback)
+  for item of this
+    callback item
+  end
 end
 
-console.log { a: 1, b: 10 }::to_a
-console.log "abc"::to_a
+0..100::times(#{
+  console.log %
+})

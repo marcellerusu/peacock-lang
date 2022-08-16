@@ -594,6 +594,17 @@ module AST
     end
   end
 
+  class Range < Node
+    attr_reader :lhs, :rhs
+
+    def initialize(lhs, rhs, start_pos, end_pos)
+      @lhs = lhs
+      @rhs = rhs
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
+
   class Dot < Op
   end
 

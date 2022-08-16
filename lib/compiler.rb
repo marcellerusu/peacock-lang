@@ -182,6 +182,8 @@ class Compiler
       eval_dot_assignment node
     when AST::Dot
       eval_dot node
+    when AST::Range
+      eval_range node
     when AST::Op
       eval_operator node
     when AST::ArgsSchema
@@ -506,13 +508,13 @@ class Compiler
     properties = node.iter_properties.join ", "
     for_loop = "for (let { #{properties} } of #{eval_expr node.arr_expr}) {\n"
     for_loop += Compiler.new(node.body, @indent + 2).eval + "\n"
-    for_loop += "}"
+    for_loop += "#{padding}}"
   end
 
   def eval_simple_for_of_loop(node)
     for_loop = "for (let #{node.iter_name} of #{eval_expr node.arr_expr}) {\n"
     for_loop += Compiler.new(node.body, @indent + 2).eval + "\n"
-    for_loop += "}"
+    for_loop += "#{padding}}"
   end
 
   def eval_args_schema(node)
@@ -535,8 +537,6 @@ class Compiler
   end
 
   def eval_operator(node)
-    return eval_range node if node.type == :".."
-
     "#{eval_expr(node.lhs)} #{node.type} #{eval_expr(node.rhs)}"
   end
 
