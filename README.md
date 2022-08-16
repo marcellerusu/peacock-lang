@@ -182,4 +182,10 @@ a = 10;
 safe_divide(20, a);
 ```
 
+Another optimization is we can keep track of mutations at runtime & tack a "computed" patterns array
+
+variable[Symbol.computedPatterns] = [NotZero]
+
+which will let us memoize repeated pattern matches that we can't detect at statically
+
 These are the ways that Peacock can use high level features like pattern matching quite a lot with reasonable performance.
