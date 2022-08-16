@@ -1,78 +1,185 @@
-Peacock is a compile-to-js language that aims at embracing JavaScript semantics (data structures, web standards NOT syntax) while adding support for "schemas"
+# Intro
 
-The syntax is heavily inspired by ruby in efforts to bring some of the beauty of ruby but without drastically changing the language of JavaScript
+Peacock is an exploration of how far we can take pattern matching to tame the complexity in JavaScript
 
-A primary goal is to use plain JavaScript data types & emit idiomatic JavaScript.
+The language does not implement new data structures for the most part since we aim to be highly compatible with the javascript ecosystem & specifically web standards.
 
-I went on quite the journey to make this language & likely have a long time to go.
+## Syntax Primer
 
-Initially this language was meant to be a impure Elm sorta like Derw, but after exploring more ruby & rewriting the language in ruby I fell in love.
-
-On top of that I've been a big fan of clojure/spec for a few years & so I began trying to combine all these things together.
-
-The beauty of ruby, the power of clojure/spec with a syntax that is familiar to js/ts developers.
-
-A number of features have been added & removed over time.
-
-But the primary idea is the concept of a schema
-
-for example
+### Hello World
 
 ```
-schema User = { id, email }
+console.log "Hello world"
 ```
 
-In this example, a schema looks a lot like a type signature and can function like one, but its much more. Note that no fields are specified.
+### Array methods
 
-It compiles to the following code
-
-Here's how we use it.
+- As you would expect in JavaScript
 
 ```
-User(user) := await fetch("/api/me").then(r => r.json())
+# this will print [3]
+console.log [1, 2, 3]
+  .filter(num => num > 2)
+  .map(num => num * 10)
 ```
 
-This is basically making an assertion that user conforms to the schema `User`.
+### Functions
 
-This will be transformed to the the following JavaScript
-
-```javascript
-let User = { id: s("id"), email: s("email") };
-
-let user = s.verify(User, await fetch("/api/me").then((r) => r.json()));
-```
-
-`s` is a runtime schema specification library. Similar to clojure/spec in some ways.
-
-Other times the runtime library is not necessary. For example, we'll use the built-in JavaScript type constructors as schemas here
+#### 1 line functions
 
 ```
-Number(num) := 10
+function add(a, b) = a + b
 ```
 
-->
+#### Multline
 
-```javascript
-let num = 10;
-```
-
-This is a trivial case, but we aim to utilize static analysis to remove the majority of runtime checks and when possible generate code that doesn't depend on `s`.
-
-What we end up with is a schema definition that can double as a type definition & a runtime validation. This is very powerful & we can do a lot more.
-
-see here.
+- end with `end`
+- last expression is returned
 
 ```
-import differenceInCalendarDays from "date-fns/differenceInCalendarDays"
-import sub from "date-fns/sub"
+function safe_divide(a, b)
+  panic! "division by zero" if b === 0
+  a / b
+end
+```
 
+#### Bind operator
 
-function verifyWithinLastWeek(Date(date))
-  lastWeek := sub(new Date(), { weeks: 1 })
-  return differenceInCalendarDays(date, lastWeek) > 0
+see javascript's [bind operator proposal](https://github.com/tc39/proposal-bind-operator)
+
+- this is an elegant way to write generic functions that chain without modifying core data structures
+
+```
+function to_a = Array.from(this)
+
+console.log new Set([1, 2, 3])::to_a
+```
+
+### Schemas
+
+- Schemas are shapes or predicates that can be used to verify data
+
+```
+schema User = { id }
+```
+
+We can use it where we pattern match.
+
+#### Match Assignment
+
+```
+User(marcelle) := { id: 10 }
+```
+
+#### Predicates
+
+```
+schema EarlyBird = { id: #{ % <= 1000 } }
+
+case user
+when EarlyBird
+  console.log "Invite your friends!"
+end
+```
+
+#### Functions
+
+Let's see how we can handle the division by 0 more elegantly without needing to liter the function body with panic!
+
+```
+schema NotZero = #{ % !== 0 }
+```
+
+in the example above we can rewrite it to be
+
+```
+function safe_divide(a, NotZero(b)) = a / b
+```
+
+#### Case Functions
+
+```
+schema Loading = { loading: true }
+schema Error = { error! } # { error: #{ % != null }}
+schema Loaded = { data! }
+
+case function render
+when (Loading)
+  console.log "loading"
+when (Error({ error: { msg } }))
+  console.error "Error: #{msg}"
+when (Loaded({ data }))
+  console.log "Loaded", data
 end
 
-schema NewUser = User & { createdAt: verifyWithinLastWeek }
+render { loading: true }
+render { error: { msg: "Api failed" } }
+render { data: { id: 10 } }
 ```
 
-NewUser only is valid for users created within the last week.
+#### Case Functions & Bind Patterns
+
+- if you saw the bind example before was relatively limited, lets fix that
+
+```
+case function to_a
+when Array::()
+  this
+when String::() | Set::()
+  Array.from this
+when Object::()
+  Object.entries this
+end
+
+console.log [1, 2, 3]::to_a
+console.log new Set([1, 2, 3])::to_a
+console.log "abc"::to_a
+console.log { a: 10, b: 20 }::to_a
+
+```
+
+## Optimizations
+
+Schemas carry multiple meanings when implemented.
+
+First and for most they are named patterns that can be used in any case expression or function definition.
+
+This usually is implemented as a runtime feature but it can also be optimized to be partially implemented at compile time as a type.
+
+lets take an example.
+
+```
+NotZero(a) := 10
+
+# safe_divide is defined above.
+
+safe_divide(20, a)
+```
+
+Without any optimizations the following code would be generated
+
+```js
+let a;
+
+a = s.verify(NotZero, 10);
+
+s.verify(NotZero, a);
+safe_divide(20, a);
+```
+
+There are 2 issues.
+
+- We are verifying that `a` is `NotZero` twice without `a` changing.
+- we know that 10 is not 0, so we could evaluate the predicate as compile time.
+
+With optimizations the output is
+
+```js
+let a;
+
+a = 10;
+
+safe_divide(20, a);
+```
+
+These are the ways that Peacock can use high level features like pattern matching quite a lot with reasonable performance.
