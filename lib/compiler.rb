@@ -50,8 +50,12 @@ class Compiler
     if ARGV[1] == "-s"
       ""
     else
-      schema_lib
+      schema_lib + range
     end
+  end
+
+  def range
+    File.read(File.dirname(__FILE__) + "/pea_std_lib/range.js")
   end
 
   def schema_lib
@@ -526,7 +530,13 @@ class Compiler
     "#{eval_expr(node.lhs)}.#{eval_expr(node.rhs)}"
   end
 
+  def eval_range(node)
+    "new Range(#{eval_expr node.lhs}, #{eval_expr node.rhs})"
+  end
+
   def eval_operator(node)
+    return eval_range node if node.type == :".."
+
     "#{eval_expr(node.lhs)} #{node.type} #{eval_expr(node.rhs)}"
   end
 

@@ -1,11 +1,7 @@
-case function to_a
-when Array::()
-  this
-when String::()
-  Array.from this
-when Object::()
-  Object.entries this
-end
+function to_a = Array.from this
 
-console.log { a: 1 }::to_a
-console.log "abc"::to_a
+a := 1..5
+
+console.log a
+console.log a.filter(x => x > 3)::to_a
+console.log a::to_a

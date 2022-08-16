@@ -281,7 +281,7 @@ class MultilineDefWithArgsParser < Parser
   end
 end
 
-OPERATORS = [:+, :-, :*, :/, :"&&", :"||", :"===", :"!==", :>, :<, :">=", :"<="]
+OPERATORS = [:+, :-, :*, :/, :"&&", :"||", :"===", :"!==", :>, :<, :">=", :"<=", :".."]
 
 class OperatorParser < Parser
   def self.can_parse?(_self, lhs_n)
