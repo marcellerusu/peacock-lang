@@ -6,6 +6,7 @@ class Compiler
   def initialize(ast, indent = 0, fn_arg_names = [], bundle_std_lib: false)
     @ast = ast
     @indent = indent
+    @fn_arg_names = fn_arg_names
     @bundle_std_lib = bundle_std_lib
   end
 
@@ -270,6 +271,9 @@ class Compiler
       elsif s_case.patterns.all? { |arg| arg.is_a? AST::Int }
         schemas = s_case.patterns.map(&:value)
         args = []
+      elsif s_case.patterns.all? { |arg| arg.is_a? AST::SimpleArg }
+        schemas = s_case.patterns.map { |p| "s('#{p.name}')" }
+        args = s_case.patterns.map(&:name)
       else
         assert_not_reached!
       end

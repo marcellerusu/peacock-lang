@@ -143,21 +143,6 @@ class SchemaIntParser < Parser
   end
 end
 
-class SchemaArgParser < Parser
-  PARSERS = [
-    SimpleSchemaArgParser,
-    SchemaIntParser,
-  ]
-
-  def self.can_parse?(_self)
-    PARSERS.any? { |klass| klass.can_parse? _self }
-  end
-
-  def parse!
-    consume_first_valid_parser! PARSERS
-  end
-end
-
 class SimpleArgParser < Parser
   def self.can_parse?(_self)
     _self.current_token&.type == :identifier &&
@@ -167,6 +152,22 @@ class SimpleArgParser < Parser
   def parse!
     name_t = consume! :identifier
     AST::SimpleArg.new(name_t.value, name_t.start_pos, name_t.end_pos)
+  end
+end
+
+class SchemaArgParser < Parser
+  PARSERS = [
+    SimpleSchemaArgParser,
+    SchemaIntParser,
+    SimpleArgParser,
+  ]
+
+  def self.can_parse?(_self)
+    PARSERS.any? { |klass| klass.can_parse? _self }
+  end
+
+  def parse!
+    consume_first_valid_parser! PARSERS
   end
 end
 
