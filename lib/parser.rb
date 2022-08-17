@@ -563,6 +563,9 @@ class BindParser < Parser
       break if current_token.nil?
       break if current_line != start_line
       args.push consume_parser! ExprParser
+      break if current_token.nil?
+      break if current_line != start_line
+      consume! :comma
     end
 
     args
