@@ -222,6 +222,8 @@ module Lexer
         tokens.push Token.new(scanner.matched, :&)
       when scanner.scan(/%/)
         tokens.push Token.new(scanner.matched, :%)
+      when scanner.scan(/mod/)
+        tokens.push Token.new(scanner.matched, :mod)
       when scanner.scan(/-/)
         tokens.push Token.new(scanner.matched, :-)
       when scanner.scan(/await\b/)

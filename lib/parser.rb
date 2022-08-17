@@ -288,7 +288,7 @@ class MultilineDefWithArgsParser < Parser
   end
 end
 
-OPERATORS = [:+, :-, :*, :/, :"&&", :"||", :"===", :"!==", :>, :<, :">=", :"<="]
+OPERATORS = [:+, :-, :*, :/, :"&&", :"||", :"===", :"!==", :>, :<, :">=", :"<=", :mod]
 
 class OperatorParser < Parser
   def self.can_parse?(_self, lhs_n)
@@ -912,7 +912,9 @@ end
 
 class DynamicLookupParser < Parser
   def self.can_parse?(_self, lhs)
-    _self.current_token&.type == :"["
+    # a[1] is valid, but a [1]
+    _self.current_token&.type == :"[" &&
+      _self.current_token.start_pos == _self.prev_token.end_pos
   end
 
   def parse!(lhs)

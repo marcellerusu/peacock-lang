@@ -259,7 +259,7 @@ class Compiler
     if args.size > 0
       args = ", #{args}"
     end
-    "#{padding}#{eval_expr node.function}.call(#{eval_expr node.lhs}#{args})"
+    "#{eval_expr node.function}.call(#{eval_expr node.lhs}#{args})"
   end
 
   def eval_case_function_definition(node)
@@ -539,7 +539,10 @@ class Compiler
   end
 
   def eval_operator(node)
-    "#{eval_expr(node.lhs)} #{node.type} #{eval_expr(node.rhs)}"
+    op = node.type
+    op = "%" if node.type == :mod
+
+    "#{eval_expr(node.lhs)} #{op} #{eval_expr(node.rhs)}"
   end
 
   def eval_schema_capture(node)

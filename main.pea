@@ -1,10 +1,1 @@
-case function fib
-when (0)
-  0
-when (1)
-  1
-when (n)
-  fib(n - 1) + fib(n - 2)
-end
-
-console.log fib(14)
+console.log [1]::zip([2])
