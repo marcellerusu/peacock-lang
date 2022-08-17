@@ -560,6 +560,7 @@ class BindParser < Parser
 
     start_line = current_line
     loop do
+      break if current_token.nil?
       break if current_line != start_line
       args.push consume_parser! ExprParser
     end
@@ -783,9 +784,9 @@ end
 
 class SimpleElementParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :< &&
-      _self.peek_token.type == :identifier &&
-      _self.peek_token_twice.type == :>
+    _self.current_token&.type == :< &&
+      _self.peek_token&.type == :identifier &&
+      _self.peek_token_twice&.type == :>
   end
 
   def parse!
@@ -811,7 +812,7 @@ end
 
 class EscapedElementExprParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :"{"
+    _self.current_token&.type == :"{"
   end
 
   def parse!
@@ -861,7 +862,7 @@ end
 
 class ThisParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :this
+    _self.current_token&.type == :this
   end
 
   def parse!
@@ -887,7 +888,7 @@ end
 
 class NewParser < Parser
   def self.can_parse?(_self)
-    _self.current_token.type == :new
+    _self.current_token&.type == :new
   end
 
   def parse!

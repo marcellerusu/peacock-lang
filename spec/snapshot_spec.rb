@@ -415,4 +415,8 @@ console.log fib(14)
     ast = parse('console.log 31 mod 10')
     expect(ast).to eq([{"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::Op", "lhs"=>{"klass"=>"AST::Int", "value"=>31, "start_pos"=>12, "end_pos"=>14}, "type"=>:mod, "rhs"=>{"klass"=>"AST::Int", "value"=>10, "start_pos"=>19, "end_pos"=>21}, "start_pos"=>12, "end_pos"=>21}], "expr"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"console", "start_pos"=>0, "end_pos"=>7}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"log", "start_pos"=>8, "end_pos"=>11}, "start_pos"=>7, "end_pos"=>11}, "start_pos"=>11, "end_pos"=>21}])
   end
+  it "2022-08-17 18:01:27 -0400" do
+    ast = parse('console.log [1]::zip [2]')
+    expect(ast).to eq([{"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::Bind", "lhs"=>{"klass"=>"AST::ArrayLiteral", "value"=>[{"klass"=>"AST::Int", "value"=>1, "start_pos"=>13, "end_pos"=>14}], "start_pos"=>12, "end_pos"=>15}, "function"=>{"klass"=>"AST::IdLookup", "value"=>"zip", "start_pos"=>17, "end_pos"=>20}, "args"=>[{"klass"=>"AST::ArrayLiteral", "value"=>[{"klass"=>"AST::Int", "value"=>2, "start_pos"=>22, "end_pos"=>23}], "start_pos"=>21, "end_pos"=>24}]}], "expr"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"console", "start_pos"=>0, "end_pos"=>7}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"log", "start_pos"=>8, "end_pos"=>11}, "start_pos"=>7, "end_pos"=>11}, "start_pos"=>11, "end_pos"=>nil}])
+  end
 end
