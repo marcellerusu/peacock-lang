@@ -1,0 +1,5 @@
+function each(callback)
+  for item of this
+    callback item
+  end
+end

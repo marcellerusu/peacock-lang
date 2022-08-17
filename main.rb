@@ -25,11 +25,11 @@ when "-n"
 when "-c"
   ast = parser.parse!
   ast = TypeChecker.new(ast, content).step!
-  js = Compiler.new(ast).eval
+  js = Compiler.new(ast, bundle_std_lib: true).eval
   puts js
 when "-h"
   ast = parser.parse!
-  js = Compiler.new(ast).eval
+  js = Compiler.new(ast, bundle_std_lib: true).eval
   puts "
   <!DOCTYPE html>
   <html>
@@ -41,7 +41,7 @@ when "-h"
   "
 else
   ast = parser.parse!
-  js = Compiler.new(ast).eval
+  js = Compiler.new(ast, bundle_std_lib: true).eval
   puts js
 end
 # rescue Exception => e

@@ -1,9 +1,3 @@
-function times(callback)
-  for item of this
-    callback item
-  end
-end
-
-0..100::times #{ |num|
+0..100::each #{ |num|
   console.log num
 }

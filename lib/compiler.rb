@@ -3,21 +3,15 @@ require "pry"
 require "parser"
 
 class Compiler
-  # TODO: do something better for tests
-  @@use_std_lib = true
-  def self.use_std_lib=(other)
-    @@use_std_lib = other
-  end
-
-  def initialize(ast, indent = 0, fn_arg_names = [])
+  def initialize(ast, indent = 0, fn_arg_names = [], bundle_std_lib: false)
     @ast = ast
     @indent = indent
-    @fn_arg_names = fn_arg_names
+    @bundle_std_lib = bundle_std_lib
   end
 
   def eval
     program = ""
-    program += std_lib if first_run?
+    program += std_lib if @bundle_std_lib
     program += eval_assignment_declarations
     # program += collapse_function_overloading
     @ast.each do |statement|
@@ -41,17 +35,19 @@ class Compiler
 
   private
 
-  def first_run?
-    # TODO: I don't think this is correct
-    @@use_std_lib && @indent == 0
-  end
-
   def std_lib
     if ARGV[1] == "-s"
       ""
     else
-      schema_lib + range
+      schema_lib + range + pea_std
     end
+  end
+
+  def pea_std
+    file_str = File.read(File.dirname(__FILE__) + "/pea_std_lib/std.pea")
+    tokens = Lexer.tokenize file_str
+    ast = Parser.new(tokens, file_str).parse!
+    Compiler.new(ast).eval
   end
 
   def range
