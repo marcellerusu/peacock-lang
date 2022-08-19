@@ -316,6 +316,24 @@ module AST
     end
   end
 
+  class Null < Node
+    def initialize(start_pos, end_pos)
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
+
+  class NullSchema < Node
+    def initialize(start_pos, end_pos)
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+
+    def name
+      nil
+    end
+  end
+
   class MultilineDefWithoutArgs < Node
     attr_reader :body, :name
 

@@ -423,4 +423,10 @@ console.log fib(14)
     ast = parse('[1]::test [2], [1]')
     expect(ast).to eq([{"klass"=>"AST::Bind", "lhs"=>{"klass"=>"AST::ArrayLiteral", "value"=>[{"klass"=>"AST::Int", "value"=>1, "start_pos"=>1, "end_pos"=>2}], "start_pos"=>0, "end_pos"=>3}, "function"=>{"klass"=>"AST::IdLookup", "value"=>"test", "start_pos"=>5, "end_pos"=>9}, "args"=>[{"klass"=>"AST::ArrayLiteral", "value"=>[{"klass"=>"AST::Int", "value"=>2, "start_pos"=>11, "end_pos"=>12}], "start_pos"=>10, "end_pos"=>13}, {"klass"=>"AST::ArrayLiteral", "value"=>[{"klass"=>"AST::Int", "value"=>1, "start_pos"=>16, "end_pos"=>17}], "start_pos"=>15, "end_pos"=>18}]}])
   end
+  it "2022-08-19 00:22:49 -0400" do
+    ast = parse('function a(null) = 1
+
+console.log a(null)')
+    expect(ast).to eq([{"klass"=>"AST::SingleLineDefWithArgs", "name"=>"a", "args"=>{"klass"=>"AST::SimpleFnArgs", "value"=>[{"klass"=>"AST::NullSchema", "start_pos"=>11, "end_pos"=>15}], "start_pos"=>10, "end_pos"=>16}, "return_value"=>{"klass"=>"AST::Int", "value"=>1, "start_pos"=>19, "end_pos"=>20}, "start_pos"=>0, "end_pos"=>20}, {"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::Null", "start_pos"=>36, "end_pos"=>40}], "expr"=>{"klass"=>"AST::IdLookup", "value"=>"a", "start_pos"=>34, "end_pos"=>35}, "start_pos"=>35, "end_pos"=>41}], "expr"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"console", "start_pos"=>22, "end_pos"=>29}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"log", "start_pos"=>30, "end_pos"=>33}, "start_pos"=>29, "end_pos"=>33}, "start_pos"=>33, "end_pos"=>41}])
+  end
 end

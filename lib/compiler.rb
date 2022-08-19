@@ -229,11 +229,17 @@ class Compiler
       eval_array_assignment node
     when AST::SimpleForInLoop
       eval_simple_for_in_loop node
+    when AST::Null
+      eval_null node
     else
       binding.pry
       puts "no case matched node_type: #{node.class}"
       assert_not_reached!
     end
+  end
+
+  def eval_null(node)
+    "null"
   end
 
   def eval_this_schema_arg(node)
@@ -634,7 +640,7 @@ class Compiler
   end
 
   def arg_names(args_node)
-    args_node.value.map { |node| node.name }.join ", "
+    args_node.value.map { |node| node.name }.compact.join ", "
   end
 
   def eval_multiline_def_with_args(fn_node)
@@ -652,6 +658,12 @@ class Compiler
       .map do |arg|
       "#{padding}#{arg.name} = s.verify(#{arg.schema_name}, #{arg.name});"
     end.join("\n")
+
+    assignments += args_node.value
+      .map.with_index { |node, i| { node: node, i: i } }
+      .select { |h| h[:node].is_a?(AST::NullSchema) }
+      .map { |h| "#{padding}s.verify(null, arguments[#{h[:i]}], null)" }
+      .join("\n")
 
     if assignments.empty?
       ""

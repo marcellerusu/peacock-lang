@@ -155,9 +155,21 @@ class SimpleArgParser < Parser
   end
 end
 
+class NullSchemaParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :null
+  end
+
+  def parse!
+    null_t = consume! :null
+    AST::NullSchema.new(null_t.start_pos, null_t.end_pos)
+  end
+end
+
 class SchemaArgParser < Parser
   PARSERS = [
     SimpleSchemaArgParser,
+    NullSchemaParser,
     SchemaIntParser,
     SimpleArgParser,
   ]
@@ -174,7 +186,7 @@ end
 class SimpleFnArgsParser < Parser
   ARG_PARSERS = [
     SimpleArgParser,
-    SimpleSchemaArgParser,
+    SchemaArgParser,
   ]
 
   def parse!
@@ -973,9 +985,21 @@ class RangeParser < Parser
   end
 end
 
+class NullParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :null
+  end
+
+  def parse!
+    null_t = consume! :null
+    AST::Null.new(null_t.start_pos, null_t.end_pos)
+  end
+end
+
 class ExprParser < Parser
   # order matters
   PRIMARY_PARSERS = [
+    NullParser,
     IntParser,
     FloatParser,
     ThisParser,
