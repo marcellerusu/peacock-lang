@@ -981,6 +981,7 @@ class RangeOperandParser < Parser
     IdentifierLookupParser,
     IntParser,
     FloatParser,
+    SimpleStringParser,
   ]
 
   def self.can_parse?(_self)

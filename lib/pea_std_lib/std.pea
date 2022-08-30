@@ -4,6 +4,8 @@ function each(callback)
   end
 end
 
+function to_s = this.toString()
+
 function Array::append(item) = [...this, item]
 
 case function zip
