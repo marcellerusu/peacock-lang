@@ -209,12 +209,13 @@ module AST
   end
 
   class ArrayComprehension < Node
-    attr_reader :expr, :variable, :array_expr
+    attr_reader :expr, :variable, :array_expr, :if_expr
 
-    def initialize(expr, variable, array_expr, start_pos, end_pos)
+    def initialize(expr, variable, array_expr, if_expr, start_pos, end_pos)
       @expr = expr
       @variable = variable
       @array_expr = array_expr
+      @if_expr = if_expr
       @start_pos = start_pos
       @end_pos = end_pos
     end

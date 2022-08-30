@@ -434,11 +434,17 @@ class ArrayComprehensionParser < Parser
     id_t = consume! :identifier
     consume! :in
     array_expr_n = consume_parser! ExprParser
+    if_expr_n = nil
+    if current_token.type == :if
+      consume! :if
+      if_expr_n = consume_parser! ExprParser
+    end
     close_sq_b_t = consume! :"]"
     AST::ArrayComprehension.new(
       expr_n,
       id_t.value,
       array_expr_n,
+      if_expr_n,
       start_pos,
       close_sq_b_t.end_pos
     )
@@ -576,7 +582,7 @@ end
 
 class FunctionCallWithArgsWithoutParens < Parser
   def self.can_parse?(_self, lhs)
-    _self.current_token&.is_not_one_of?(:assign, :comma, :"]", :for, :close_paren, :"}") &&
+    _self.current_token&.is_not_one_of?(:assign, :comma, :"]", :for, :if, :close_paren, :"}") &&
       !_self.new_line?
   end
 

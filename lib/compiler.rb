@@ -257,7 +257,11 @@ class Compiler
   end
 
   def eval_array_comprehension(node)
-    "Array.from(#{eval_expr node.array_expr}, #{node.variable} => #{eval_expr node.expr})"
+    arr = eval_expr node.array_expr
+    if node.if_expr
+      arr += ".filter(#{node.variable} => #{eval_expr node.if_expr})"
+    end
+    "Array.from(#{arr}, #{node.variable} => #{eval_expr node.expr})"
   end
 
   def eval_single_line_bind_function_definition(node)

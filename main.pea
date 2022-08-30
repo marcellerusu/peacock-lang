@@ -1,1 +1,1 @@
-console.log [num * 10 for num in 0..10]
+console.log [num * 10 for num in 0..10 if num > 3]
