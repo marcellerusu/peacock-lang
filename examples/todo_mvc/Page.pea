@@ -8,22 +8,12 @@ component
   items := [{ completed: false, desc: "finish app" }]
 in
   <div>
-    <Form {items} />
-    <Routes>
-      <Route path="/all">
-        <List {items} />
-      </Route>
-      <Route path="/complete">
-        <CompleteList {items} />
-      </Route>
-      <Route path="/active">
-        <ActiveList {items} />
-      </Route>
-    </Routes>
+    <Form {items} @update={new_item => items = items::append(new_item)} />
+    <slot />
     <nav>
-      <Link to="/all">all</Link>
-      <Link to="/complete">complete</Link>
-      <Link to="/active">active</Link>
+      <a href="/all">all</Link>
+      <a href="/complete">complete</Link>
+      <a href="/active">active</Link>
     </nav>
   </div>
   <style>

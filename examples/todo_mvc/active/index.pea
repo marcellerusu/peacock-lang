@@ -1,4 +1,4 @@
-import List from "./List"
+import List from "../List"
 
 component { items }
   items := items.filter(item => !item.completed)

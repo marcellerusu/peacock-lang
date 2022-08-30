@@ -1,0 +1,24 @@
+component { items }
+  new_item := ""
+in
+  <form @submit.preventDefault={() => emit! "update", new_item }}> 
+    <label>
+      Todo:
+      <input bind:value={new_item} type="text" placeholder="todo..."/>
+    </label>
+    <div class="actions">
+      <button type="reset">Reset</button>
+      <button type="submit">Add</button>
+    </div>
+  </form>
+with
+  <style>
+    form {
+      display: flex;
+      flex-direction: column;
+    }
+    .actions {
+      display: flex;
+    }
+  </style>
+end

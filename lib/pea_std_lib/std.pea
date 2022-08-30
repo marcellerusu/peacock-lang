@@ -4,6 +4,11 @@ function each(callback)
   end
 end
 
+case function append
+when Array::(item)
+  [...this, item]
+end
+
 case function zip
 when (first, second)
   first.map((x, i) => [x, second[i]])
