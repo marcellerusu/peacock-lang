@@ -300,7 +300,7 @@ class MultilineDefWithArgsParser < Parser
   end
 end
 
-OPERATORS = [:+, :-, :*, :/, :"&&", :"||", :"===", :"!==", :>, :<, :">=", :"<=", :mod]
+OPERATORS = [:+, :-, :*, :/, :"&&", :"||", :"===", :"!==", :>, :<, :">=", :"<=", :mod, :"==", :in]
 
 class OperatorParser < Parser
   def self.can_parse?(_self, lhs_n)
@@ -1111,6 +1111,7 @@ class SchemaExprParser < Parser
     IdentifierLookupParser,
     BoolParser,
     ShortAnonFnParser,
+    NullSchemaParser,
   ]
 
   def parse!

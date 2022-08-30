@@ -40,7 +40,7 @@ class Compiler
     if ARGV[1] == "-s"
       ""
     else
-      schema_lib + range + pea_std
+      symbols + schema_lib + range + pea_std
     end
   end
 
@@ -57,6 +57,10 @@ class Compiler
 
   def schema_lib
     File.read(File.dirname(__FILE__) + "/pea_std_lib/schema.js")
+  end
+
+  def symbols
+    File.read(File.dirname(__FILE__) + "/pea_std_lib/symbols.js")
   end
 
   def css_preprocessor
@@ -229,6 +233,8 @@ class Compiler
       eval_array_assignment node
     when AST::SimpleForInLoop
       eval_simple_for_in_loop node
+    when AST::NullSchema
+      "null"
     when AST::Null
       eval_null node
     else
@@ -544,7 +550,17 @@ class Compiler
     "new Range(#{eval_expr node.lhs}, #{eval_expr node.rhs})"
   end
 
+  def eval_dbl_eq(node)
+    "#{eval_expr(node.lhs)}[Symbol.peacock_equals](#{eval_expr(node.rhs)})"
+  end
+
+  def eval_in(node)
+    "#{eval_expr(node.rhs)}[Symbol.peacock_contains](#{eval_expr(node.lhs)})"
+  end
+
   def eval_operator(node)
+    return eval_in(node) if node.type == :in
+    return eval_dbl_eq(node) if node.type == :"=="
     op = node.type
     op = "%" if node.type == :mod
 
