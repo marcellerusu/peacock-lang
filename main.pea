@@ -1,1 +1,6 @@
-console.log 1 in 0..10
+map := new Map([
+  ["a", [1, 2, { a: 11 }]]
+])
+
+console.log ["a", [1, 2, { a: 11 }]] in map
+console.log new Map([["a", [1, 2, { a: 11 }]]]) == map
