@@ -557,22 +557,6 @@ module AST
     end
   end
 
-  class Declare < Node
-    attr_reader :name, :schema, :expr
-
-    def initialize(name, schema, return_expr_n, start_pos, end_pos)
-      @name = name
-      @schema = schema
-      @expr = return_expr_n
-      @start_pos = start_pos
-      @end_pos = end_pos
-    end
-
-    def exportable?
-      true
-    end
-  end
-
   class SchemaCapture < Node
     attr_reader :name
 
@@ -672,7 +656,7 @@ module AST
       @end_pos = end_pos
     end
 
-    def exportable?
+    def declare?
       true
     end
   end
@@ -702,6 +686,26 @@ module AST
       @expr = return_expr_n
       @start_pos = start_pos
       @end_pos = end_pos
+    end
+
+    def captures
+      [name]
+    end
+  end
+
+  # a = 1
+  class SimpleReassignment < Node
+    attr_reader :name, :expr
+
+    def initialize(name, return_expr_n, start_pos, end_pos)
+      @name = name
+      @expr = return_expr_n
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+
+    def declare?
+      false
     end
 
     def captures

@@ -479,10 +479,25 @@ end
 
 # Statements
 
+class SimpleReassignmentParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :identifier &&
+      _self.peek_token&.type == :"="
+  end
+
+  def parse!
+    id_t = consume! :identifier
+    consume! :"="
+    expr_n = consume_parser! ExprParser
+
+    AST::SimpleReassignment.new(id_t.value, expr_n, id_t.start_pos, expr_n.end_pos)
+  end
+end
+
 class SimpleAssignmentParser < Parser
   def self.can_parse?(_self)
     _self.current_token&.type == :identifier &&
-      _self.peek_token.type == :assign
+      _self.peek_token&.type == :assign
   end
 
   def parse!
@@ -1581,6 +1596,7 @@ class ProgramParser < Parser
   ALLOWED_PARSERS = [
     FunctionDefinitionParser,
     SimpleAssignmentParser,
+    SimpleReassignmentParser,
     ArrayAssignmentParser,
     ForOfObjDeconstructLoopParser,
     SimpleForInLoopParser,

@@ -446,4 +446,9 @@ for a of A
 end')
     expect(ast).to eq([{"klass"=>"AST::SchemaDefinition", "name"=>"A", "schema_expr"=>{"klass"=>"AST::SchemaUnion", "schema_exprs"=>[{"klass"=>"AST::Int", "value"=>1, "start_pos"=>11, "end_pos"=>12}, {"klass"=>"AST::Int", "value"=>2, "start_pos"=>15, "end_pos"=>16}, {"klass"=>"AST::Int", "value"=>3, "start_pos"=>19, "end_pos"=>20}], "start_pos"=>11, "end_pos"=>20}, "start_pos"=>0, "end_pos"=>20}, {"klass"=>"AST::SimpleForOfLoop", "iter_name"=>"a", "arr_expr"=>{"klass"=>"AST::IdLookup", "value"=>"A", "start_pos"=>31, "end_pos"=>32}, "body"=>[{"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::IdLookup", "value"=>"a", "start_pos"=>47, "end_pos"=>48}], "expr"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"console", "start_pos"=>35, "end_pos"=>42}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"log", "start_pos"=>43, "end_pos"=>46}, "start_pos"=>42, "end_pos"=>46}, "start_pos"=>46, "end_pos"=>48}], "start_pos"=>22, "end_pos"=>52}])
   end
+  it "2022-08-29 22:42:57 -0400" do
+    ast = parse('a = 11
+')
+    expect(ast).to eq([{"klass"=>"AST::SimpleReassignment", "name"=>"a", "expr"=>{"klass"=>"AST::Int", "value"=>11, "start_pos"=>4, "end_pos"=>6}, "start_pos"=>0, "end_pos"=>6}])
+  end
 end

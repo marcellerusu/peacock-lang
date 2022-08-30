@@ -103,9 +103,10 @@ class Compiler
     (nodes
       .filter { |node| node.is_a?(AST::Assign) }
       .uniq { |node| node.name }
-      .filter { |node| !@fn_arg_names.include?(node.name) }
+      .select { |node| !@fn_arg_names.include?(node.name) }
       .map(&:name) +
      nodes
+       .select(&:declare?)
        .flat_map { |node| node.captures }
        .uniq).uniq
   end
@@ -114,9 +115,7 @@ class Compiler
     case node
     when AST::Class
       eval_class node
-    when AST::Declare
-      eval_declaration node
-    when AST::SimpleAssignment
+    when AST::SimpleAssignment, AST::SimpleReassignment
       eval_assignment node
     when AST::SimpleSchemaAssignment
       eval_simple_schema_assignment node

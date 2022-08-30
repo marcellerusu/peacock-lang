@@ -1,5 +1,1 @@
-schema A = 1 | 2 | 3
-
-for a of A
-  console.log a
-end
+a = 11
