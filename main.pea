@@ -1,6 +1,3 @@
-map := new Map([
-  ["a", [1, 2, { a: 11 }]]
-])
+schema A = 1 | 2 | 3
 
-console.log ["a", [1, 2, { a: 11 }]] in map
-console.log new Map([["a", [1, 2, { a: 11 }]]]) == map
+console.log 4 in A
