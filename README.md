@@ -1,3 +1,7 @@
+# Disclaimer
+
+Peacock is heavily a WIP - many features do not work & many features are changing dramatically
+
 # Intro
 
 Peacock is an exploration of how far we can take pattern matching to tame the complexity in JavaScript
