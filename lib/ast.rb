@@ -208,6 +208,18 @@ module AST
     end
   end
 
+  class ArrayComprehension < Node
+    attr_reader :expr, :variable, :array_expr
+
+    def initialize(expr, variable, array_expr, start_pos, end_pos)
+      @expr = expr
+      @variable = variable
+      @array_expr = array_expr
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
+
   class SingleLineBindFunctionDefinition < Node
     attr_reader :object_name, :function_name, :args, :return_expr
 

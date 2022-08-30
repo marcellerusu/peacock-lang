@@ -247,11 +247,17 @@ class Compiler
       eval_spread_expr node
     when AST::SingleLineBindFunctionDefinition
       eval_single_line_bind_function_definition node
+    when AST::ArrayComprehension
+      eval_array_comprehension node
     else
       binding.pry
       puts "no case matched node_type: #{node.class}"
       assert_not_reached!
     end
+  end
+
+  def eval_array_comprehension(node)
+    "Array.from(#{eval_expr node.array_expr}, #{node.variable} => #{eval_expr node.expr})"
   end
 
   def eval_single_line_bind_function_definition(node)
