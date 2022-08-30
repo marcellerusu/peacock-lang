@@ -238,11 +238,23 @@ class Compiler
       eval_null node
     when AST::SpreadExpr
       eval_spread_expr node
+    when AST::SingleLineBindFunctionDefinition
+      eval_single_line_bind_function_definition node
     else
       binding.pry
       puts "no case matched node_type: #{node.class}"
       assert_not_reached!
     end
+  end
+
+  def eval_single_line_bind_function_definition(node)
+    args = node.args.value.map(&:name).join ", "
+    fn = "function #{node.function_name}(#{args}) {\n"
+    indent!
+    fn += "#{padding}if (!(this instanceof #{node.object_name})) throw new MatchError('Expected `this` to be a `#{node.object_name}`');\n"
+    fn += "#{padding}return #{eval_expr node.return_expr};\n"
+    dedent!
+    fn += "#{padding}}"
   end
 
   def eval_spread_expr(node)

@@ -82,10 +82,14 @@ class Parser
     not_implemented!
   end
 
-  def consume_first_valid_parser!(parser_klasses)
+  def consume_first_valid_parser!(parser_klasses, &catch_block)
     parser_klass = parser_klasses.find { |klass| klass.can_parse? self }
     if !parser_klass
-      parser_not_implemented! parser_klasses
+      if catch_block
+        catch_block.call
+      else
+        parser_not_implemented! parser_klasses
+      end
     end
     consume_parser! parser_klass
   end
@@ -1064,7 +1068,9 @@ class ExprParser < Parser
   ]
 
   def parse!
-    expr_n = consume_first_valid_parser! PRIMARY_PARSERS
+    expr_n = consume_first_valid_parser! PRIMARY_PARSERS do
+      binding.pry
+    end
     loop do
       secondary_klass = SECONDARY_PARSERS.find { |parser_klass| parser_klass.can_parse?(self, expr_n) }
       break if !secondary_klass
@@ -1289,9 +1295,37 @@ class CaseFunctionParser < Parser
   end
 end
 
+class SingleLineBindFunctionDefinitionParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :function &&
+      _self.peek_token&.type == :identifier &&
+      _self.peek_token_twice&.type == :"::" &&
+      _self.rest_of_line.include?("=")
+  end
+
+  def parse!
+    fn_t = consume! :function
+    obj_name_t = consume! :identifier
+    consume! :"::"
+    fn_name_t = consume! :identifier
+    args = consume_parser! SimpleFnArgsParser
+    consume! :"="
+    return_expr_n = consume_parser! ExprParser
+    AST::SingleLineBindFunctionDefinition.new(
+      obj_name_t.value,
+      fn_name_t.value,
+      args,
+      return_expr_n,
+      fn_t.start_pos,
+      return_expr_n.end_pos
+    )
+  end
+end
+
 class FunctionDefinitionParser < Parser
   PARSERS = [
     SingleLineDefWithArgsParser,
+    SingleLineBindFunctionDefinitionParser,
     SingleLineDefWithoutArgsParser,
     MultilineDefWithArgsParser,
     MultilineDefWithoutArgsParser,

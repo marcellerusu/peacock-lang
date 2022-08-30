@@ -1,1 +1,3 @@
-console.log [1, 2, 3]::append(10)
+function Array::append(item) = [...this, item]
+
+console.log [1]::append(10)

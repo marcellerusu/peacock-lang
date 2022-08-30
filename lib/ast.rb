@@ -208,6 +208,19 @@ module AST
     end
   end
 
+  class SingleLineBindFunctionDefinition < Node
+    attr_reader :object_name, :function_name, :args, :return_expr
+
+    def initialize(object_name, function_name, args, return_expr, start_pos, end_pos)
+      @object_name = object_name
+      @function_name = function_name
+      @args = args
+      @return_expr = return_expr
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
+
   class CaseFunctionDefinition < Node
     attr_reader :name, :patterns
 

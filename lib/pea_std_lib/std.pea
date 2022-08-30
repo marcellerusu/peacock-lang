@@ -4,10 +4,7 @@ function each(callback)
   end
 end
 
-case function append
-when Array::(item)
-  [...this, item]
-end
+function Array::append(item) = [...this, item]
 
 case function zip
 when (first, second)
