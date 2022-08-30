@@ -1011,6 +1011,19 @@ class NullParser < Parser
   end
 end
 
+class SpreadExprParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :"..."
+  end
+
+  def parse!
+    spread_t = consume! :"..."
+    expr_n = consume_parser! ExprParser
+
+    AST::SpreadExpr.new(expr_n, spread_t.start_pos, expr_n.end_pos)
+  end
+end
+
 class ExprParser < Parser
   # order matters
   PRIMARY_PARSERS = [
@@ -1032,6 +1045,7 @@ class ExprParser < Parser
     SingleLineArrowFnWithoutArgsParser,
     SingleLineArrowFnWithArgsParser,
     AwaitParser,
+    SpreadExprParser,
     ElementParser,
     SchemaCaptureParser,
   ]

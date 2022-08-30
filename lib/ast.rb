@@ -10,6 +10,10 @@ module AST
       @end_pos = end_pos
     end
 
+    def declare?
+      false
+    end
+
     def to_h
       hash = {
         "klass" => self.class.to_s,
@@ -224,6 +228,9 @@ module AST
       @start_pos = start_pos
       @end_pos = end_pos
     end
+  end
+
+  class SpreadExpr < Node
   end
 
   class OneLineGetter < Node

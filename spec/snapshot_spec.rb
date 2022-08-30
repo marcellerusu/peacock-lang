@@ -451,4 +451,9 @@ end')
 ')
     expect(ast).to eq([{"klass"=>"AST::SimpleReassignment", "name"=>"a", "expr"=>{"klass"=>"AST::Int", "value"=>11, "start_pos"=>4, "end_pos"=>6}, "start_pos"=>0, "end_pos"=>6}])
   end
+  it "2022-08-29 23:22:36 -0400" do
+    ast = parse('console.log [...[1, 2, 3]]
+')
+    expect(ast).to eq([{"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::ArrayLiteral", "value"=>[{"klass"=>"AST::SpreadExpr", "value"=>{"klass"=>"AST::ArrayLiteral", "value"=>[{"klass"=>"AST::Int", "value"=>1, "start_pos"=>17, "end_pos"=>18}, {"klass"=>"AST::Int", "value"=>2, "start_pos"=>20, "end_pos"=>21}, {"klass"=>"AST::Int", "value"=>3, "start_pos"=>23, "end_pos"=>24}], "start_pos"=>16, "end_pos"=>25}, "start_pos"=>13, "end_pos"=>25}], "start_pos"=>12, "end_pos"=>26}], "expr"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"console", "start_pos"=>0, "end_pos"=>7}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"log", "start_pos"=>8, "end_pos"=>11}, "start_pos"=>7, "end_pos"=>11}, "start_pos"=>11, "end_pos"=>26}])
+  end
 end

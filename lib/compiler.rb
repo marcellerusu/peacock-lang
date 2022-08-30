@@ -236,11 +236,17 @@ class Compiler
       "null"
     when AST::Null
       eval_null node
+    when AST::SpreadExpr
+      eval_spread_expr node
     else
       binding.pry
       puts "no case matched node_type: #{node.class}"
       assert_not_reached!
     end
+  end
+
+  def eval_spread_expr(node)
+    "...#{eval_expr node.value}"
   end
 
   def eval_null(node)
