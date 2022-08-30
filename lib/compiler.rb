@@ -40,12 +40,19 @@ class Compiler
     if ARGV[1] == "-s"
       ""
     else
-      symbols + schema_lib + range + pea_std
+      symbols + schema_lib + range + pea_std + pea_array
     end
   end
 
   def pea_std
     file_str = File.read(File.dirname(__FILE__) + "/pea_std_lib/std.pea")
+    tokens = Lexer.tokenize file_str
+    ast = Parser.new(tokens, file_str).parse!
+    Compiler.new(ast).eval
+  end
+
+  def pea_array
+    file_str = File.read(File.dirname(__FILE__) + "/pea_std_lib/array.pea")
     tokens = Lexer.tokenize file_str
     ast = Parser.new(tokens, file_str).parse!
     Compiler.new(ast).eval
