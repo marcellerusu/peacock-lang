@@ -199,8 +199,6 @@ class Compiler
       eval_range node
     when AST::Op
       eval_operator node
-    when AST::ArgsSchema
-      eval_args_schema node
     when AST::SimpleForOfLoop
       eval_simple_for_of_loop node
     when AST::ForOfObjDeconstructLoop
@@ -585,10 +583,6 @@ class Compiler
     for_loop = "for (let #{node.iter_name} of #{eval_expr node.arr_expr}) {\n"
     for_loop += Compiler.new(node.body, @indent + 2).eval + "\n"
     for_loop += "#{padding}}"
-  end
-
-  def eval_args_schema(node)
-    node.args.join(", ")
   end
 
   def eval_multiline_def_without_args(fn_node)

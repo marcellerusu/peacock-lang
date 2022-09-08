@@ -356,13 +356,6 @@ module AST
       @start_pos = start_pos
       @end_pos = end_pos
     end
-
-    def as_op
-      OpCall.new(args, expr, start_pos, end_pos)
-    end
-  end
-
-  class OpCall < FnCall
   end
 
   class SingleLineDefWithArgs < Node
@@ -618,14 +611,6 @@ module AST
   class IdLookup < Node
     def captures
       []
-    end
-  end
-
-  class ArgsSchema < Node
-    attr_reader :args
-
-    def initialize(args)
-      @args = args
     end
   end
 
