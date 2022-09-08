@@ -559,6 +559,18 @@ class DefaultAssignmentParser < Parser
   end
 end
 
+class PlusAssignmentParser < Parser
+  def self.can_parse?(_self, lhs)
+    _self.current_token&.type == :"+="
+  end
+
+  def parse!(lhs_n)
+    consume! :"+="
+    expr_n = consume_parser! ExprParser
+    AST::PlusAssignment.new(lhs_n, expr_n, lhs_n.start_pos, expr_n.end_pos)
+  end
+end
+
 class FunctionCallWithoutArgs < Parser
   def self.can_parse?(_self, lhs)
     _self.current_token&.type == :open_paren &&
@@ -1110,6 +1122,7 @@ class ExprParser < Parser
     OptionalChainParser,
     DynamicLookupParser,
     DefaultAssignmentParser,
+    PlusAssignmentParser,
     FunctionCallWithoutArgs,
     FunctionCallWithArgs,
     FunctionCallWithArgsWithoutParens,
@@ -1837,6 +1850,7 @@ class ProgramParser < Parser
     SimpleComponentParser,
     BodyComponentWithoutAttrsParser,
     ClassParser,
+    ReturnParser,
   ]
 
   def consume_parser!(parser_klass)
@@ -1870,10 +1884,6 @@ class ConstructorBodyParser < ProgramParser
 end
 
 class FunctionBodyParser < ProgramParser
-  ALLOWED_PARSERS = [
-    ReturnParser,
-  ]
-
   def parse!(end_tokens: [])
     super additional_parsers: ALLOWED_PARSERS, end_tokens: end_tokens
     return [] if @body.size == 0

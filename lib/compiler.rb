@@ -255,6 +255,8 @@ class Compiler
       eval_array_comprehension node
     when AST::DefaultAssignment
       eval_default_assignment node
+    when AST::PlusAssignment
+      eval_plus_assignment node
     when AST::DefaultConstructorArg
       eval_default_constructor_arg node
     when AST::SimpleConstructorArg
@@ -272,6 +274,10 @@ class Compiler
 
   def eval_simple_constructor_arg(node)
     node.name
+  end
+
+  def eval_plus_assignment(node)
+    "#{eval_expr node.lhs} += #{eval_expr node.expr}"
   end
 
   def eval_default_assignment(node)
@@ -651,7 +657,7 @@ class Compiler
     cond = eval_expr(node.cond)
     pass_body = Compiler.new(node.pass, @indent + 2).eval_without_variable_declarations
 
-    i = "#{padding}if (#{cond}) {\n"
+    i = "if (#{cond}) {\n"
     i += "#{pass_body}\n"
     i += "#{padding}}"
     i += node.branches.map { |branch| eval_expr branch }.join ""
