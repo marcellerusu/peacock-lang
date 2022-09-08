@@ -234,6 +234,17 @@ module AST
     end
   end
 
+  class DefaultAssignment < Node
+    attr_reader :lhs, :expr
+
+    def initialize(lhs, expr, start_pos, end_pos)
+      @lhs = lhs
+      @expr = expr
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
+
   class MultiLineBindFunctionDefinition < Node
     attr_reader :object_name, :function_name, :args, :body
 

@@ -251,11 +251,17 @@ class Compiler
       eval_multi_line_bind_function_definition node
     when AST::ArrayComprehension
       eval_array_comprehension node
+    when AST::DefaultAssignment
+      eval_default_assignment node
     else
       binding.pry
       puts "no case matched node_type: #{node.class}"
       assert_not_reached!
     end
+  end
+
+  def eval_default_assignment(node)
+    "#{eval_expr node.lhs} ||= #{eval_expr node.expr}"
   end
 
   def eval_multi_line_bind_function_definition(node)

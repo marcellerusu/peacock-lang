@@ -26,3 +26,13 @@ end
 
 function Array::uniq() =
   this.filter((item1, i) => i == this.findIndex(item2 => item1 == item2))
+
+function Array::group_by(key)
+  result := {}
+  for obj of this
+    result[obj[key]] ||= []
+    result[obj[key]].push(obj)
+  end
+
+  return result
+end

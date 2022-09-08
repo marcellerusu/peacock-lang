@@ -547,6 +547,18 @@ class SimpleAssignmentParser < Parser
   end
 end
 
+class DefaultAssignmentParser < Parser
+  def self.can_parse?(_self, lhs)
+    _self.current_token&.type == :"||="
+  end
+
+  def parse!(lhs_n)
+    consume! :"||="
+    expr_n = consume_parser! ExprParser
+    AST::DefaultAssignment.new(lhs_n, expr_n, lhs_n.start_pos, expr_n.end_pos)
+  end
+end
+
 class FunctionCallWithoutArgs < Parser
   def self.can_parse?(_self, lhs)
     _self.current_token&.type == :open_paren &&
@@ -1097,6 +1109,7 @@ class ExprParser < Parser
     BindParser,
     OptionalChainParser,
     DynamicLookupParser,
+    DefaultAssignmentParser,
     FunctionCallWithoutArgs,
     FunctionCallWithArgs,
     FunctionCallWithArgsWithoutParens,
