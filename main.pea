@@ -1,11 +1,5 @@
 class Token
-  function constructor(@raw_token, @type, @value = null, @captures = nullclass Parser
-  function constructor(@tokens, @program_string, @pos)
-
-  static function from(that)
-    new this(that.tokens, that.program_string, that.pos)
-  end
-end)
+  function constructor(@raw_token, @type, @value = null, @captures = null)
 end
 
 class Lexer
