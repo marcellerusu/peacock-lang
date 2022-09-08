@@ -268,11 +268,17 @@ class Compiler
       eval_simple_when node
     when AST::CaseElse
       eval_case_else node
+    when AST::Not
+      eval_not node
     else
       binding.pry
       puts "no case matched node_type: #{node.class}"
       assert_not_reached!
     end
+  end
+
+  def eval_not(node)
+    "!#{eval_expr node.expr}"
   end
 
   def eval_case_else(node)

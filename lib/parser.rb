@@ -283,6 +283,18 @@ class MultilineDefWithoutArgsParser < Parser
   end
 end
 
+class NotParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :not
+  end
+
+  def parse!
+    not_t = consume! :not
+    expr_n = consume_parser! ExprParser
+    AST::Not.new(expr_n, not_t.start_pos, expr_n.end_pos)
+  end
+end
+
 class MultilineDefWithArgsParser < Parser
   def self.can_parse?(_self)
     _self.current_token&.type == :function &&
@@ -1170,6 +1182,7 @@ class ExprParser < Parser
     ElementParser,
     SchemaCaptureParser,
     EmptyCaseExprParser,
+    NotParser,
   ]
 
   SECONDARY_PARSERS = [

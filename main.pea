@@ -2,6 +2,7 @@ class Token
   function constructor(@raw_token, @type = raw_token, @value = null, @captures = null)
 
   function is_a(type) = this.type == type
+  function is_not_a(type) = !this.is_a(type)
 end
 
 t := new Token("@")

@@ -169,7 +169,7 @@ module Lexer
       when scanner.scan(/==/)
         tokens.push Token.new(scanner.matched, :"==")
       when scanner.scan(/\!/)
-        tokens.push Token.new(scanner.matched, :"!")
+        tokens.push Token.new(scanner.matched, :not)
       when scanner.scan(/@/)
         tokens.push Token.new(scanner.matched, :"@")
       when scanner.scan(/\+=/)

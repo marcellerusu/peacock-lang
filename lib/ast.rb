@@ -156,6 +156,16 @@ module AST
   class SpreadObjectEntry < Node
   end
 
+  class Not < Node
+    attr_reader :expr
+
+    def initialize(expr, start_pos, end_pos)
+      @expr = expr
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
+
   class SchemaDefinition < Node
     attr_reader :name, :schema_expr
 
