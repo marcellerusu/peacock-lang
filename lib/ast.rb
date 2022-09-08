@@ -314,20 +314,14 @@ module AST
   end
 
   class If < Node
-    attr_reader :pass, :fail, :value
-    attr_writer :pass, :fail
+    attr_reader :cond, :pass, :fail
 
-    def initialize(value, pass, _fail, start_pos, end_pos)
-      @value = value
+    def initialize(cond, pass, _fail, start_pos, end_pos)
+      @cond = cond
       @pass = pass
       @fail = _fail
       @start_pos = start_pos
       @end_pos = end_pos
-    end
-
-    def has_return?
-      (self.pass + self.fail)
-        .any? { |node| node.is_a? AST::Return }
     end
   end
 

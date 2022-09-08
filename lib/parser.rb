@@ -1711,6 +1711,24 @@ class ArrayAssignmentParser < Parser
   end
 end
 
+class IfParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :if
+  end
+
+  def parse!
+    if_t = consume! :if
+    cond_n = consume_parser! ExprParser
+    pass_n = consume_parser! ProgramParser
+    if current_token&.type == :else
+      consume! :else
+      fail_n = consume_parser! IfParser
+    end
+    end_t = consume! :end
+    AST::If.new(cond_n, pass_n, fail_n, if_t.start_pos, end_t.end_pos)
+  end
+end
+
 class ProgramParser < Parser
   def initialize(*args)
     super(*args)
@@ -1718,6 +1736,7 @@ class ProgramParser < Parser
   end
 
   ALLOWED_PARSERS = [
+    IfParser,
     FunctionDefinitionParser,
     SimpleAssignmentParser,
     SimpleReassignmentParser,

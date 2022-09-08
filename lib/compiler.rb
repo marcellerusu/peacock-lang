@@ -40,7 +40,7 @@ class Compiler
     if ARGV[1] == "-s"
       ""
     else
-      symbols + schema_lib + range + pea_std + pea_array
+      [symbols, schema_lib, range, pea_std, pea_array].join("\n") + "\n"
     end
   end
 
@@ -101,7 +101,7 @@ class Compiler
   def find_assignments
     nodes = @ast.flat_map do |node|
       if node.is_a?(AST::If)
-        node.pass + node.fail
+        (node.pass) + (node.fail || [])
       else
         [node]
       end
@@ -624,9 +624,11 @@ class Compiler
   end
 
   def eval_if_expression(node)
-    cond = eval_expr(node.value)
+    cond = eval_expr(node.cond)
     pass_body = Compiler.new(node.pass, @indent + 2).eval_without_variable_declarations
-    fail_body = Compiler.new(node.fail, @indent + 2).eval_without_variable_declarations
+    if node.fail
+      fail_body = Compiler.new(node.fail, @indent + 2).eval_without_variable_declarations
+    end
 
     "#{padding}if (#{cond}) {\n" \
     "#{pass_body}\n" \
