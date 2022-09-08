@@ -1954,6 +1954,11 @@ class FunctionBodyParser < ProgramParser
         last_n.start_pos,
         last_n.end_pos
       )
+    elsif last_n.is_a? AST::EmptyCaseExpr
+      last_n.cases.each do |case_|
+        next if case_.body.size == 0
+        case_.body[-1] = AST::Return.new(case_.body[-1], case_.body[-1].start_pos, case_.body[-1].end_pos)
+      end
     elsif last_n.is_not_one_of? AST::Return, AST::SimpleForOfLoop, AST::SimpleForInLoop, AST::ForOfObjDeconstructLoop
       @body[-1] = AST::Return.new(last_n, last_n.start_pos, last_n.end_pos)
     end

@@ -278,13 +278,13 @@ class Compiler
     # else is put in by `eval_empty_case_expr`
     c = " {\n"
     c += Compiler.new(node.body, @indent + 2).eval + "\n"
-    c += "}"
+    c += "#{padding}}"
   end
 
   def eval_simple_when(node)
     c = "if (#{eval_expr node.expr}) {\n"
     c += Compiler.new(node.body, @indent + 2).eval + "\n"
-    c += "}"
+    c += "#{padding}}"
   end
 
   def eval_empty_case_expr(node)
