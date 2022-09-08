@@ -256,6 +256,37 @@ module AST
     end
   end
 
+  class SimpleWhen < Node
+    attr_reader :expr, :body
+
+    def initialize(expr, body, start_pos, end_pos)
+      @expr = expr
+      @body = body
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
+
+  class CaseElse < Node
+    attr_reader :body
+
+    def initialize(body, start_pos, end_pos)
+      @body = body
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
+
+  class EmptyCaseExpr < Node
+    attr_reader :cases
+
+    def initialize(cases, start_pos, end_pos)
+      @cases = cases
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
+
   class MultiLineBindFunctionDefinition < Node
     attr_reader :object_name, :function_name, :args, :body
 

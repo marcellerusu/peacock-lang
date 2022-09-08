@@ -1,26 +1,8 @@
-class Token
-  function constructor(@raw_token, @type, @value = null, @captures = null)
-end
-
-class Lexer
-  function constructor(@str)
-
-  index := 0
-  get rest_of_str = this.str.slice(this.index)
-  get is_end_of_str = this.index >= this.str.length
-
-
-  function scan(regex)
-    result := this.rest_of_str.match(regex)
-    if result === null || result.index !== 0
-      return false
-    end
-    this.matched := result[0]
-    this.index += this.matched.length
-    return true
-  end
-
-  function tokenize
-
-  end
+case
+when true && false
+  console.log("true")
+when false || true && false
+  console.log("false")
+else
+  console.log("else")
 end

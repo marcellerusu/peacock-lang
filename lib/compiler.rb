@@ -261,11 +261,39 @@ class Compiler
       eval_default_constructor_arg node
     when AST::SimpleConstructorArg
       eval_simple_constructor_arg node
+    when AST::EmptyCaseExpr
+      eval_empty_case_expr node
+    when AST::SimpleWhen
+      eval_simple_when node
+    when AST::CaseElse
+      eval_case_else node
     else
       binding.pry
       puts "no case matched node_type: #{node.class}"
       assert_not_reached!
     end
+  end
+
+  def eval_case_else(node)
+    # else is put in by `eval_empty_case_expr`
+    c = " {\n"
+    c += Compiler.new(node.body, @indent + 2).eval + "\n"
+    c += "}"
+  end
+
+  def eval_simple_when(node)
+    c = "if (#{eval_expr node.expr}) {\n"
+    c += Compiler.new(node.body, @indent + 2).eval + "\n"
+    c += "}"
+  end
+
+  def eval_empty_case_expr(node)
+    return "" if node.cases.size == 0
+    c = "#{eval_expr node.cases.first}"
+    for case_ in node.cases[1..]
+      c += " else #{eval_expr case_}"
+    end
+    c
   end
 
   def eval_default_constructor_arg(node)

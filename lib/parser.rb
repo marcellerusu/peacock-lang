@@ -44,22 +44,6 @@ class Parser
     @tokens[@pos]
   end
 
-  def rest_of_line
-    rest_of_program = @program_string[current_token.start_pos..]
-    rest_of_program[0..rest_of_program.index("\n")]
-  end
-
-  def current_line
-    @program_string[0..current_token&.start_pos]
-      .split("\n")
-      .count
-  end
-
-  def new_line?
-    return true if !prev_token || !current_token
-    @program_string[prev_token.start_pos..current_token.start_pos].include? "\n"
-  end
-
   def prev_token
     @tokens[@pos - 1]
   end
@@ -74,6 +58,24 @@ class Parser
 
   def peek_token_thrice
     @tokens[@pos + 3]
+  end
+
+  def rest_of_line
+    rest_of_program = @program_string[current_token.start_pos..]
+    rest_of_program[0..rest_of_program.index("\n")]
+  end
+
+  def current_line
+    @program_string[0..current_token&.start_pos]
+      .split("\n")
+      .count
+  end
+
+  def new_line?(offset = 0)
+    return true if !prev_token || !current_token
+    prev = @tokens[@pos + offset - 1]
+    curr = @tokens[@pos + offset]
+    @program_string[prev.start_pos..curr.start_pos].include? "\n"
   end
 
   def parser_not_implemented!(parser_klasses)
@@ -604,6 +606,62 @@ class FunctionCallWithArgs < Parser
   end
 end
 
+class SimpleWhenParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :when
+  end
+
+  def parse!
+    when_t = consume! :when
+    expr_n = consume_parser! ExprParser
+    body = consume_parser! ProgramParser, end_tokens: [:when, :else]
+    AST::SimpleWhen.new(expr_n, body, when_t.start_pos, body.last&.end_pos || expr_n.end_pos)
+  end
+end
+
+class CaseElseParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :else
+  end
+
+  def parse!
+    else_t = consume! :else
+    body = consume_parser! ProgramParser
+    AST::CaseElse.new(body, else_t.start_pos, body.last&.end_pos || else_t.end_pos)
+  end
+end
+
+class WhenParser < Parser
+  PARSERS = [SimpleWhenParser, CaseElseParser]
+
+  def self.can_parse?(_self)
+    PARSERS.any? { |klass| klass.can_parse? _self }
+  end
+
+  def parse!
+    consume_first_valid_parser! PARSERS
+  end
+end
+
+class EmptyCaseExprParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :case &&
+      _self.new_line?(1)
+  end
+
+  def parse!
+    case_t = consume! :case
+    cases = []
+    loop do
+      break if current_token&.type == :end
+      cases.push consume_parser! WhenParser
+    end
+    end_t = consume! :end
+
+    AST::EmptyCaseExpr.new(cases, case_t.start_pos, end_t.end_pos)
+  end
+end
+
 class FunctionCallWithArgsWithoutParens < Parser
   def self.can_parse?(_self, lhs)
     _self.current_token&.is_not_one_of?(:assign, :comma, :"]", :for, :if, :close_paren, :"}") &&
@@ -1111,6 +1169,7 @@ class ExprParser < Parser
     SpreadExprParser,
     ElementParser,
     SchemaCaptureParser,
+    EmptyCaseExprParser,
   ]
 
   SECONDARY_PARSERS = [
