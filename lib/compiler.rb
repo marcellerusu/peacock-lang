@@ -101,7 +101,7 @@ class Compiler
   def find_assignments
     nodes = @ast.flat_map do |node|
       if node.is_a?(AST::If)
-        (node.pass) + (node.fail || [])
+        node.pass + node.branches.flatten
       else
         [node]
       end
@@ -185,6 +185,10 @@ class Compiler
       eval_identifier_lookup node
     when AST::If
       eval_if_expression node
+    when AST::Else
+      eval_else node
+    when AST::ElseIf
+      eval_else_if node
     when AST::SchemaCapture
       eval_schema_capture node
     when AST::DotAssignment
@@ -623,18 +627,30 @@ class Compiler
     "s('#{node.name}')"
   end
 
+  def eval_else_if(node)
+    b = " else if (#{eval_expr node.cond}) {\n"
+    b += Compiler.new(node.body, @indent + 2).eval + "\n"
+    b += "}"
+    b
+  end
+
+  def eval_else(node)
+    b = " else {\n"
+    b += Compiler.new(node.body, @indent + 2).eval + "\n"
+    b += "}"
+    b
+  end
+
   def eval_if_expression(node)
     cond = eval_expr(node.cond)
     pass_body = Compiler.new(node.pass, @indent + 2).eval_without_variable_declarations
-    if node.fail
-      fail_body = Compiler.new(node.fail, @indent + 2).eval_without_variable_declarations
-    end
 
-    "#{padding}if (#{cond}) {\n" \
-    "#{pass_body}\n" \
-    "#{padding}} else {\n" \
-    "#{fail_body}\n" \
-    "#{padding}}"
+    i = "#{padding}if (#{cond}) {\n"
+    i += "#{pass_body}\n"
+    i += "#{padding}}"
+    i += node.branches.map { |branch| eval_expr branch }.join ""
+
+    i
   end
 
   def eval_simple_string(node)

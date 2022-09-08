@@ -314,12 +314,33 @@ module AST
   end
 
   class If < Node
-    attr_reader :cond, :pass, :fail
+    attr_reader :cond, :pass, :branches
 
-    def initialize(cond, pass, _fail, start_pos, end_pos)
+    def initialize(cond, pass, branches, start_pos, end_pos)
       @cond = cond
       @pass = pass
-      @fail = _fail
+      @branches = branches
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
+
+  class ElseIf < Node
+    attr_reader :cond, :body
+
+    def initialize(cond, body, start_pos, end_pos)
+      @cond = cond
+      @body = body
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
+
+  class Else < Node
+    attr_reader :body
+
+    def initialize(body, start_pos, end_pos)
+      @body = body
       @start_pos = start_pos
       @end_pos = end_pos
     end

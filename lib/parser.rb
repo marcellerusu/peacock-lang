@@ -1711,6 +1711,48 @@ class ArrayAssignmentParser < Parser
   end
 end
 
+class ElseIfParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :else &&
+      _self.peek_token&.type == :if
+  end
+
+  def parse!
+    else_t = consume! :else
+    consume! :if
+    cond_n = consume_parser! ExprParser
+    body_n = consume_parser! ProgramParser, end_tokens: [:else]
+    AST::ElseIf.new(cond_n, body_n, else_t.start_pos, body_n.last&.end_pos)
+  end
+end
+
+class ElseParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :else
+  end
+
+  def parse!
+    else_t = consume! :else
+    body_n = consume_parser! ProgramParser
+    AST::Else.new(body_n, else_t.start_pos, body_n.last&.end_pos)
+  end
+end
+
+class ElseBranchParser < Parser
+  PARSERS = [
+    ElseIfParser,
+    ElseParser,
+  ]
+
+  def self.can_parse?(_self)
+    PARSERS.any? { |klass| klass.can_parse? _self }
+  end
+
+  def parse!
+    consume_first_valid_parser! PARSERS
+  end
+end
+
 class IfParser < Parser
   def self.can_parse?(_self)
     _self.current_token&.type == :if
@@ -1719,13 +1761,14 @@ class IfParser < Parser
   def parse!
     if_t = consume! :if
     cond_n = consume_parser! ExprParser
-    pass_n = consume_parser! ProgramParser
-    if current_token&.type == :else
-      consume! :else
-      fail_n = consume_parser! IfParser
+    pass_n = consume_parser! ProgramParser, end_tokens: [:else]
+    branches = []
+    loop do
+      break if !ElseBranchParser.can_parse?(self)
+      branches.push consume_parser! ElseBranchParser
     end
     end_t = consume! :end
-    AST::If.new(cond_n, pass_n, fail_n, if_t.start_pos, end_t.end_pos)
+    AST::If.new(cond_n, pass_n, branches, if_t.start_pos, end_t.end_pos)
   end
 end
 

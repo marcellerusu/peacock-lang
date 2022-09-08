@@ -1,3 +1,7 @@
-if 10 == 10
-  console.log "test"
+if 10 == 11
+  console.log "true"
+else if false
+
+else
+  console.log "false"
 end
