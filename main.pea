@@ -1,6 +1,12 @@
 class Token
-  function constructor(@raw_token, @type, @value = null, @captures = null)
+  function constructor(@raw_token, @type = raw_token, @value = null, @captures = null)
+
+  function is_a(type) = this.type == type
 end
+
+t := new Token("@")
+
+console.log t
 
 class Lexer
   function constructor(@str)

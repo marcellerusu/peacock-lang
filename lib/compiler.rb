@@ -3,11 +3,12 @@ require "pry"
 require "parser"
 
 class Compiler
-  def initialize(ast, indent = 0, fn_arg_names = [], bundle_std_lib: false)
+  def initialize(ast, indent = 0, fn_arg_names: [], bundle_std_lib: false, is_class_definition: false)
     @ast = ast
     @indent = indent
     @fn_arg_names = fn_arg_names
     @bundle_std_lib = bundle_std_lib
+    @is_class_definition = is_class_definition
   end
 
   def eval
@@ -314,7 +315,7 @@ class Compiler
 
   def eval_multi_line_bind_function_definition(node)
     args = node.args.value.map(&:name).join ", "
-    fn = "function #{node.function_name}(#{args}) {\n"
+    fn = "#{fn_prefix}#{node.function_name}(#{args}) {\n"
     indent!
     fn += "#{padding}if (!(this instanceof #{node.object_name})) throw new MatchError('Expected `this` to be a `#{node.object_name}`');\n"
     fn += Compiler.new(node.body, @indent).eval + "\n"
@@ -332,7 +333,7 @@ class Compiler
 
   def eval_single_line_bind_function_definition(node)
     args = node.args.value.map(&:name).join ", "
-    fn = "function #{node.function_name}(#{args}) {\n"
+    fn = "#{fn_prefix}#{node.function_name}(#{args}) {\n"
     indent!
     fn += "#{padding}if (!(this instanceof #{node.object_name})) throw new MatchError('Expected `this` to be a `#{node.object_name}`');\n"
     fn += "#{padding}return #{eval_expr node.return_expr};\n"
@@ -375,7 +376,7 @@ class Compiler
   end
 
   def eval_case_function_definition(node)
-    f = "#{padding}function #{node.name}(...args) {\n"
+    f = "#{padding}#{fn_prefix}#{node.name}(...args) {\n"
     node.patterns.each_with_index do |s_case, i|
       if s_case.patterns.all? { |arg| arg.is_a? AST::SimpleSchemaArg }
         schemas = s_case.patterns.map(&:schema_name)
@@ -429,7 +430,7 @@ class Compiler
 
   def eval_short_hand_constructor(node)
     args = node.args.map { |arg| eval_expr arg }.join ", "
-    c = "#{padding}function constructor(#{args}) {\n"
+    c = "#{padding}constructor(#{args}) {\n"
     for arg in node.args.map(&:name)
       c += "#{padding}  this.#{arg} = #{arg};\n"
     end
@@ -453,9 +454,11 @@ class Compiler
     super_class = " extends #{node.parent_class}" if node.parent_class
     c = "class #{node.name}#{super_class} {\n"
     indent!
+    @is_class_definition = true
     for entry in node.entries
       c += "#{eval_expr entry}\n"
     end
+    @is_class_definition = false
     dedent!
     c += "}"
   end
@@ -631,8 +634,16 @@ class Compiler
     for_loop += "#{padding}}"
   end
 
+  def fn_prefix
+    if @is_class_definition
+      ""
+    else
+      "function "
+    end
+  end
+
   def eval_multiline_def_without_args(fn_node)
-    fn = "#{padding}function #{fn_node.name}() {\n"
+    fn = "#{padding}#{fn_prefix}#{fn_node.name}() {\n"
     fn += Compiler.new(fn_node.body, @indent + 2).eval + "\n"
     fn += "#{padding}}"
     fn
@@ -772,7 +783,7 @@ class Compiler
   def eval_multiline_def_with_args(fn_node)
     args = arg_names fn_node.args
 
-    fn = "#{padding}function #{fn_node.name}(#{args}) {\n"
+    fn = "#{padding}#{fn_prefix}#{fn_node.name}(#{args}) {\n"
     fn += Compiler.new(fn_node.body, @indent + 2).eval + "\n"
     fn += "#{padding}}"
     fn
@@ -799,7 +810,7 @@ class Compiler
   end
 
   def eval_single_line_fn_without_args(fn_node)
-    fn = "#{padding}function #{fn_node.name}() {\n"
+    fn = "#{padding}#{fn_prefix}#{fn_node.name}() {\n"
     indent!
     fn += "#{padding}return #{eval_expr fn_node.return_value};\n"
     dedent!
@@ -810,7 +821,7 @@ class Compiler
   def eval_single_line_fn_with_args(fn_node)
     args = arg_names fn_node.args
 
-    fn = "#{padding}function #{fn_node.name}(#{args}) {\n"
+    fn = "#{padding}#{fn_prefix}#{fn_node.name}(#{args}) {\n"
     indent!
     fn += schema_arg_assignments(fn_node.args)
     fn += "#{padding}return #{eval_expr fn_node.return_value};\n"
@@ -835,7 +846,7 @@ class Compiler
 
     fn = "(#{args}) => {\n"
     fn += schema_arg_assignments(node.args)
-    fn += Compiler.new(node.body, @indent + 2, node.args.value.map(&:name)).eval + "\n"
+    fn += Compiler.new(node.body, @indent + 2, fn_arg_names: node.args.value.map(&:name)).eval + "\n"
     fn + "}"
   end
 
