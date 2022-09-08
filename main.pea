@@ -1,1 +1,3 @@
-console.log [1, 2, 2]::uniq
+function Array::group_by(key)
+  
+end

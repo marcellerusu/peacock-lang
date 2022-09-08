@@ -1357,10 +1357,38 @@ class SingleLineBindFunctionDefinitionParser < Parser
   end
 end
 
+class MultiLineBindFunctionDefinitionParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :function &&
+      _self.peek_token&.type == :identifier &&
+      _self.peek_token_twice&.type == :"::" &&
+      !_self.rest_of_line.include?("=")
+  end
+
+  def parse!
+    fn_t = consume! :function
+    obj_name_t = consume! :identifier
+    consume! :"::"
+    fn_name_t = consume! :identifier
+    args = consume_parser! SimpleFnArgsParser
+    body = consume_parser! FunctionBodyParser
+    end_t = consume! :end
+    AST::MultiLineBindFunctionDefinition.new(
+      obj_name_t.value,
+      fn_name_t.value,
+      args,
+      body,
+      fn_t.start_pos,
+      end_t.end_pos
+    )
+  end
+end
+
 class FunctionDefinitionParser < Parser
   PARSERS = [
     SingleLineDefWithArgsParser,
     SingleLineBindFunctionDefinitionParser,
+    MultiLineBindFunctionDefinitionParser,
     SingleLineDefWithoutArgsParser,
     MultilineDefWithArgsParser,
     MultilineDefWithoutArgsParser,
@@ -1729,6 +1757,7 @@ class FunctionBodyParser < ProgramParser
 
   def parse!(end_tokens: [])
     super additional_parsers: ALLOWED_PARSERS, end_tokens: end_tokens
+    return [] if @body.size == 0
 
     last_n = @body[-1]
     if last_n.is_a? AST::SimpleAssignment

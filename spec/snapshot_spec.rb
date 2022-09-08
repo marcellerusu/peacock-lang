@@ -478,4 +478,10 @@ console.log [...0..10]
 ')
     expect(ast).to eq([{"klass"=>"AST::FnCall", "args"=>[{"klass"=>"AST::ArrayComprehension", "expr"=>{"klass"=>"AST::Op", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"num", "start_pos"=>13, "end_pos"=>16}, "type"=>:*, "rhs"=>{"klass"=>"AST::Int", "value"=>10, "start_pos"=>19, "end_pos"=>21}, "start_pos"=>13, "end_pos"=>21}, "variable"=>"num", "array_expr"=>{"klass"=>"AST::Range", "lhs"=>{"klass"=>"AST::Int", "value"=>0, "start_pos"=>33, "end_pos"=>34}, "rhs"=>{"klass"=>"AST::Int", "value"=>10, "start_pos"=>36, "end_pos"=>38}, "start_pos"=>33, "end_pos"=>38}, "if_expr"=>{"klass"=>"AST::Op", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"num", "start_pos"=>42, "end_pos"=>45}, "type"=>:>, "rhs"=>{"klass"=>"AST::Int", "value"=>3, "start_pos"=>48, "end_pos"=>49}, "start_pos"=>42, "end_pos"=>49}, "start_pos"=>12, "end_pos"=>50}], "expr"=>{"klass"=>"AST::Dot", "lhs"=>{"klass"=>"AST::IdLookup", "value"=>"console", "start_pos"=>0, "end_pos"=>7}, "type"=>".", "rhs"=>{"klass"=>"AST::IdLookup", "value"=>"log", "start_pos"=>8, "end_pos"=>11}, "start_pos"=>7, "end_pos"=>11}, "start_pos"=>11, "end_pos"=>50}])
   end
+  it "2022-09-07 21:01:13 -0400" do
+    ast = parse('function Array::group_by(key)
+  
+end')
+    expect(ast).to eq([{"klass"=>"AST::MultiLineBindFunctionDefinition", "object_name"=>"Array", "function_name"=>"group_by", "args"=>{"klass"=>"AST::SimpleFnArgs", "value"=>[{"klass"=>"AST::SimpleArg", "name"=>"key", "start_pos"=>25, "end_pos"=>28}], "start_pos"=>24, "end_pos"=>29}, "body"=>[], "start_pos"=>0, "end_pos"=>36}])
+  end
 end

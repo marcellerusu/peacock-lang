@@ -234,6 +234,19 @@ module AST
     end
   end
 
+  class MultiLineBindFunctionDefinition < Node
+    attr_reader :object_name, :function_name, :args, :body
+
+    def initialize(object_name, function_name, args, body, start_pos, end_pos)
+      @object_name = object_name
+      @function_name = function_name
+      @args = args
+      @body = body
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
+
   class CaseFunctionDefinition < Node
     attr_reader :name, :patterns
 

@@ -247,6 +247,8 @@ class Compiler
       eval_spread_expr node
     when AST::SingleLineBindFunctionDefinition
       eval_single_line_bind_function_definition node
+    when AST::MultiLineBindFunctionDefinition
+      eval_multi_line_bind_function_definition node
     when AST::ArrayComprehension
       eval_array_comprehension node
     else
@@ -254,6 +256,16 @@ class Compiler
       puts "no case matched node_type: #{node.class}"
       assert_not_reached!
     end
+  end
+
+  def eval_multi_line_bind_function_definition(node)
+    args = node.args.value.map(&:name).join ", "
+    fn = "function #{node.function_name}(#{args}) {\n"
+    indent!
+    fn += "#{padding}if (!(this instanceof #{node.object_name})) throw new MatchError('Expected `this` to be a `#{node.object_name}`');\n"
+    fn += Compiler.new(node.body, @indent).eval + "\n"
+    dedent!
+    fn += "#{padding}}"
   end
 
   def eval_array_comprehension(node)
