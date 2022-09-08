@@ -1551,6 +1551,52 @@ class StaticMethodWithArgsParser < Parser
   end
 end
 
+class DefaultConstructorArgParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :"@" &&
+      _self.peek_token&.type == :identifier &&
+      _self.peek_token_twice&.type == :"="
+  end
+
+  def parse!
+    at_t = consume! :"@"
+    name_t = consume! :identifier
+    consume! :"="
+    expr_n = consume_parser! ExprParser
+
+    AST::DefaultConstructorArg.new(name_t.value, expr_n, at_t.start_pos, expr_n.end_pos)
+  end
+end
+
+class SimpleConstructorArgParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :"@" &&
+      _self.peek_token&.type == :identifier
+  end
+
+  def parse!
+    at_t = consume! :"@"
+    name_t = consume! :identifier
+
+    AST::SimpleConstructorArg.new(name_t.value, at_t.start_pos, name_t.end_pos)
+  end
+end
+
+class ConstructorArgParser < Parser
+  PARSERS = [
+    DefaultConstructorArgParser,
+    SimpleConstructorArgParser,
+  ]
+
+  def self.can_parse?(_self)
+    PARSERS.any? { |klass| klass.can_parse? _self }
+  end
+
+  def parse!
+    consume_first_valid_parser! PARSERS
+  end
+end
+
 class ShortHandConstructorParser < Parser
   def self.can_parse?(_self)
     _self.current_token.type == :function &&
@@ -1562,17 +1608,15 @@ class ShortHandConstructorParser < Parser
     function_t = consume! :function
     consume! :identifier
     consume! :open_paren
-    instance_variables = []
+    args = []
     loop do
-      consume! :"@"
-      id_t = consume! :identifier
-      instance_variables.push id_t.value
+      args.push consume_parser! ConstructorArgParser
       break if current_token.type == :close_paren
       consume! :comma
     end
     close_t = consume! :close_paren
     AST::ShortHandConstructor.new(
-      instance_variables,
+      args,
       function_t.start_pos,
       close_t.end_pos
     )

@@ -255,11 +255,23 @@ class Compiler
       eval_array_comprehension node
     when AST::DefaultAssignment
       eval_default_assignment node
+    when AST::DefaultConstructorArg
+      eval_default_constructor_arg node
+    when AST::SimpleConstructorArg
+      eval_simple_constructor_arg node
     else
       binding.pry
       puts "no case matched node_type: #{node.class}"
       assert_not_reached!
     end
+  end
+
+  def eval_default_constructor_arg(node)
+    "#{node.name} = #{eval_expr node.expr}"
+  end
+
+  def eval_simple_constructor_arg(node)
+    node.name
   end
 
   def eval_default_assignment(node)
@@ -382,9 +394,9 @@ class Compiler
   end
 
   def eval_short_hand_constructor(node)
-    args = node.instance_vars.join ", "
+    args = node.args.map { |arg| eval_expr arg }.join ", "
     c = "#{padding}function constructor(#{args}) {\n"
-    for arg in node.instance_vars
+    for arg in node.args.map(&:name)
       c += "#{padding}  this.#{arg} = #{arg};\n"
     end
     c += "#{padding}}"

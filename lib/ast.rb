@@ -414,10 +414,31 @@ module AST
   end
 
   class ShortHandConstructor < Node
-    attr_reader :instance_vars
+    attr_reader :args
 
-    def initialize(instance_vars, start_pos, end_pos)
-      @instance_vars = instance_vars
+    def initialize(args, start_pos, end_pos)
+      @args = args
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
+
+  class SimpleConstructorArg < Node
+    attr_reader :name
+
+    def initialize(name, start_pos, end_pos)
+      @name = name
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
+
+  class DefaultConstructorArg < Node
+    attr_reader :name, :expr
+
+    def initialize(name, expr, start_pos, end_pos)
+      @name = name
+      @expr = expr
       @start_pos = start_pos
       @end_pos = end_pos
     end
