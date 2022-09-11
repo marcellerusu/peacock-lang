@@ -139,13 +139,14 @@ class SimpleSchemaArgParser < Parser
   end
 end
 
+# broken :/
 class SchemaIntParser < Parser
   def self.can_parse?(_self)
     _self.current_token.type == :int_lit
   end
 
   def parse!
-    consume_parser! IntParser
+    not_implemented!
   end
 end
 
@@ -189,9 +190,22 @@ class SchemaArgParser < Parser
   end
 end
 
+class SpreadArgParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :"..."
+  end
+
+  def parse!
+    spread_t = consume! :"..."
+    name_t = consume! :identifier
+    AST::SpreadArg.new(name_t.value, spread_t.start_pos, name_t.end_pos)
+  end
+end
+
 class SimpleFnArgsParser < Parser
   ARG_PARSERS = [
     SimpleArgParser,
+    SpreadArgParser,
     SchemaArgParser,
   ]
 

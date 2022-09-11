@@ -1,0 +1,35 @@
+class Token
+  function constructor(@raw_token, @start_pos, @end_pos, @type = raw_token, @value = null, @captures = null)
+
+  function is_a(type) = this.type == type
+  function is_not_a(type) = !this.is_a(type)
+  function is_one_of(...types) = types.includes(this.type)
+  function is_not_one_of(...types) = !this.is_one_of(...types)
+end
+
+class Lexer
+  function constructor(@str)
+
+  index := 0
+  get rest_of_str = this.str.slice(this.index)
+  get is_end_of_str = this.index >= this.str.length
+
+
+  function scan(regex)
+    result := this.rest_of_str.match(new Regex(regex))
+    if result === null || result.index !== 0
+      return false
+    end
+    this.matched := result[0]
+    this.index += this.matched.length
+    return true
+  end
+
+  function tokenize
+    case
+    when this.is_end_of_str
+      10
+    when this.scan("+")
+    end
+  end
+end

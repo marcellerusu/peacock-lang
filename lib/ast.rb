@@ -83,7 +83,7 @@ module AST
     end
   end
 
-  class SimpleArg < Node
+  class NamedArg < Node
     attr_reader :name
 
     def initialize(name, start_pos, end_pos)
@@ -91,6 +91,12 @@ module AST
       @start_pos = start_pos
       @end_pos = end_pos
     end
+  end
+
+  class SimpleArg < NamedArg
+  end
+
+  class SpreadArg < NamedArg
   end
 
   class ThisSchemaArg < Node

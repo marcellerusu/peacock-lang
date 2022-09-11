@@ -270,11 +270,35 @@ class Compiler
       eval_case_else node
     when AST::Not
       eval_not node
+    when AST::SimpleFnArgs
+      eval_simple_fn_args node
+    when AST::SimpleArg
+      eval_simple_arg node
+    when AST::SpreadArg
+      eval_spread_arg node
+    when AST::SimpleSchemaArg
+      eval_simple_schema_arg node
     else
       binding.pry
       puts "no case matched node_type: #{node.class}"
       assert_not_reached!
     end
+  end
+
+  def eval_simple_schema_arg(node)
+    node.name
+  end
+
+  def eval_spread_arg(node)
+    "...#{node.name}"
+  end
+
+  def eval_simple_arg(node)
+    node.name
+  end
+
+  def eval_simple_fn_args(node)
+    node.value.map { |arg| eval_expr arg }.join ", "
   end
 
   def eval_not(node)
@@ -745,7 +769,7 @@ class Compiler
 
   def eval_function_object_entry(node)
     fn = node.value
-    args = arg_names fn.args
+    args = eval_expr fn.args
     output = "#{padding}#{node.key_name}(#{args}) {\n"
     output += Compiler.new(fn.body, @indent + 2, fn.args.value.map(&:name)).eval + "\n"
     output + "#{padding}}"
@@ -782,14 +806,11 @@ class Compiler
     "(#{node.arg}) => #{eval_expr node.return_expr}"
   end
 
-  def arg_names(args_node)
-    args_node.value.map { |node| node.name }.compact.join ", "
-  end
-
   def eval_multiline_def_with_args(fn_node)
-    args = arg_names fn_node.args
+    args = eval_expr fn_node.args
 
     fn = "#{padding}#{fn_prefix}#{fn_node.name}(#{args}) {\n"
+    fn += "#{padding(2)}#{schema_arg_assignments fn_node.args}"
     fn += Compiler.new(fn_node.body, @indent + 2).eval + "\n"
     fn += "#{padding}}"
     fn
@@ -825,7 +846,7 @@ class Compiler
   end
 
   def eval_single_line_fn_with_args(fn_node)
-    args = arg_names fn_node.args
+    args = eval_expr fn_node.args
 
     fn = "#{padding}#{fn_prefix}#{fn_node.name}(#{args}) {\n"
     indent!
@@ -837,7 +858,7 @@ class Compiler
   end
 
   def eval_single_line_arrow_fn_with_args(node)
-    args = arg_names node.args
+    args = eval_expr node.args
 
     fn = "(#{args}) => {\n"
     indent!
@@ -848,7 +869,7 @@ class Compiler
   end
 
   def eval_arrow_fn_with_args(node)
-    args = arg_names node.args
+    args = eval_expr node.args
 
     fn = "(#{args}) => {\n"
     fn += schema_arg_assignments(node.args)
