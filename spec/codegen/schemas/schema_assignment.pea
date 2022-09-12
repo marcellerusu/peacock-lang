@@ -1,0 +1,11 @@
+# let user;
+# const User = { id: s('id') };
+# user = { id: 10 };
+# user = s.verify(User, user, 'User');
+# console.log(user);
+
+schema User = { id }
+
+user := { id: 10 }
+User(user) := user
+console.log user

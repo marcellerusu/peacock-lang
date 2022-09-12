@@ -1,0 +1,5 @@
+# const User = { id: s('id'), admin: s('admin') };
+# const Admin = { ...User, admin: true };
+
+schema User = { id, admin }
+schema Admin = User & { admin: true }

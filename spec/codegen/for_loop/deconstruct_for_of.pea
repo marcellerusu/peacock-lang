@@ -1,0 +1,11 @@
+# let arr;
+# arr = [{ num: 10 }, { num: 11 }];
+# for (let { num } of arr) {
+#   console.log(num);
+# };
+
+arr := [{ num: 10 }, { num: 11 }]
+
+for { num } of arr
+  console.log(num)
+end

@@ -137,8 +137,9 @@ class Compiler
       eval_array_literal node
     when AST::ObjectLiteral
       eval_object_literal node
-    when AST::SimpleObjectEntry,
-         AST::ArrowMethodObjectEntry
+    when AST::ArrowMethodObjectEntry
+      eval_arrow_method_object_entry node
+    when AST::SimpleObjectEntry
       eval_object_entry node
     when AST::FunctionObjectEntry
       eval_function_object_entry node
@@ -285,6 +286,14 @@ class Compiler
     end
   end
 
+  def eval_arrow_method_object_entry(node)
+    fn = node.value
+    args = eval_expr fn.args
+    f = "#{node.key_name}(#{args}) {\n"
+    f += "#{padding(2)}return #{eval_expr fn.return_expr};\n"
+    f += "#{padding}},"
+  end
+
   def eval_simple_schema_arg(node)
     node.name
   end
@@ -298,7 +307,7 @@ class Compiler
   end
 
   def eval_simple_fn_args(node)
-    node.value.map { |arg| eval_expr arg }.join ", "
+    node.args.map { |arg| eval_expr arg }.join ", "
   end
 
   def eval_not(node)
@@ -344,7 +353,8 @@ class Compiler
   end
 
   def eval_multi_line_bind_function_definition(node)
-    args = node.args.value.map(&:name).join ", "
+    # ugly
+    args = node.args.args.map(&:name).join ", "
     fn = "#{fn_prefix}#{node.function_name}(#{args}) {\n"
     indent!
     fn += "#{padding}if (!(this instanceof #{node.object_name})) throw new MatchError('Expected `this` to be a `#{node.object_name}`');\n"
@@ -362,7 +372,8 @@ class Compiler
   end
 
   def eval_single_line_bind_function_definition(node)
-    args = node.args.value.map(&:name).join ", "
+    # ugly args.args
+    args = node.args.args.map(&:name).join ", "
     fn = "#{fn_prefix}#{node.function_name}(#{args}) {\n"
     indent!
     fn += "#{padding}if (!(this instanceof #{node.object_name})) throw new MatchError('Expected `this` to be a `#{node.object_name}`');\n"
@@ -372,7 +383,7 @@ class Compiler
   end
 
   def eval_spread_expr(node)
-    "...#{eval_expr node.value}"
+    "...#{eval_expr node.expr}"
   end
 
   def eval_null(node)
@@ -606,7 +617,7 @@ class Compiler
   end
 
   def eval_await(node)
-    "await #{eval_expr node.value}"
+    "await #{eval_expr node.expr}"
   end
 
   def eval_simple_schema_assignment(node)
@@ -755,7 +766,7 @@ class Compiler
   end
 
   def eval_array_literal(node)
-    elements = node.value.map { |n| eval_expr n }.join(", ")
+    elements = node.expr.map { |n| eval_expr n }.join(", ")
     "[#{elements}]"
   end
 
@@ -764,26 +775,29 @@ class Compiler
   end
 
   def eval_spread_object_entry(node)
-    "#{padding}...#{eval_expr node.value}"
+    "#{padding}...#{eval_expr node.expr}"
   end
 
   def eval_function_object_entry(node)
     fn = node.value
     args = eval_expr fn.args
-    output = "#{padding}#{node.key_name}(#{args}) {\n"
-    output += Compiler.new(fn.body, @indent + 2, fn.args.value.map(&:name)).eval + "\n"
+    output = "#{node.key_name}(#{args}) {\n"
+    output += Compiler.new(fn.body, @indent + 2, fn_arg_names: fn.args.args.map(&:name)).eval + "\n"
     output + "#{padding}}"
   end
 
   def eval_object_literal(node)
-    whitespace = if node.value.size > 3
+    has_function = node.expr.any? do |node|
+      node.is_a?(AST::ArrowMethodObjectEntry) || node.is_a?(AST::FunctionObjectEntry)
+    end
+    whitespace = if node.expr.size > 3 || has_function
         indent!
         "\n"
       else
         " "
       end
     object_literal = "{#{whitespace}"
-    object_literal += node.value.map { |node| eval_expr node }.join(",#{whitespace}")
+    object_literal += padding + node.expr.map { |entry| eval_expr entry }.join(",#{whitespace}")
     dedent! if whitespace != " "
     object_literal += "#{whitespace}#{padding}}"
   end
@@ -810,20 +824,20 @@ class Compiler
     args = eval_expr fn_node.args
 
     fn = "#{padding}#{fn_prefix}#{fn_node.name}(#{args}) {\n"
-    fn += "#{padding(2)}#{schema_arg_assignments fn_node.args}"
+    fn += "#{padding(2)}#{schema_arg_assignments fn_node.args}".rstrip
     fn += Compiler.new(fn_node.body, @indent + 2).eval + "\n"
     fn += "#{padding}}"
     fn
   end
 
   def schema_arg_assignments(args_node)
-    assignments = args_node.value
+    assignments = args_node.args
       .select { |node| node.is_a?(AST::SimpleSchemaArg) }
       .map do |arg|
       "#{padding}#{arg.name} = s.verify(#{arg.schema_name}, #{arg.name});"
     end.join("\n")
 
-    assignments += args_node.value
+    assignments += args_node.args
       .map.with_index { |node, i| { node: node, i: i } }
       .select { |h| h[:node].is_a?(AST::NullSchema) }
       .map { |h| "#{padding}s.verify(null, arguments[#{h[:i]}], null)" }
@@ -894,7 +908,7 @@ class Compiler
   end
 
   def eval_return(node)
-    "return #{eval_expr node.value}"
+    "return #{eval_expr node.expr}"
   end
 
   def eval_function_call(node)

@@ -1,0 +1,15 @@
+# const Ten = 10;
+# const Eleven = 11;
+# function add(a, b) {
+#   a = s.verify(Ten, a);
+#   b = s.verify(Eleven, b);
+#   return a + b;
+# };
+# console.log(add(10, 11));
+
+schema Ten = 10
+schema Eleven = 11
+
+function add(Ten(a), Eleven(b)) = a + b
+
+console.log add(10, 11)

@@ -1,0 +1,3 @@
+# const User = { id: 10 };
+
+schema User = { id: 10 }

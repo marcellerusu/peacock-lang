@@ -116,6 +116,8 @@ class Parser
   end
 end
 
+### FUNCTION ARGS START
+
 class SimpleSchemaArgParser < Parser
   def self.can_parse?(_self)
     _self.current_token&.type == :identifier &&
@@ -230,6 +232,10 @@ class SimpleFnArgsParser < Parser
   end
 end
 
+### FUNCTION ARGS END
+
+### FUNCTION DEFINITION START
+
 class SingleLineDefWithArgsParser < Parser
   def self.can_parse?(_self)
     _self.current_token&.type == :function &&
@@ -297,18 +303,6 @@ class MultilineDefWithoutArgsParser < Parser
   end
 end
 
-class NotParser < Parser
-  def self.can_parse?(_self)
-    _self.current_token&.type == :not
-  end
-
-  def parse!
-    not_t = consume! :not
-    expr_n = consume_parser! ExprParser
-    AST::Not.new(expr_n, not_t.start_pos, expr_n.end_pos)
-  end
-end
-
 class MultilineDefWithArgsParser < Parser
   def self.can_parse?(_self)
     _self.current_token&.type == :function &&
@@ -329,471 +323,6 @@ class MultilineDefWithArgsParser < Parser
       function_t.start_pos,
       end_t.end_pos
     )
-  end
-end
-
-OPERATORS = [:+, :-, :*, :/, :"&&", :"||", :"===", :"!==", :>, :<, :">=", :"<=", :mod, :"==", :in]
-
-class OperatorParser < Parser
-  def self.can_parse?(_self, lhs_n)
-    _self.current_token&.is_one_of?(*OPERATORS)
-  end
-
-  def parse!(lhs_n)
-    operator_t = consume_any!
-    rhs_n = consume_parser! ExprParser
-    AST::Op.new(lhs_n, operator_t.type, rhs_n, lhs_n.start_pos, rhs_n.end_pos)
-  end
-end
-
-# Complex primatives
-
-class SimpleObjectEntryParser < Parser
-  def self.can_parse?(_self)
-    _self.current_token&.type == :identifier &&
-      _self.peek_token.type == :colon
-  end
-
-  def parse!
-    key_t = consume! :identifier
-    consume! :colon
-    value_n = consume_parser! ExprParser
-
-    AST::SimpleObjectEntry.new(key_t.value, value_n, key_t.start_pos, value_n.end_pos)
-  end
-end
-
-class ArrowMethodObjectEntryParser < Parser
-  def self.can_parse?(_self)
-    _self.current_token&.type == :identifier &&
-      _self.peek_token.type == :open_paren &&
-      _self.rest_of_line.include?("=>")
-  end
-
-  def parse!
-    key_t = consume! :identifier
-    args_n = consume_parser! SimpleFnArgsParser
-    consume! :"=>"
-    return_expr_n = consume_parser! ExprParser
-    AST::ArrowMethodObjectEntry.new(
-      key_t.value,
-      AST::SingleLineArrowFnWithArgs.new(
-        args_n,
-        return_expr_n,
-        args_n.start_pos,
-        return_expr_n.end_pos
-      ),
-      key_t.start_pos,
-      return_expr_n.end_pos
-    )
-  end
-end
-
-class FunctionObjectEntryParser < Parser
-  def self.can_parse?(_self)
-    _self.current_token&.type == :function
-  end
-
-  def parse!
-    fn_n = consume_parser! FunctionDefinitionParser
-    AST::FunctionObjectEntry.new(fn_n.name, fn_n, fn_n.start_pos, fn_n.end_pos)
-  end
-end
-
-class IdentifierLookupParser < Parser
-  def self.can_parse?(_self)
-    _self.current_token&.type == :identifier
-  end
-
-  def parse!
-    id_t = consume! :identifier
-    AST::IdLookup.new(id_t.value, id_t.start_pos, id_t.end_pos)
-  end
-end
-
-class SpreadObjectEntryParser < Parser
-  def self.can_parse?(_self)
-    _self.current_token&.type == :"..."
-  end
-
-  def parsers
-    [
-      IdentifierLookupParser,
-      ObjectParser,
-    ]
-  end
-
-  def parse!
-    spread_t = consume! :"..."
-    expr_n = consume_first_valid_parser! parsers
-    AST::SpreadObjectEntry.new(expr_n, spread_t.start_pos, spread_t.end_pos)
-  end
-end
-
-class ObjectParser < Parser
-  def self.can_parse?(_self)
-    _self.current_token&.type == :"{"
-  end
-
-  ENTRY_PARSERS = [
-    SimpleObjectEntryParser,
-    ArrowMethodObjectEntryParser,
-    FunctionObjectEntryParser,
-    SpreadObjectEntryParser,
-  ]
-
-  def parse!
-    open_brace_t = consume! :"{"
-    values = []
-    loop do
-      break if current_token.type == :"}"
-      values.push consume_first_valid_parser! ENTRY_PARSERS
-      consume_if_present! :comma
-      break if current_token.type == :"}"
-    end
-    close_brace_t = consume! :"}"
-    AST::ObjectLiteral.new(values, open_brace_t.start_pos, close_brace_t.end_pos)
-  end
-end
-
-class ArrayComprehensionParser < Parser
-  def parse!(expr_n, start_pos)
-    consume! :for
-    id_t = consume! :identifier
-    consume! :in
-    array_expr_n = consume_parser! ExprParser
-    if_expr_n = nil
-    if current_token.type == :if
-      consume! :if
-      if_expr_n = consume_parser! ExprParser
-    end
-    close_sq_b_t = consume! :"]"
-    AST::ArrayComprehension.new(
-      expr_n,
-      id_t.value,
-      array_expr_n,
-      if_expr_n,
-      start_pos,
-      close_sq_b_t.end_pos
-    )
-  end
-end
-
-class ArrayParser < Parser
-  def self.can_parse?(_self)
-    _self.current_token&.type == :"["
-  end
-
-  def parse!
-    open_sq_b_t = consume! :"["
-    elems = []
-    if current_token.type == :"]"
-      close_sq_b_t = consume! :"]"
-      return AST::ArrayLiteral.new(elems, open_sq_b_t.start_pos, close_sq_b_t.end_pos)
-    end
-
-    first_expr_n = consume_parser! ExprParser
-
-    if current_token.type == :for
-      return consume_parser! ArrayComprehensionParser, first_expr_n, open_sq_b_t.start_pos
-    end
-    elems.push first_expr_n
-    loop do
-      break if current_token.type == :"]"
-      consume_if_present! :comma
-      elems.push consume_parser! ExprParser
-    end
-    close_sq_b_t = consume! :"]"
-    AST::ArrayLiteral.new(elems, open_sq_b_t.start_pos, close_sq_b_t.end_pos)
-  end
-end
-
-# Simple Primatives
-
-class IntParser < Parser
-  def self.can_parse?(_self)
-    _self.current_token&.type == :int_lit
-  end
-
-  def parse!
-    int_t = consume! :int_lit
-    AST::Int.new(int_t.value, int_t.start_pos, int_t.end_pos)
-  end
-end
-
-class FloatParser < Parser
-  def self.can_parse?(_self)
-    _self.current_token&.type == :float_lit
-  end
-
-  def parse!
-    float_t = consume! :float_lit
-    AST::Float.new(float_t.value, float_t.start_pos, float_t.end_pos)
-  end
-end
-
-class SimpleStringParser < Parser
-  def self.can_parse?(_self)
-    _self.current_token&.type == :str_lit
-  end
-
-  def parse!
-    str_t = consume! :str_lit
-    AST::SimpleString.new(str_t.value, str_t.start_pos, str_t.end_pos)
-  end
-end
-
-# Statements
-
-class SimpleReassignmentParser < Parser
-  def self.can_parse?(_self)
-    _self.current_token&.type == :identifier &&
-      _self.peek_token&.type == :"="
-  end
-
-  def parse!
-    id_t = consume! :identifier
-    consume! :"="
-    expr_n = consume_parser! ExprParser
-
-    AST::SimpleReassignment.new(id_t.value, expr_n, id_t.start_pos, expr_n.end_pos)
-  end
-end
-
-class SimpleAssignmentParser < Parser
-  def self.can_parse?(_self)
-    _self.current_token&.type == :identifier &&
-      _self.peek_token&.type == :assign
-  end
-
-  def parse!
-    id_t = consume! :identifier
-    consume! :assign
-    expr_n = consume_parser! ExprParser
-
-    AST::SimpleAssignment.new(id_t.value, expr_n, id_t.start_pos, expr_n.end_pos)
-  end
-end
-
-class DefaultAssignmentParser < Parser
-  def self.can_parse?(_self, lhs)
-    _self.current_token&.type == :"||="
-  end
-
-  def parse!(lhs_n)
-    consume! :"||="
-    expr_n = consume_parser! ExprParser
-    AST::DefaultAssignment.new(lhs_n, expr_n, lhs_n.start_pos, expr_n.end_pos)
-  end
-end
-
-class PlusAssignmentParser < Parser
-  def self.can_parse?(_self, lhs)
-    _self.current_token&.type == :"+="
-  end
-
-  def parse!(lhs_n)
-    consume! :"+="
-    expr_n = consume_parser! ExprParser
-    AST::PlusAssignment.new(lhs_n, expr_n, lhs_n.start_pos, expr_n.end_pos)
-  end
-end
-
-class FunctionCallWithoutArgs < Parser
-  def self.can_parse?(_self, lhs)
-    _self.current_token&.type == :open_paren &&
-      _self.peek_token.type == :close_paren
-  end
-
-  def parse!(lhs_n)
-    open_p_t = consume! :open_paren
-    close_p_t = consume! :close_paren
-
-    AST::FnCall.new([], lhs_n, open_p_t.start_pos, close_p_t.end_pos)
-  end
-end
-
-class FunctionCallWithArgs < Parser
-  def self.can_parse?(_self, lhs)
-    _self.current_token&.type == :open_paren
-  end
-
-  def parse!(lhs_n)
-    open_p_t = consume! :open_paren
-    args = []
-    loop do
-      args.push consume_parser! ExprParser
-      consume_if_present! :comma
-      break if current_token.type == :close_paren
-    end
-    close_p_t = consume! :close_paren
-
-    AST::FnCall.new(args, lhs_n, open_p_t.start_pos, close_p_t.end_pos)
-  end
-end
-
-class SimpleWhenParser < Parser
-  def self.can_parse?(_self)
-    _self.current_token&.type == :when
-  end
-
-  def parse!
-    when_t = consume! :when
-    expr_n = consume_parser! ExprParser
-    body = consume_parser! ProgramParser, end_tokens: [:when, :else]
-    AST::SimpleWhen.new(expr_n, body, when_t.start_pos, body.last&.end_pos || expr_n.end_pos)
-  end
-end
-
-class CaseElseParser < Parser
-  def self.can_parse?(_self)
-    _self.current_token&.type == :else
-  end
-
-  def parse!
-    else_t = consume! :else
-    body = consume_parser! ProgramParser
-    AST::CaseElse.new(body, else_t.start_pos, body.last&.end_pos || else_t.end_pos)
-  end
-end
-
-class WhenParser < Parser
-  PARSERS = [SimpleWhenParser, CaseElseParser]
-
-  def self.can_parse?(_self)
-    PARSERS.any? { |klass| klass.can_parse? _self }
-  end
-
-  def parse!
-    consume_first_valid_parser! PARSERS
-  end
-end
-
-class EmptyCaseExprParser < Parser
-  def self.can_parse?(_self)
-    _self.current_token&.type == :case &&
-      _self.new_line?(1)
-  end
-
-  def parse!
-    case_t = consume! :case
-    cases = []
-    loop do
-      break if current_token&.type == :end
-      cases.push consume_parser! WhenParser
-    end
-    end_t = consume! :end
-
-    AST::EmptyCaseExpr.new(cases, case_t.start_pos, end_t.end_pos)
-  end
-end
-
-class FunctionCallWithArgsWithoutParens < Parser
-  def self.can_parse?(_self, lhs)
-    _self.current_token&.is_not_one_of?(:assign, :comma, :"]", :for, :if, :close_paren, :"}") &&
-      !_self.new_line?
-  end
-
-  def end_of_expr?
-    current_token&.is_one_of? :"}", :close_paren
-  end
-
-  def parse!(lhs_n)
-    args = []
-
-    loop do
-      args.push consume_parser! ExprParser
-      break if new_line? || end_of_expr?
-      consume! :comma
-    end
-
-    AST::FnCall.new(args, lhs_n, lhs_n.end_pos, args.last.end_pos)
-  end
-end
-
-class DotParser < Parser
-  def self.can_parse?(_self, lhs)
-    _self.current_token&.type == :dot
-  end
-
-  def parse!(lhs_n)
-    dot_t = consume! :dot
-    rhs_n = consume_parser! IdentifierLookupParser
-    AST::Dot.new(lhs_n, ".", rhs_n, dot_t.start_pos, rhs_n.end_pos)
-  end
-end
-
-class BindParser < Parser
-  def self.can_parse?(_self, lhs)
-    _self.current_token&.type == :"::"
-  end
-
-  def parse_args_without_parens!
-    args = []
-
-    start_line = current_line
-    loop do
-      break if current_token.nil?
-      break if current_line != start_line
-      args.push consume_parser! ExprParser
-      break if current_token.nil?
-      break if current_line != start_line
-      consume! :comma
-    end
-
-    args
-  end
-
-  def parse_args!
-    return [] if new_line?
-    return parse_args_without_parens! if current_token.type != :open_paren
-
-    consume! :open_paren
-    args = []
-    loop do
-      args.push consume_parser! ExprParser
-      break if current_token.type == :close_paren
-      consume! :comma
-    end
-    consume! :close_paren
-
-    args
-  end
-
-  def parse!(lhs_n)
-    bind_t = consume! :"::"
-    fn_name_n = consume_parser! IdentifierLookupParser
-    args = parse_args!
-    AST::Bind.new(lhs_n, fn_name_n, args)
-  end
-end
-
-class OptionalChainParser < Parser
-  def self.can_parse?(_self, lhs)
-    _self.current_token&.type == :"?."
-  end
-
-  def parse!(lhs)
-    q_t = consume! :"?."
-    property_t = consume! :identifier
-    AST::OptionalChain.new(
-      lhs,
-      property_t.value,
-      q_t.start_pos,
-      property_t.end_pos
-    )
-  end
-end
-
-class ReturnParser < Parser
-  def self.can_parse?(_self)
-    _self.current_token&.type == :return
-  end
-
-  def parse!
-    return_t = consume! :return
-    expr_n = consume_parser! ExprParser
-    AST::Return.new(expr_n, return_t.start_pos, expr_n.end_pos)
   end
 end
 
@@ -917,6 +446,587 @@ class SingleLineArrowFnWithOneArgParser < Parser
   end
 end
 
+class ReturnParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :return
+  end
+
+  def parse!
+    return_t = consume! :return
+    expr_n = consume_parser! ExprParser
+    AST::Return.new(expr_n, return_t.start_pos, expr_n.end_pos)
+  end
+end
+
+### FUNCTION DEFINITION END
+
+### FUNCTION CALLS START
+
+class FunctionCallWithoutArgs < Parser
+  def self.can_parse?(_self, lhs)
+    _self.current_token&.type == :open_paren &&
+      _self.peek_token.type == :close_paren
+  end
+
+  def parse!(lhs_n)
+    open_p_t = consume! :open_paren
+    close_p_t = consume! :close_paren
+
+    AST::FnCall.new([], lhs_n, open_p_t.start_pos, close_p_t.end_pos)
+  end
+end
+
+class FunctionCallWithArgs < Parser
+  def self.can_parse?(_self, lhs)
+    _self.current_token&.type == :open_paren
+  end
+
+  def parse!(lhs_n)
+    open_p_t = consume! :open_paren
+    args = []
+    loop do
+      args.push consume_parser! ExprParser
+      consume_if_present! :comma
+      break if current_token.type == :close_paren
+    end
+    close_p_t = consume! :close_paren
+
+    AST::FnCall.new(args, lhs_n, open_p_t.start_pos, close_p_t.end_pos)
+  end
+end
+
+class FunctionCallWithArgsWithoutParens < Parser
+  def self.can_parse?(_self, lhs)
+    _self.current_token&.is_not_one_of?(:assign, :comma, :"]", :for, :if, :close_paren, :"}") &&
+      !_self.new_line?
+  end
+
+  def end_of_expr?
+    current_token&.is_one_of? :"}", :close_paren
+  end
+
+  def parse!(lhs_n)
+    args = []
+
+    loop do
+      args.push consume_parser! ExprParser
+      break if new_line? || end_of_expr?
+      consume! :comma
+    end
+
+    AST::FnCall.new(args, lhs_n, lhs_n.end_pos, args.last.end_pos)
+  end
+end
+
+### FUNCTION CALLS END
+
+### OPERATORS START
+
+class NotParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :not
+  end
+
+  def parse!
+    not_t = consume! :not
+    expr_n = consume_parser! ExprParser
+    AST::Not.new(expr_n, not_t.start_pos, expr_n.end_pos)
+  end
+end
+
+OPERATORS = [:+, :-, :*, :/, :"&&", :"||", :"===", :"!==", :>, :<, :">=", :"<=", :mod, :"==", :in]
+
+class OperatorParser < Parser
+  def self.can_parse?(_self, lhs_n)
+    _self.current_token&.is_one_of?(*OPERATORS)
+  end
+
+  def parse!(lhs_n)
+    operator_t = consume_any!
+    rhs_n = consume_parser! ExprParser
+    AST::Op.new(lhs_n, operator_t.type, rhs_n, lhs_n.start_pos, rhs_n.end_pos)
+  end
+end
+
+class DotParser < Parser
+  def self.can_parse?(_self, lhs)
+    _self.current_token&.type == :dot
+  end
+
+  def parse!(lhs_n)
+    dot_t = consume! :dot
+    rhs_n = consume_parser! IdentifierLookupParser
+    AST::Dot.new(lhs_n, ".", rhs_n, dot_t.start_pos, rhs_n.end_pos)
+  end
+end
+
+class BindParser < Parser
+  def self.can_parse?(_self, lhs)
+    _self.current_token&.type == :"::"
+  end
+
+  def parse_args_without_parens!
+    args = []
+
+    start_line = current_line
+    loop do
+      break if current_token.nil?
+      break if current_line != start_line
+      args.push consume_parser! ExprParser
+      break if current_token.nil?
+      break if current_line != start_line
+      consume! :comma
+    end
+
+    args
+  end
+
+  def parse_args!
+    return [] if new_line?
+    return parse_args_without_parens! if current_token.type != :open_paren
+
+    consume! :open_paren
+    args = []
+    loop do
+      args.push consume_parser! ExprParser
+      break if current_token.type == :close_paren
+      consume! :comma
+    end
+    consume! :close_paren
+
+    args
+  end
+
+  def parse!(lhs_n)
+    bind_t = consume! :"::"
+    fn_name_n = consume_parser! IdentifierLookupParser
+    args = parse_args!
+    AST::Bind.new(lhs_n, fn_name_n, args)
+  end
+end
+
+class OptionalChainParser < Parser
+  def self.can_parse?(_self, lhs)
+    _self.current_token&.type == :"?."
+  end
+
+  def parse!(lhs)
+    q_t = consume! :"?."
+    property_t = consume! :identifier
+    AST::OptionalChain.new(
+      lhs,
+      property_t.value,
+      q_t.start_pos,
+      property_t.end_pos
+    )
+  end
+end
+
+class AwaitParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :await
+  end
+
+  def parse!
+    await_t = consume! :await
+    expr_n = consume_parser! ExprParser
+    AST::Await.new(expr_n, await_t.start_pos, expr_n.end_pos)
+  end
+end
+
+### OPERATORS END
+
+### OBJECT LITERALS START
+
+class SimpleObjectEntryParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :identifier &&
+      _self.peek_token.type == :colon
+  end
+
+  def parse!
+    key_t = consume! :identifier
+    consume! :colon
+    value_n = consume_parser! ExprParser
+
+    AST::SimpleObjectEntry.new(key_t.value, value_n, key_t.start_pos, value_n.end_pos)
+  end
+end
+
+class ArrowMethodObjectEntryParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :identifier &&
+      _self.peek_token.type == :open_paren &&
+      _self.rest_of_line.include?("=>")
+  end
+
+  def parse!
+    key_t = consume! :identifier
+    args_n = consume_parser! SimpleFnArgsParser
+    consume! :"=>"
+    return_expr_n = consume_parser! ExprParser
+    AST::ArrowMethodObjectEntry.new(
+      key_t.value,
+      AST::SingleLineArrowFnWithArgs.new(
+        args_n,
+        return_expr_n,
+        args_n.start_pos,
+        return_expr_n.end_pos
+      ),
+      key_t.start_pos,
+      return_expr_n.end_pos
+    )
+  end
+end
+
+class FunctionObjectEntryParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :function
+  end
+
+  def parse!
+    fn_n = consume_parser! FunctionDefinitionParser
+    AST::FunctionObjectEntry.new(fn_n.name, fn_n, fn_n.start_pos, fn_n.end_pos)
+  end
+end
+
+class IdentifierLookupParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :identifier
+  end
+
+  def parse!
+    id_t = consume! :identifier
+    AST::IdLookup.new(id_t.value, id_t.start_pos, id_t.end_pos)
+  end
+end
+
+class SpreadObjectEntryParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :"..."
+  end
+
+  def parsers
+    [
+      IdentifierLookupParser,
+      ObjectParser,
+    ]
+  end
+
+  def parse!
+    spread_t = consume! :"..."
+    expr_n = consume_first_valid_parser! parsers
+    AST::SpreadObjectEntry.new(expr_n, spread_t.start_pos, spread_t.end_pos)
+  end
+end
+
+class ObjectParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :"{"
+  end
+
+  ENTRY_PARSERS = [
+    SimpleObjectEntryParser,
+    ArrowMethodObjectEntryParser,
+    FunctionObjectEntryParser,
+    SpreadObjectEntryParser,
+  ]
+
+  def parse!
+    open_brace_t = consume! :"{"
+    values = []
+    loop do
+      break if current_token.type == :"}"
+      values.push consume_first_valid_parser! ENTRY_PARSERS
+      consume_if_present! :comma
+      break if current_token.type == :"}"
+    end
+    close_brace_t = consume! :"}"
+    AST::ObjectLiteral.new(values, open_brace_t.start_pos, close_brace_t.end_pos)
+  end
+end
+
+### OBJECT LITERALS END
+
+### ARRAY LITERALS START
+
+class ArrayComprehensionParser < Parser
+  def parse!(expr_n, start_pos)
+    consume! :for
+    id_t = consume! :identifier
+    consume! :in
+    array_expr_n = consume_parser! ExprParser
+    if_expr_n = nil
+    if current_token.type == :if
+      consume! :if
+      if_expr_n = consume_parser! ExprParser
+    end
+    close_sq_b_t = consume! :"]"
+    AST::ArrayComprehension.new(
+      expr_n,
+      id_t.value,
+      array_expr_n,
+      if_expr_n,
+      start_pos,
+      close_sq_b_t.end_pos
+    )
+  end
+end
+
+class ArrayParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :"["
+  end
+
+  def parse!
+    open_sq_b_t = consume! :"["
+    elems = []
+    if current_token.type == :"]"
+      close_sq_b_t = consume! :"]"
+      return AST::ArrayLiteral.new(elems, open_sq_b_t.start_pos, close_sq_b_t.end_pos)
+    end
+
+    first_expr_n = consume_parser! ExprParser
+
+    if current_token.type == :for
+      return consume_parser! ArrayComprehensionParser, first_expr_n, open_sq_b_t.start_pos
+    end
+    elems.push first_expr_n
+    loop do
+      break if current_token.type == :"]"
+      consume_if_present! :comma
+      elems.push consume_parser! ExprParser
+    end
+    close_sq_b_t = consume! :"]"
+    AST::ArrayLiteral.new(elems, open_sq_b_t.start_pos, close_sq_b_t.end_pos)
+  end
+end
+
+### ARRAY LITERALS END
+
+### PRIMATIVES START
+
+class IntParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :int_lit
+  end
+
+  def parse!
+    int_t = consume! :int_lit
+    AST::Int.new(int_t.value, int_t.start_pos, int_t.end_pos)
+  end
+end
+
+class FloatParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :float_lit
+  end
+
+  def parse!
+    float_t = consume! :float_lit
+    AST::Float.new(float_t.value, float_t.start_pos, float_t.end_pos)
+  end
+end
+
+class SimpleStringParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :str_lit
+  end
+
+  def parse!
+    str_t = consume! :str_lit
+    AST::SimpleString.new(str_t.value, str_t.start_pos, str_t.end_pos)
+  end
+end
+
+class BoolParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :bool_lit
+  end
+
+  def parse!
+    bool_t = consume! :bool_lit
+    AST::Bool.new(bool_t.value, bool_t.start_pos, bool_t.end_pos)
+  end
+end
+
+class NullParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :null
+  end
+
+  def parse!
+    null_t = consume! :null
+    AST::Null.new(null_t.start_pos, null_t.end_pos)
+  end
+end
+
+### PRIMATIVES END
+
+### ASSIGNMENTS START
+
+class SimpleReassignmentParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :identifier &&
+      _self.peek_token&.type == :"="
+  end
+
+  def parse!
+    id_t = consume! :identifier
+    consume! :"="
+    expr_n = consume_parser! ExprParser
+
+    AST::SimpleReassignment.new(id_t.value, expr_n, id_t.start_pos, expr_n.end_pos)
+  end
+end
+
+class SimpleAssignmentParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :identifier &&
+      _self.peek_token&.type == :assign
+  end
+
+  def parse!
+    id_t = consume! :identifier
+    consume! :assign
+    expr_n = consume_parser! ExprParser
+
+    AST::SimpleAssignment.new(id_t.value, expr_n, id_t.start_pos, expr_n.end_pos)
+  end
+end
+
+class DefaultAssignmentParser < Parser
+  def self.can_parse?(_self, lhs)
+    _self.current_token&.type == :"||="
+  end
+
+  def parse!(lhs_n)
+    consume! :"||="
+    expr_n = consume_parser! ExprParser
+    AST::DefaultAssignment.new(lhs_n, expr_n, lhs_n.start_pos, expr_n.end_pos)
+  end
+end
+
+class PlusAssignmentParser < Parser
+  def self.can_parse?(_self, lhs)
+    _self.current_token&.type == :"+="
+  end
+
+  def parse!(lhs_n)
+    consume! :"+="
+    expr_n = consume_parser! ExprParser
+    AST::PlusAssignment.new(lhs_n, expr_n, lhs_n.start_pos, expr_n.end_pos)
+  end
+end
+
+class DotAssignmentParser < Parser
+  def self.can_parse?(_self, lhs)
+    lhs.is_a?(AST::Dot) &&
+      _self.current_token&.type == :assign
+  end
+
+  def parse!(lhs_n)
+    assign_t = consume! :assign
+    expr_n = consume_parser! ExprParser
+    AST::DotAssignment.new(
+      lhs_n,
+      expr_n,
+      assign_t.start_pos,
+      expr_n.end_pos
+    )
+  end
+end
+
+class ArrayAssignmentParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token.type == :"[" &&
+      _self.rest_of_line.include?(":=")
+  end
+
+  def parse!
+    open_t = consume! :"["
+    variables = []
+    loop do
+      variables.push consume!(:identifier).value
+      break if current_token.type == :"]"
+      consume! :comma
+    end
+    close_t = consume! :"]"
+    consume! :assign
+    expr_n = consume_parser! ExprParser
+    AST::ArrayAssignment.new(
+      variables,
+      expr_n,
+      open_t.start_pos,
+      expr_n.end_pos
+    )
+  end
+end
+
+### ASSIGNMENTS END
+
+### CASE EXPRESSIONS START
+
+class SimpleWhenParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :when
+  end
+
+  def parse!
+    when_t = consume! :when
+    expr_n = consume_parser! ExprParser
+    body = consume_parser! ProgramParser, end_tokens: [:when, :else]
+    AST::SimpleWhen.new(expr_n, body, when_t.start_pos, body.last&.end_pos || expr_n.end_pos)
+  end
+end
+
+class CaseElseParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :else
+  end
+
+  def parse!
+    else_t = consume! :else
+    body = consume_parser! ProgramParser
+    AST::CaseElse.new(body, else_t.start_pos, body.last&.end_pos || else_t.end_pos)
+  end
+end
+
+class WhenParser < Parser
+  PARSERS = [SimpleWhenParser, CaseElseParser]
+
+  def self.can_parse?(_self)
+    PARSERS.any? { |klass| klass.can_parse? _self }
+  end
+
+  def parse!
+    consume_first_valid_parser! PARSERS
+  end
+end
+
+class EmptyCaseExprParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :case &&
+      _self.new_line?(1)
+  end
+
+  def parse!
+    case_t = consume! :case
+    cases = []
+    loop do
+      break if current_token&.type == :end
+      cases.push consume_parser! WhenParser
+    end
+    end_t = consume! :end
+
+    AST::EmptyCaseExpr.new(cases, case_t.start_pos, end_t.end_pos)
+  end
+end
+
+### CASE EXPRESSIONS END
+
+### FOR LOOPS START
+
 class SimpleForOfLoopParser < Parser
   def self.can_parse?(_self)
     _self.current_token&.type == :for &&
@@ -935,28 +1045,57 @@ class SimpleForOfLoopParser < Parser
   end
 end
 
-class AwaitParser < Parser
+class ForOfObjDeconstructLoopParser < Parser
   def self.can_parse?(_self)
-    _self.current_token&.type == :await
+    _self.current_token&.type == :for &&
+      _self.peek_token.type == :"{"
   end
 
   def parse!
-    await_t = consume! :await
-    expr_n = consume_parser! ExprParser
-    AST::Await.new(expr_n, await_t.start_pos, expr_n.end_pos)
+    for_t = consume! :for
+    properties = []
+    consume! :"{"
+    loop do
+      properties.push consume!(:identifier).value
+      break if current_token.type == :"}"
+      consume! :comma
+    end
+    consume! :"}"
+    consume! :of
+    arr_expr_n = consume_parser! ExprParser
+    body = consume_parser! ProgramParser
+    end_t = consume! :end
+    AST::ForOfObjDeconstructLoop.new(properties, arr_expr_n, body, for_t.start_pos, end_t.end_pos)
   end
 end
 
-class BoolParser < Parser
+class SimpleForInLoopParser < Parser
   def self.can_parse?(_self)
-    _self.current_token&.type == :bool_lit
+    _self.current_token.type == :for &&
+      _self.peek_token.type == :identifier &&
+      _self.peek_token_twice.type == :in
   end
 
   def parse!
-    bool_t = consume! :bool_lit
-    AST::Bool.new(bool_t.value, bool_t.start_pos, bool_t.end_pos)
+    for_t = consume! :for
+    variable_t = consume! :identifier
+    consume! :in
+    object_n = consume_parser! ExprParser
+    body = consume_parser! ProgramParser
+    end_t = consume! :end
+    AST::SimpleForInLoop.new(
+      variable_t.value,
+      object_n,
+      body,
+      for_t.start_pos,
+      end_t.end_pos
+    )
   end
 end
+
+### FOR LOOPS END
+
+### XML START
 
 class SimpleElementParser < Parser
   def self.can_parse?(_self)
@@ -1018,23 +1157,7 @@ class ElementParser < Parser
   end
 end
 
-class DotAssignmentParser < Parser
-  def self.can_parse?(_self, lhs)
-    lhs.is_a?(AST::Dot) &&
-      _self.current_token&.type == :assign
-  end
-
-  def parse!(lhs_n)
-    assign_t = consume! :assign
-    expr_n = consume_parser! ExprParser
-    AST::DotAssignment.new(
-      lhs_n,
-      expr_n,
-      assign_t.start_pos,
-      expr_n.end_pos
-    )
-  end
-end
+### XML END
 
 class ThisParser < Parser
   def self.can_parse?(_self)
@@ -1043,7 +1166,7 @@ class ThisParser < Parser
 
   def parse!
     this_t = consume! :this
-    AST::This.new(this_t.value, this_t.start_pos, this_t.end_pos)
+    AST::This.new(this_t.start_pos, this_t.end_pos)
   end
 end
 
@@ -1118,6 +1241,8 @@ class SchemaCaptureParser < Parser
   end
 end
 
+### RANGE START
+
 class RangeOperandParser < Parser
   PARSERS = [
     IdentifierLookupParser,
@@ -1147,109 +1272,9 @@ class RangeParser < Parser
   end
 end
 
-class NullParser < Parser
-  def self.can_parse?(_self)
-    _self.current_token&.type == :null
-  end
+### RANGE END
 
-  def parse!
-    null_t = consume! :null
-    AST::Null.new(null_t.start_pos, null_t.end_pos)
-  end
-end
-
-class SpreadExprParser < Parser
-  def self.can_parse?(_self)
-    _self.current_token&.type == :"..."
-  end
-
-  def parse!
-    spread_t = consume! :"..."
-    expr_n = consume_parser! ExprParser
-
-    AST::SpreadExpr.new(expr_n, spread_t.start_pos, expr_n.end_pos)
-  end
-end
-
-class ExprParser < Parser
-  # order matters
-  PRIMARY_PARSERS = [
-    NullParser,
-    IntParser,
-    FloatParser,
-    ThisParser,
-    BoolParser,
-    SimpleStringParser,
-    AnonIdLookupParser,
-    NewParser,
-    ArrayParser,
-    ObjectParser,
-    MultiLineArrowFnWithArgsParser,
-    SingleLineArrowFnWithOneArgParser,
-    IdentifierLookupParser,
-    ShortAnonFnWithNamedArgParser,
-    ShortAnonFnParser,
-    SingleLineArrowFnWithoutArgsParser,
-    SingleLineArrowFnWithArgsParser,
-    AwaitParser,
-    SpreadExprParser,
-    ElementParser,
-    SchemaCaptureParser,
-    EmptyCaseExprParser,
-    NotParser,
-  ]
-
-  SECONDARY_PARSERS = [
-    RangeParser,
-    OperatorParser,
-    DotAssignmentParser,
-    DotParser,
-    BindParser,
-    OptionalChainParser,
-    DynamicLookupParser,
-    DefaultAssignmentParser,
-    PlusAssignmentParser,
-    FunctionCallWithoutArgs,
-    FunctionCallWithArgs,
-    FunctionCallWithArgsWithoutParens,
-  ]
-
-  def parse!
-    expr_n = consume_first_valid_parser! PRIMARY_PARSERS do
-      binding.pry
-    end
-    loop do
-      secondary_klass = SECONDARY_PARSERS.find { |parser_klass| parser_klass.can_parse?(self, expr_n) }
-      break if !secondary_klass
-      expr_n = consume_parser! secondary_klass, expr_n
-    end
-    expr_n
-  end
-end
-
-class ForOfObjDeconstructLoopParser < Parser
-  def self.can_parse?(_self)
-    _self.current_token&.type == :for &&
-      _self.peek_token.type == :"{"
-  end
-
-  def parse!
-    for_t = consume! :for
-    properties = []
-    consume! :"{"
-    loop do
-      properties.push consume!(:identifier).value
-      break if current_token.type == :"}"
-      consume! :comma
-    end
-    consume! :"}"
-    consume! :of
-    arr_expr_n = consume_parser! ExprParser
-    body = consume_parser! ProgramParser
-    end_t = consume! :end
-    AST::ForOfObjDeconstructLoop.new(properties, arr_expr_n, body, for_t.start_pos, end_t.end_pos)
-  end
-end
+### SCHEMA START
 
 class SchemaObjectParser < Parser
   def self.can_parse?(_self)
@@ -1401,6 +1426,77 @@ class ThisSchemaArgParser < Parser
   end
 end
 
+class SpreadExprParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :"..."
+  end
+
+  def parse!
+    spread_t = consume! :"..."
+    expr_n = consume_parser! ExprParser
+
+    AST::SpreadExpr.new(expr_n, spread_t.start_pos, expr_n.end_pos)
+  end
+end
+
+### SCHEMA END
+
+class ExprParser < Parser
+  # order matters
+  PRIMARY_PARSERS = [
+    NullParser,
+    IntParser,
+    FloatParser,
+    ThisParser,
+    BoolParser,
+    SimpleStringParser,
+    AnonIdLookupParser,
+    NewParser,
+    ArrayParser,
+    ObjectParser,
+    MultiLineArrowFnWithArgsParser,
+    SingleLineArrowFnWithOneArgParser,
+    IdentifierLookupParser,
+    ShortAnonFnWithNamedArgParser,
+    ShortAnonFnParser,
+    SingleLineArrowFnWithoutArgsParser,
+    SingleLineArrowFnWithArgsParser,
+    AwaitParser,
+    SpreadExprParser,
+    ElementParser,
+    SchemaCaptureParser,
+    EmptyCaseExprParser,
+    NotParser,
+  ]
+
+  SECONDARY_PARSERS = [
+    RangeParser,
+    OperatorParser,
+    DotAssignmentParser,
+    DotParser,
+    BindParser,
+    OptionalChainParser,
+    DynamicLookupParser,
+    DefaultAssignmentParser,
+    PlusAssignmentParser,
+    FunctionCallWithoutArgs,
+    FunctionCallWithArgs,
+    FunctionCallWithArgsWithoutParens,
+  ]
+
+  def parse!
+    expr_n = consume_first_valid_parser! PRIMARY_PARSERS do
+      binding.pry
+    end
+    loop do
+      secondary_klass = SECONDARY_PARSERS.find { |parser_klass| parser_klass.can_parse?(self, expr_n) }
+      break if !secondary_klass
+      expr_n = consume_parser! secondary_klass, expr_n
+    end
+    expr_n
+  end
+end
+
 class CaseFunctionParser < Parser
   def self.can_parse?(_self)
     _self.current_token.type == :case &&
@@ -1516,6 +1612,8 @@ class FunctionDefinitionParser < Parser
   end
 end
 
+### COMPONENTS START
+
 class BodyComponentWithoutAttrsParser < Parser
   def self.can_parse?(_self)
     _self.current_token.type == :component
@@ -1584,6 +1682,10 @@ class SimpleComponentParser < Parser
   end
 end
 
+### COMPONENTS END
+
+### CLASSES START
+
 class ConstructorWithoutArgsParser < Parser
   def self.can_parse?(_self)
     _self.current_token&.type == :function &&
@@ -1593,7 +1695,7 @@ class ConstructorWithoutArgsParser < Parser
   def parse!
     function_t = consume! :function
     fn_name_t = consume! :identifier
-    body = consume_parser! ConstructorBodyParser
+    body = consume_parser! ProgramParser
     end_t = consume! :end
     AST::ConstructorWithoutArgs.new(
       fn_name_t.value,
@@ -1615,7 +1717,7 @@ class ConstructorWithArgsParser < Parser
     function_t = consume! :function
     fn_name_t = consume! :identifier
     args_n = consume_parser! SimpleFnArgsParser
-    body = consume_parser! ConstructorBodyParser
+    body = consume_parser! ProgramParser
     end_t = consume! :end
     AST::ConstructorWithArgs.new(
       fn_name_t.value,
@@ -1804,55 +1906,9 @@ class ClassParser < Parser
   end
 end
 
-class SimpleForInLoopParser < Parser
-  def self.can_parse?(_self)
-    _self.current_token.type == :for &&
-      _self.peek_token.type == :identifier &&
-      _self.peek_token_twice.type == :in
-  end
+### CLASSES END
 
-  def parse!
-    for_t = consume! :for
-    variable_t = consume! :identifier
-    consume! :in
-    object_n = consume_parser! ExprParser
-    body = consume_parser! ProgramParser
-    end_t = consume! :end
-    AST::SimpleForInLoop.new(
-      variable_t.value,
-      object_n,
-      body,
-      for_t.start_pos,
-      end_t.end_pos
-    )
-  end
-end
-
-class ArrayAssignmentParser < Parser
-  def self.can_parse?(_self)
-    _self.current_token.type == :"[" &&
-      _self.rest_of_line.include?(":=")
-  end
-
-  def parse!
-    open_t = consume! :"["
-    variables = []
-    loop do
-      variables.push consume!(:identifier).value
-      break if current_token.type == :"]"
-      consume! :comma
-    end
-    close_t = consume! :"]"
-    consume! :assign
-    expr_n = consume_parser! ExprParser
-    AST::ArrayAssignment.new(
-      variables,
-      expr_n,
-      open_t.start_pos,
-      expr_n.end_pos
-    )
-  end
-end
+### IF STATEMENTS START
 
 class ElseIfParser < Parser
   def self.can_parse?(_self)
@@ -1915,6 +1971,8 @@ class IfParser < Parser
   end
 end
 
+### IF STATEMENTS END
+
 class ProgramParser < Parser
   def initialize(*args)
     super(*args)
@@ -1964,9 +2022,6 @@ class ComponentConstructorParser < ProgramParser
   def parse!
     super end_tokens: [:in]
   end
-end
-
-class ConstructorBodyParser < ProgramParser
 end
 
 class FunctionBodyParser < ProgramParser

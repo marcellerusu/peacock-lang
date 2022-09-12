@@ -2,10 +2,9 @@ require "pry"
 
 module AST
   class Node
-    attr_reader :value, :start_pos, :end_pos
+    attr_reader :start_pos, :end_pos
 
-    def initialize(value, start_pos, end_pos)
-      @value = value
+    def initialize(start_pos, end_pos)
       @start_pos = start_pos
       @end_pos = end_pos
     end
@@ -48,18 +47,14 @@ module AST
       @end_pos = val
     end
 
-    def sub_symbols
-      sym
-        .sub("?", "_q")
-        .sub("!", "_b")
-    end
-
     def captures
       []
     end
   end
 
-  class Int < Node
+  class Primitive < Node
+    attr_reader :value
+
     def initialize(value, start_pos, end_pos)
       @value = value
       @start_pos = start_pos
@@ -67,20 +62,39 @@ module AST
     end
   end
 
-  class Float < Node
-    def initialize(value, start_pos, end_pos)
-      @value = value
+  class Int < Primitive
+  end
+
+  class Float < Primitive
+  end
+
+  class Bool < Primitive
+  end
+
+  class SimpleString < Primitive
+  end
+
+  class Expr < Node
+    attr_reader :expr
+
+    def initialize(expr, start_pos, end_pos)
+      @expr = expr
       @start_pos = start_pos
       @end_pos = end_pos
     end
   end
 
-  class Bool < Node
-    def initialize(value, start_pos, end_pos)
-      @value = value
-      @start_pos = start_pos
-      @end_pos = end_pos
+  class ArrayLiteral < Expr
+    def captures
+      list = []
+      @value.each do |val|
+        list.concat val.captures
+      end
+      list
     end
+  end
+
+  class ObjectLiteral < Expr
   end
 
   class NamedArg < Node
@@ -121,26 +135,17 @@ module AST
   end
 
   class SimpleFnArgs < Node
-  end
+    attr_reader :args
 
-  class SimpleString < Node
-  end
-
-  class ArrayLiteral < Node
-    def captures
-      list = []
-      @value.each do |val|
-        list.concat val.captures
-      end
-      list
+    def initialize(args, start_pos, end_pos)
+      @args = args
+      @start_pos = start_pos
+      @end_pos = end_pos
     end
   end
 
-  class ObjectLiteral < Node
-  end
-
   class ObjectEntry < Node
-    attr_reader :key_name
+    attr_reader :key_name, :value
 
     def initialize(key_name, value, start_pos, end_pos)
       @key_name = key_name
@@ -159,17 +164,10 @@ module AST
   class FunctionObjectEntry < ObjectEntry
   end
 
-  class SpreadObjectEntry < Node
+  class SpreadObjectEntry < Expr
   end
 
-  class Not < Node
-    attr_reader :expr
-
-    def initialize(expr, start_pos, end_pos)
-      @expr = expr
-      @start_pos = start_pos
-      @end_pos = end_pos
-    end
+  class Not < Expr
   end
 
   class SchemaDefinition < Node
@@ -338,7 +336,7 @@ module AST
     end
   end
 
-  class SpreadExpr < Node
+  class SpreadExpr < Expr
   end
 
   class OneLineGetter < Node
@@ -363,12 +361,7 @@ module AST
     end
   end
 
-  class Return < Node
-    def initialize(value, start_pos, end_pos)
-      @value = value
-      @start_pos = start_pos
-      @end_pos = end_pos
-    end
+  class Return < Expr
   end
 
   class If < Node
@@ -440,18 +433,9 @@ module AST
   end
 
   class Null < Node
-    def initialize(start_pos, end_pos)
-      @start_pos = start_pos
-      @end_pos = end_pos
-    end
   end
 
   class NullSchema < Node
-    def initialize(start_pos, end_pos)
-      @start_pos = start_pos
-      @end_pos = end_pos
-    end
-
     def name
       nil
     end
@@ -609,7 +593,7 @@ module AST
     end
   end
 
-  class EscapedElementExpr < Node
+  class EscapedElementExpr < Expr
   end
 
   class SimpleElement < Node
@@ -681,13 +665,9 @@ module AST
   end
 
   class AnonIdLookup < Node
-    def initialize(start_pos, end_pos)
-      @start_pos = start_pos
-      @end_pos = end_pos
-    end
   end
 
-  class IdLookup < Node
+  class IdLookup < Primitive
     def captures
       []
     end
@@ -797,7 +777,7 @@ module AST
     end
   end
 
-  class Await < Node
+  class Await < Expr
   end
 
   # Schema(a) := b

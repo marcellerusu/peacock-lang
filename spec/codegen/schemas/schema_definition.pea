@@ -1,0 +1,3 @@
+# const User = { id: s('id') };
+
+schema User = { id }

@@ -1,0 +1,4 @@
+# let double;
+# double = (x) => x * 2;
+
+double := x => x * 2

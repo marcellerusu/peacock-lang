@@ -1,0 +1,12 @@
+# let request, todo;
+# const Todo = { id: s('id'), userId: s('id') };
+# request = await fetch("https://jsonplaceholder.typicode.com/todos/1");
+# todo = s.verify(Todo, await request.json(), 'Todo');
+# console.log(todo);
+
+schema Todo = { id, userId: :id }
+
+request := await fetch("https://jsonplaceholder.typicode.com/todos/1")
+Todo(todo) := await request.json()
+
+console.log todo

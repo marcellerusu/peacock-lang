@@ -1,0 +1,7 @@
+# let double;
+# double = (() => { return 10 * 2; });
+# console.log(double());
+
+double := () => 10 * 2
+
+console.log double()
