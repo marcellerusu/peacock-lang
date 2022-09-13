@@ -1,0 +1,5 @@
+# console.log([...new Range("a", "z")]);
+# console.log([...new Range(0, 10)]);
+
+console.log [..."a".."z"]
+console.log [...0..10]

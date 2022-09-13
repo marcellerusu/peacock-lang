@@ -866,6 +866,10 @@ module AST
       @end_pos = end_pos
     end
 
+    def declare?
+      true
+    end
+
     def captures
       @variables
     end

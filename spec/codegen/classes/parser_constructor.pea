@@ -1,0 +1,11 @@
+# class Parser {
+#   constructor(name) {
+#     this.name = name;
+#   }
+# };
+
+class Parser
+  function constructor(name)
+    this.name := name
+  end
+end

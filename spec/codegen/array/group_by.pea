@@ -1,0 +1,27 @@
+# let arr;
+# function group_by(key) {
+#   if (!(this instanceof Array)) throw new MatchError('Expected `this` to be a `Array`');
+#   let result;
+#   result = {};
+#   for (let obj of this) {
+#     result[obj[key]] ||= [];
+#     result[obj[key]].push(obj);
+#   };
+#   return result;
+# };
+# arr = [{ id: 1, value: 10 }, { id: 1, value: 10 }];
+# console.log(group_by.call(arr, "id"));
+
+function Array::group_by(key)
+  result := {}
+  for obj of this
+    result[obj[key]] ||= []
+    result[obj[key]].push(obj)
+  end
+
+  return result
+end
+
+arr := [{ id: 1, value: 10 }, { id: 1, value: 10 }]
+
+console.log arr::group_by "id"

@@ -1,0 +1,11 @@
+# let map;
+# map = new Map([["a", [1, 2, { a: 11 }]]]);
+# console.log(map[Symbol.peacock_contains](["a", [1, 2, { a: 11 }]]));
+# console.log(new Map([["a", [1, 2, { a: 11 }]]])[Symbol.peacock_equals](map));
+
+map := new Map([
+  ["a", [1, 2, { a: 11 }]]
+])
+
+console.log ["a", [1, 2, { a: 11 }]] in map
+console.log new Map([["a", [1, 2, { a: 11 }]]]) == map

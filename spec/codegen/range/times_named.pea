@@ -1,0 +1,16 @@
+# function times(callback) {
+#   for (let item of this) {
+#     callback(item);
+#   };
+# };
+# times.call(new Range(0, 100), (num => console.log(num)));
+
+function times(callback)
+  for item of this
+    callback item
+  end
+end
+
+0..100::times #{ |num|
+  console.log num
+}

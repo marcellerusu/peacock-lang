@@ -316,7 +316,7 @@ class Compiler
 
   def eval_case_else(node)
     # else is put in by `eval_empty_case_expr`
-    c = " {\n"
+    c = "{\n"
     c += Compiler.new(node.body, @indent + 2).eval + "\n"
     c += "#{padding}}"
   end
@@ -401,7 +401,9 @@ class Compiler
   end
 
   def eval_array_assignment(node)
-    "[#{node.variables.join ", "}] = #{eval_expr node.expr}"
+    a = "let _temp = #{eval_expr node.expr};\n"
+    a += "s.verify([#{node.variables.map { |v| "s('#{v}')" }.join ", "}], _temp, 'Array');\n"
+    a + "[#{node.variables.join ", "}] = _temp"
   end
 
   def eval_optional_chain(node)
@@ -452,6 +454,8 @@ class Compiler
         f += "#{padding}  }"
       end
     end
+    f.rstrip!
+    f += "#{padding} else throw new MatchError();\n"
     f + "}"
   end
 
@@ -462,7 +466,7 @@ class Compiler
   def eval_one_line_getter(node)
     m = "#{padding}get #{node.name}() {\n"
     m += "#{padding}  return #{eval_expr node.expr};\n"
-    m += "#{padding}}\n"
+    m += "#{padding}}"
   end
 
   def eval_dynamic_lookup(node)
@@ -787,6 +791,7 @@ class Compiler
   end
 
   def eval_object_literal(node)
+    return "{}" if node.expr.size == 0
     has_function = node.expr.any? do |node|
       node.is_a?(AST::ArrowMethodObjectEntry) || node.is_a?(AST::FunctionObjectEntry)
     end

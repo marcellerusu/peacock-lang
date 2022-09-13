@@ -1,0 +1,16 @@
+# if (true && false) {
+#   console.log("true");
+# } else if (false || true && false) {
+#   console.log("false");
+# } else {
+#   console.log("else");
+# };
+
+case
+when true && false
+  console.log("true")
+when false || true && false
+  console.log("false")
+else
+  console.log("else")
+end

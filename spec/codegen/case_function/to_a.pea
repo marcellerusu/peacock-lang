@@ -1,0 +1,23 @@
+# function to_a(...args) {
+#   if (s.check(Array, this) && s.check([], args)) {
+#     return this;
+#   } else if (s.check(String, this) && s.check([], args)) {
+#     return Array.from(this);
+#   } else if (s.check(Object, this) && s.check([], args)) {
+#     return Object.entries(this);
+#   } else throw new MatchError();
+# };
+# console.log(to_a.call({ a: 1 }));
+# console.log(to_a.call("abc"));
+
+case function to_a
+when Array::()
+  this
+when String::()
+  Array.from this
+when Object::()
+  Object.entries this
+end
+
+console.log { a: 1 }::to_a
+console.log "abc"::to_a

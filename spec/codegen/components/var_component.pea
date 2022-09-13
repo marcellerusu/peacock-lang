@@ -1,0 +1,9 @@
+# TODO
+
+component CardEntry
+  name := "string"
+in
+"
+  <div>${this.name}</div>
+"
+end

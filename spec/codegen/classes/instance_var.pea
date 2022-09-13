@@ -1,0 +1,7 @@
+# class Parser {
+#   body = [];
+# };
+
+class Parser
+  body := []
+end

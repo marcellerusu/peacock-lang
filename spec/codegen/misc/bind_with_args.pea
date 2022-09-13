@@ -1,0 +1,10 @@
+# function length() {
+#   return this.length;
+# };
+# console.log(length.call("abc", 10, 20));
+
+function length
+  this.length
+end
+
+console.log "abc"::length(10, 20)

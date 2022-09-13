@@ -1,0 +1,14 @@
+# let obj;
+# obj = { a: 10, b: "str" };
+# for (let key in obj) {
+#   console.log(key);
+# };
+
+obj := {
+  a: 10,
+  b: "str"
+}
+
+for key in obj
+  console.log key
+end

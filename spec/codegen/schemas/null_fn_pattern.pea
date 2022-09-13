@@ -1,0 +1,7 @@
+# function a(...args) {
+#   
+# };
+
+function a(null) = 1
+
+console.log a(null)

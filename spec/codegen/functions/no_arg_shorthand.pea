@@ -1,0 +1,5 @@
+# function ten() {
+#   return 10;
+# };
+
+function ten = 10

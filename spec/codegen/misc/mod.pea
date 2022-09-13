@@ -1,0 +1,3 @@
+# console.log(31 % 10);
+
+console.log 31 mod 10

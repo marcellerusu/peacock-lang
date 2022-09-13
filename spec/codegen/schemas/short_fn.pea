@@ -1,0 +1,3 @@
+# const User = { id: (_it => _it > 10) };
+
+schema User = { id: #{ % > 10 } }

@@ -1,1 +1,6 @@
-a := [1, "20"]
+case function map
+when Array::(Function(fn))
+  this.map(fn)
+end
+
+map(10)

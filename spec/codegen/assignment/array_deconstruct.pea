@@ -1,0 +1,6 @@
+# let a;
+# let _temp = [1];
+# s.verify([s('a')], _temp, 'Array');
+# [a] = _temp;
+
+[a] := [1]

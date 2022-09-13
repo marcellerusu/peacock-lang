@@ -1,0 +1,10 @@
+# TODO
+
+component ProfileCard { name } in
+  "
+    <div>
+      profile
+      <div>${name}</div>
+    </div>
+  "
+end

@@ -1,0 +1,9 @@
+# function append(item) {
+#   if (!(this instanceof Array)) throw new MatchError('Expected `this` to be a `Array`');
+#   return [...this, item];
+# };
+# console.log(append.call([1], 10));
+
+function Array::append(item) = [...this, item]
+
+console.log [1]::append(10)

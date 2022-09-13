@@ -1,0 +1,10 @@
+# const A = s.union(1, 2, 3);
+# for (let a of A) {
+#   console.log(a);
+# };
+
+schema A = 1 | 2 | 3
+
+for a of A
+  console.log a
+end

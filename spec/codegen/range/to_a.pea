@@ -1,0 +1,16 @@
+# let a;
+# function to_a() {
+#   return Array.from(this);
+# };
+# a = new Range(1, 5);
+# console.log(a);
+# console.log(to_a.call(a.filter((x) => x > 3)));
+# console.log(to_a.call(a));
+
+function to_a = Array.from this
+
+a := 1..5
+
+console.log a
+console.log a.filter(x => x > 3)::to_a
+console.log a::to_a

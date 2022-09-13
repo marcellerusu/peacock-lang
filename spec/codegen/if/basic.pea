@@ -1,0 +1,15 @@
+# if (10[Symbol.peacock_equals](11)) {
+#   console.log("true");
+# } else if (false) {
+#   
+# } else {
+#   console.log("false");
+# };
+
+if 10 == 11
+  console.log "true"
+else if false
+
+else
+  console.log "false"
+end
