@@ -3,6 +3,7 @@
 #     return this.tokens[this.pos];
 #   }
 # };
+
 class Parser
   get current_token = this.tokens[this.pos]
 end
