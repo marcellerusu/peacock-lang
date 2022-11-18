@@ -1,0 +1,11 @@
+# let a;
+# const User = {
+#   One: Symbol('One'),
+#   Two: Symbol('Two'),
+# };
+# a = User.One;
+
+
+enum User = One | Two
+
+a := User#One

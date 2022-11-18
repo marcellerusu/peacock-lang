@@ -86,6 +86,8 @@ module Lexer
         next
       when scanner.scan(/#\{/)
         tokens.push Token.new(scanner.matched, :"#\{")
+      when scanner.scan(/#([a-zA-Z]+)\b/)
+        tokens.push Token.new(scanner.matched, :hash_id, scanner.matched[1..])
       when scanner.scan(/#.*/)
         next
       when scanner.scan(/"/)
@@ -158,6 +160,8 @@ module Lexer
         tokens.push Token.new(scanner.matched, :else)
       when scanner.scan(/end\b/)
         tokens.push Token.new(scanner.matched, :end)
+      when scanner.scan(/enum\b/)
+        tokens.push Token.new(scanner.matched, :enum)
       when scanner.scan(/<\//)
         tokens.push Token.new(scanner.matched, :"</")
       when scanner.scan(/=>/)

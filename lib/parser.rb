@@ -148,7 +148,8 @@ class SchemaIntParser < Parser
   end
 
   def parse!
-    not_implemented!
+    int_t = consume! :int_lit
+    AST::SchemaInt.new(int_t)
   end
 end
 
@@ -538,7 +539,8 @@ OPERATORS = [:+, :-, :*, :/, :"&&", :"||", :"===", :"!==", :>, :<, :">=", :"<=",
 
 class OperatorParser < Parser
   def self.can_parse?(_self, lhs_n)
-    _self.current_token&.is_one_of?(*OPERATORS)
+    _self.current_token&.is_one_of?(*OPERATORS) &&
+      !_self.new_line?
   end
 
   def parse!(lhs_n)
@@ -1441,9 +1443,23 @@ end
 
 ### SCHEMA END
 
+class EnumExpr < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :identifier &&
+      _self.peek_token&.type == :hash_id
+  end
+
+  def parse!
+    enum_name_t = consume! :identifier
+    variant_t = consume! :hash_id
+    AST::EnumExpr.new(enum_name_t.value, variant_t.value, enum_name_t.start_pos, variant_t.end_pos)
+  end
+end
+
 class ExprParser < Parser
   # order matters
   PRIMARY_PARSERS = [
+    EnumExpr,
     NullParser,
     IntParser,
     FloatParser,
@@ -1973,6 +1989,26 @@ end
 
 ### IF STATEMENTS END
 
+class EnumParser < Parser
+  def self.can_parse?(_self)
+    _self.current_token&.type == :enum
+  end
+
+  def parse!
+    enum_t = consume! :enum
+    name_t = consume! :identifier
+    consume! :"="
+    variants = []
+    loop do
+      variant_t = consume! :identifier
+      variants.push(variant_t)
+      break if current_token&.type != :|
+      consume! :|
+    end
+    AST::OneLineEnum.new(name_t.value, variants.map(&:value), enum_t.start_pos, variants[-1].end_pos)
+  end
+end
+
 class ProgramParser < Parser
   def initialize(*args)
     super(*args)
@@ -1995,6 +2031,7 @@ class ProgramParser < Parser
     BodyComponentWithoutAttrsParser,
     ClassParser,
     ReturnParser,
+    EnumParser,
   ]
 
   def consume_parser!(parser_klass)

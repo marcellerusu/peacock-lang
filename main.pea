@@ -1,6 +1,3 @@
-case function map
-when Array::(Function(fn))
-  this.map(fn)
-end
+enum User = One | Two
 
-map(10)
+a := User#One

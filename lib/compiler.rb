@@ -243,8 +243,6 @@ class Compiler
       eval_array_assignment node
     when AST::SimpleForInLoop
       eval_simple_for_in_loop node
-    when AST::NullSchema
-      "null"
     when AST::Null
       eval_null node
     when AST::SpreadExpr
@@ -279,11 +277,27 @@ class Compiler
       eval_spread_arg node
     when AST::SimpleSchemaArg
       eval_simple_schema_arg node
+    when AST::OneLineEnum
+      eval_one_line_enum node
+    when AST::EnumExpr
+      eval_enum_expr node
     else
       binding.pry
       puts "no case matched node_type: #{node.class}"
       assert_not_reached!
     end
+  end
+
+  def eval_enum_expr(node)
+    "#{node.enum_name}.#{node.variant_name}"
+  end
+
+  def eval_one_line_enum(node)
+    e = "const #{node.name} = {\n"
+    for variant in node.variant_names
+      e += padding(2) + "#{variant}: Symbol('#{variant}'),\n"
+    end
+    e + padding + "}"
   end
 
   def eval_arrow_method_object_entry(node)
@@ -420,11 +434,12 @@ class Compiler
 
   def eval_case_function_definition(node)
     f = "#{padding}#{fn_prefix}#{node.name}(...args) {\n"
+    # TODO: make this generic
     node.patterns.each_with_index do |s_case, i|
       if s_case.patterns.all? { |arg| arg.is_a? AST::SimpleSchemaArg }
         schemas = s_case.patterns.map(&:schema_name)
         args = s_case.patterns.map(&:name)
-      elsif s_case.patterns.all? { |arg| arg.is_a? AST::Int }
+      elsif s_case.patterns.all? { |arg| arg.is_a? AST::SchemaInt }
         schemas = s_case.patterns.map(&:value)
         args = []
       elsif s_case.patterns.all? { |arg| arg.is_a? AST::SimpleArg }
@@ -509,11 +524,11 @@ class Compiler
   end
 
   def eval_escaped_element_expr(node)
-    node = node.value
+    node = node.expr
     value = if node.is_a?(AST::IdLookup)
         "this.#{node.value} || #{node.value}"
       else
-        eval_expr node.value
+        eval_expr node
       end
     "${#{value}}"
   end
@@ -845,7 +860,7 @@ class Compiler
     assignments += args_node.args
       .map.with_index { |node, i| { node: node, i: i } }
       .select { |h| h[:node].is_a?(AST::NullSchema) }
-      .map { |h| "#{padding}s.verify(null, arguments[#{h[:i]}], null)" }
+      .map { |h| "#{padding}s.verify(null, args[#{h[:i]}], 'null')" }
       .join("\n")
 
     if assignments.empty?
@@ -865,7 +880,11 @@ class Compiler
   end
 
   def eval_single_line_fn_with_args(fn_node)
-    args = eval_expr fn_node.args
+    args = if fn_node.args.args.any?(&:schema?)
+        "...args"
+      else
+        eval_expr fn_node.args
+      end
 
     fn = "#{padding}#{fn_prefix}#{fn_node.name}(#{args}) {\n"
     indent!

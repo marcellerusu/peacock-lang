@@ -13,6 +13,10 @@ module AST
       false
     end
 
+    def schema?
+      false
+    end
+
     def to_h
       hash = {
         "klass" => self.class.to_s,
@@ -178,6 +182,20 @@ module AST
       @schema_expr = schema_expr
       @start_pos = start_pos
       @end_pos = end_pos
+    end
+  end
+
+  class SchemaInt < Node
+    attr_reader :value
+
+    def initialize(int_token)
+      @value = int_token.value
+      @start_pos = int_token.start_pos
+      @end_pos = int_token.end_pos
+    end
+
+    def schema?
+      true
     end
   end
 
@@ -438,6 +456,10 @@ module AST
   class NullSchema < Node
     def name
       nil
+    end
+
+    def schema?
+      true
     end
   end
 
@@ -718,6 +740,28 @@ module AST
       @lhs = lhs
       @type = type
       @rhs = rhs
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
+
+  class OneLineEnum < Node
+    attr_reader :name, :variant_names
+
+    def initialize(name, variant_names, start_pos, end_pos)
+      @name = name
+      @variant_names = variant_names
+      @start_pos = start_pos
+      @end_pos = end_pos
+    end
+  end
+
+  class EnumExpr < Node
+    attr_reader :enum_name, :variant_name
+
+    def initialize(enum_name, variant_name, start_pos, end_pos)
+      @enum_name = enum_name
+      @variant_name = variant_name
       @start_pos = start_pos
       @end_pos = end_pos
     end

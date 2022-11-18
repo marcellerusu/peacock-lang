@@ -1,7 +1,0 @@
-# TODO
-
-component WordCount in
-  "
-    <div>test</div>
-  "
-end
