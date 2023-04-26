@@ -123,7 +123,7 @@ class Compiler
     case node
     when AST::Class
       eval_class node
-    when AST::SimpleAssignment, AST::SimpleReassignment
+    when AST::ColonEqAssign, AST::EqAssign
       eval_assignment node
     when AST::SimpleSchemaAssignment
       eval_simple_schema_assignment node
@@ -253,9 +253,9 @@ class Compiler
       eval_multi_line_bind_function_definition node
     when AST::ArrayComprehension
       eval_array_comprehension node
-    when AST::DefaultAssignment
+    when AST::OrEq
       eval_default_assignment node
-    when AST::PlusAssignment
+    when AST::PlusEq
       eval_plus_assignment node
     when AST::DefaultConstructorArg
       eval_default_constructor_arg node
@@ -263,7 +263,7 @@ class Compiler
       eval_simple_constructor_arg node
     when AST::EmptyCaseExpr
       eval_empty_case_expr node
-    when AST::SimpleWhen
+    when AST::When
       eval_simple_when node
     when AST::CaseElse
       eval_case_else node
@@ -548,7 +548,7 @@ class Compiler
   def eval_body_component_without_attrs(node)
     c = "class #{node.name} extends HTMLElement {\n"
     node.constructor_body
-      .select { |node| node.is_a? AST::SimpleAssignment }
+      .select { |node| node.is_a? AST::ColonEqAssign }
       .each do |node|
       c += "  #{node.name} = #{eval_expr node.expr};\n"
     end

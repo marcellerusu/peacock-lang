@@ -178,6 +178,8 @@ module Lexer
         tokens.push Token.new(scanner.matched, :"@")
       when scanner.scan(/\+=/)
         tokens.push Token.new(scanner.matched, :"+=")
+      when scanner.scan(/\-=/)
+        tokens.push Token.new(scanner.matched, :"-=")
       when scanner.scan(/\|\|=/)
         tokens.push Token.new(scanner.matched, :"||=")
       when scanner.scan(/:=/)

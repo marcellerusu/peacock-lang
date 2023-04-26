@@ -266,7 +266,7 @@ module AST
     end
   end
 
-  class DefaultAssignment < Node
+  class OrEq < Node
     attr_reader :lhs, :expr
 
     def initialize(lhs, expr, start_pos, end_pos)
@@ -277,7 +277,7 @@ module AST
     end
   end
 
-  class PlusAssignment < Node
+  class PlusEq < Node
     attr_reader :lhs, :expr
 
     def initialize(lhs, expr, start_pos, end_pos)
@@ -288,7 +288,7 @@ module AST
     end
   end
 
-  class SimpleWhen < Node
+  class When < Node
     attr_reader :expr, :body
 
     def initialize(expr, body, start_pos, end_pos)
@@ -838,11 +838,11 @@ module AST
   end
 
   # a := 1
-  class SimpleAssignment < Assign
-    attr_reader :name, :expr
+  class ColonEqAssign < Assign
+    attr_reader :lhs, :expr
 
-    def initialize(name, return_expr_n, start_pos, end_pos)
-      @name = name
+    def initialize(lhs, return_expr_n, start_pos, end_pos)
+      @lhs = lhs
       @expr = return_expr_n
       @start_pos = start_pos
       @end_pos = end_pos
@@ -854,11 +854,11 @@ module AST
   end
 
   # a = 1
-  class SimpleReassignment < Node
-    attr_reader :name, :expr
+  class EqAssign < Node
+    attr_reader :lhs, :expr
 
-    def initialize(name, return_expr_n, start_pos, end_pos)
-      @name = name
+    def initialize(lhs, return_expr_n, start_pos, end_pos)
+      @lhs = lhs
       @expr = return_expr_n
       @start_pos = start_pos
       @end_pos = end_pos

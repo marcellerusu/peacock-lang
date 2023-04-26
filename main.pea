@@ -1,3 +1,7 @@
-enum User = One | Two
+enum User = Me | You
+
+match user
+  User#Me(name) => name,
+  User#You(other) => other
 
 a := User#One

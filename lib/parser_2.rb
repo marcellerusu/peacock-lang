@@ -1,120 +1,7 @@
 require "utils"
 require "ast"
 require "lexer"
-
-class ParserError
-  attr_reader :msg, :start_pos, :end_pos
-
-  def initialize(msg, start_pos, end_pos)
-    @msg = msg
-    @start_pos
-    @end_pos = end_pos
-  end
-end
-
-class SimpleAssignmentError < ParserError
-end
-
-class Parser
-  attr_reader :tokens, :program_string, :pos, :errors
-
-  def self.can_parse?(_self)
-    not_implemented!
-  end
-
-  def self.from(_self)
-    self.new(_self.tokens, _self.program_string, _self.pos, _self.errors)
-  end
-
-  def initialize(tokens, program_string, pos = 0, errors = [])
-    @tokens = tokens
-    @program_string = program_string
-    @pos = pos
-    @errors = errors
-  end
-
-  def consume_parser!(parser_klass, *parse_args, **parse_opts)
-    parser = parser_klass.from(self)
-    expr_n = parser.parse! *parse_args, **parse_opts
-    @pos = parser.pos
-    expr_n
-  end
-
-  def current_token
-    @tokens[@pos]
-  end
-
-  def prev_token
-    @tokens[@pos - 1]
-  end
-
-  def peek_token
-    @tokens[@pos + 1]
-  end
-
-  def peek_token_twice
-    @tokens[@pos + 2]
-  end
-
-  def peek_token_thrice
-    @tokens[@pos + 3]
-  end
-
-  def rest_of_line
-    rest_of_program = @program_string[current_token.start_pos..]
-    rest_of_program[0..rest_of_program.index("\n")]
-  end
-
-  def current_line
-    @program_string[0..current_token&.start_pos]
-      .split("\n")
-      .count
-  end
-
-  def new_line?(offset = 0)
-    return true if !prev_token || !current_token
-    prev = @tokens[@pos + offset - 1]
-    curr = @tokens[@pos + offset]
-    @program_string[prev.start_pos..curr.start_pos].include? "\n"
-  end
-
-  def parser_not_implemented!(parser_klasses)
-    puts "Not Implemented, only supporting the following parsers - "
-    pp parser_klasses
-    not_implemented!
-  end
-
-  def consume_first_valid_parser!(parser_klasses, &catch_block)
-    parser_klass = parser_klasses.find { |klass| klass.can_parse? self }
-    if !parser_klass
-      if catch_block
-        catch_block.call
-      else
-        parser_not_implemented! parser_klasses
-      end
-    end
-    consume_parser! parser_klass
-  end
-
-  def consume!(token_type)
-    assert { token_type == current_token.type }
-    @pos += 1
-    return prev_token
-  end
-
-  def consume_any!
-    @pos += 1
-    return prev_token
-  end
-
-  def consume_if_present!(token_type)
-    consume! token_type if current_token.type == token_type
-  end
-
-  def parse!
-    ProgramParser.from(self).parse!
-  end
-end
+require "parser_utils"
 
 ### FUNCTION ARGS START
 
@@ -841,131 +728,7 @@ class SimpleStringParser < Parser
   end
 end
 
-class BoolParser < Parser
-  def self.can_parse?(_self)
-    _self.current_token&.type == :bool_lit
-  end
-
-  def parse!
-    bool_t = consume! :bool_lit
-    AST::Bool.new(bool_t.value, bool_t.start_pos, bool_t.end_pos)
-  end
-end
-
-class NullParser < Parser
-  def self.can_parse?(_self)
-    _self.current_token&.type == :null
-  end
-
-  def parse!
-    null_t = consume! :null
-    AST::Null.new(null_t.start_pos, null_t.end_pos)
-  end
-end
-
 ### PRIMATIVES END
-
-### ASSIGNMENTS START
-
-class SimpleReassignmentParser < Parser
-  def self.can_parse?(_self)
-    _self.current_token&.type == :identifier &&
-      _self.peek_token&.type == :"="
-  end
-
-  def parse!
-    id_t = consume! :identifier
-    consume! :"="
-    expr_n = consume_parser! ExprParser
-
-    AST::SimpleReassignment.new(id_t.value, expr_n, id_t.start_pos, expr_n.end_pos)
-  end
-end
-
-class SimpleAssignmentParser < Parser
-  def self.can_parse?(_self)
-    _self.current_token&.type == :identifier &&
-      _self.peek_token&.type == :assign
-  end
-
-  def parse!
-    id_t = consume! :identifier
-    consume! :assign
-    expr_n = consume_parser! ExprParser
-
-    AST::SimpleAssignment.new(id_t.value, expr_n, id_t.start_pos, expr_n.end_pos)
-  end
-end
-
-class DefaultAssignmentParser < Parser
-  def self.can_parse?(_self, lhs)
-    _self.current_token&.type == :"||="
-  end
-
-  def parse!(lhs_n)
-    consume! :"||="
-    expr_n = consume_parser! ExprParser
-    AST::DefaultAssignment.new(lhs_n, expr_n, lhs_n.start_pos, expr_n.end_pos)
-  end
-end
-
-class PlusAssignmentParser < Parser
-  def self.can_parse?(_self, lhs)
-    _self.current_token&.type == :"+="
-  end
-
-  def parse!(lhs_n)
-    consume! :"+="
-    expr_n = consume_parser! ExprParser
-    AST::PlusAssignment.new(lhs_n, expr_n, lhs_n.start_pos, expr_n.end_pos)
-  end
-end
-
-class DotAssignmentParser < Parser
-  def self.can_parse?(_self, lhs)
-    lhs.is_a?(AST::Dot) &&
-      _self.current_token&.type == :assign
-  end
-
-  def parse!(lhs_n)
-    assign_t = consume! :assign
-    expr_n = consume_parser! ExprParser
-    AST::DotAssignment.new(
-      lhs_n,
-      expr_n,
-      assign_t.start_pos,
-      expr_n.end_pos
-    )
-  end
-end
-
-class ArrayAssignmentParser < Parser
-  def self.can_parse?(_self)
-    _self.current_token.type == :"[" &&
-      _self.rest_of_line.include?(":=")
-  end
-
-  def parse!
-    open_t = consume! :"["
-    variables = []
-    loop do
-      variables.push consume!(:identifier).value
-      break if current_token.type == :"]"
-      consume! :comma
-    end
-    close_t = consume! :"]"
-    consume! :assign
-    expr_n = consume_parser! ExprParser
-    AST::ArrayAssignment.new(
-      variables,
-      expr_n,
-      open_t.start_pos,
-      expr_n.end_pos
-    )
-  end
-end
-
-### ASSIGNMENTS END
 
 ### CASE EXPRESSIONS START
 
@@ -978,7 +741,7 @@ class SimpleWhenParser < Parser
     when_t = consume! :when
     expr_n = consume_parser! ExprParser
     body = consume_parser! ProgramParser, end_tokens: [:when, :else]
-    AST::SimpleWhen.new(expr_n, body, when_t.start_pos, body.last&.end_pos || expr_n.end_pos)
+    AST::When.new(expr_n, body, when_t.start_pos, body.last&.end_pos || expr_n.end_pos)
   end
 end
 
@@ -1493,7 +1256,7 @@ class ExprParser < Parser
     BindParser,
     OptionalChainParser,
     DynamicLookupParser,
-    DefaultAssignmentParser,
+    OrEqParser,
     PlusAssignmentParser,
     FunctionCallWithoutArgs,
     FunctionCallWithArgs,
@@ -1639,7 +1402,7 @@ class BodyComponentWithoutAttrsParser < Parser
     component_t = consume! :component
     name_t = consume! :identifier
     constructor_body = consume_parser! ComponentConstructorParser
-    assert { constructor_body.all? { |node| node.is_a? AST::SimpleAssignment } }
+    assert { constructor_body.all? { |node| node.is_a? AST::ColonEqAssign } }
     consume! :in
     expr_n = consume_parser! ExprParser
     end_t = consume! :end
@@ -2018,8 +1781,8 @@ class ProgramParser < Parser
   ALLOWED_PARSERS = [
     IfParser,
     FunctionDefinitionParser,
-    SimpleAssignmentParser,
-    SimpleReassignmentParser,
+    ColonEqAssignmentParser,
+    EqAssignmentParser,
     ArrayAssignmentParser,
     ForOfObjDeconstructLoopParser,
     SimpleForInLoopParser,
@@ -2067,7 +1830,7 @@ class FunctionBodyParser < ProgramParser
     return [] if @body.size == 0
 
     last_n = @body[-1]
-    if last_n.is_a? AST::SimpleAssignment
+    if last_n.is_a? AST::ColonEqAssign
       @body.push AST::Return.new(
         AST::IdLookup.new(last_n.name, last_n.start_pos, last_n.end_pos),
         last_n.start_pos,

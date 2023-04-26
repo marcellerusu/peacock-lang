@@ -244,7 +244,7 @@ class StatementChecker < TypeChecker
       step_simple_schema_assignment node
     when AST::FnCall
       step_function_call node
-    when AST::SimpleAssignment
+    when AST::ColonEqAssign
       step_simple_assignment node
     when AST::SingleLineDefWithArgs
       step_single_line_def_with_args node
@@ -373,6 +373,6 @@ class StatementChecker < TypeChecker
 
     @stack[node.name] = rhs_type
 
-    AST::SimpleAssignment.new(node.name, node.expr)
+    AST::ColonEqAssign.new(node.name, node.expr)
   end
 end
