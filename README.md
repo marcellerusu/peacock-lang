@@ -1,195 +1,70 @@
-# Disclaimer
+## Not Active Project
 
-Peacock is heavily a WIP - many features do not work & many features are changing dramatically
+Peacock was a language I designed when I observed a lot of code like this.
 
-# Intro
-
-Peacock is an exploration of how far we can take pattern matching to tame the complexity in JavaScript
-
-The language does not implement new data structures for the most part since we aim to be highly compatible with the javascript ecosystem & specifically web standards.
-
-## Syntax Primer
-
-### Hello World
-
-```
-console.log "Hello world"
-```
-
-### Array methods
-
-- As you would expect in JavaScript
-
-```
-# this will print [3]
-console.log [1, 2, 3]
-  .filter(num => num > 2)
-  .map(num => num * 10)
-```
-
-### Functions
-
-#### 1 line functions
-
-```
-function add(a, b) = a + b
+```jsx
+function PersonalYouTubeChannelLibrary() {
+  let [videos, setVideos] = useState(null);
+  let [error, setError] = useState(null);
+  useEffect(() => {
+    fetch(API.videos)
+      .then((r) => r.json())
+      .then(setVideos)
+      .catch(setError);
+  }, []);
+  if (error) {
+    return <div>You got an error :(</div>;
+  } else if (!videos) {
+    return <div>You Have no Videos yet! Make one</div>;
+  } else if (videos.length === 1) {
+    if (firstTimeViewingChannelSinceCreated(videos[0]))
+      return <div>Congrats on creating your first video</div>;
+  } else if (videos.length >= 50) {
+    return <div>Congrats on 50 videos, considering upgrading to X tier</div>;
+  } else {
+    return <div>here are your videos</div>;
+  }
+}
 ```
 
-#### Multline
+Expressing complex states in vanilla js is hard.
 
-- end with `end`
-- last expression is returned
+At the same time, I did some small projects in Elixir and I was blown away by the expressive power of pattern matching.
 
-```
-function safe_divide(a, b)
-  panic! "division by zero" if b === 0
-  a / b
-end
-```
+I also read up a fair bit on clojure.spec, and the ideas of "patterns" as data. I thought, that's where peacock came out of:
 
-#### Bind operator
+The power of clojure's pattern as data, inspired by the usability from elixir and the syntax from typescript.
 
-see javascript's [bind operator proposal](https://github.com/tc39/proposal-bind-operator)
+Patterns are expressive, but if they are not data, they cannot be reused.
 
-- this is an elegant way to write generic functions that chain without modifying core data structures
+Peacock patterns are simple data structures, and you can store patterns in variables and create new patterns from combining old patterns.
+
+Here's some peacock code
 
 ```
-function to_a = Array.from(this)
+schema User = {name, age}
 
-console.log new Set([1, 2, 3])::to_a
+User(me) := {name: "marcelle", age: 25}
 ```
 
-### Schemas
+Schemas are pattern definitions, and what we were doing here was creating a variable 'me' who was validated by 'User'.
 
-- Schemas are shapes or predicates that can be used to verify data
-
-```
-schema User = { id }
-```
-
-We can use it where we pattern match.
-
-#### Match Assignment
+You could also do this
 
 ```
-User(marcelle) := { id: 10 }
+schema Teenager = User & {age: #{ it < 20 }}
+
+Teenager(me) := me # throws error
 ```
 
-#### Predicates
+We've combined the User schema with a new pattern, and peacock holds me accountable in pretending to be a hip teen.
 
-```
-schema EarlyBird = { id: #{ % <= 1000 } }
+The goal of peacock was to take patterns and make them approachable to js/ts folks.
 
-case user
-when EarlyBird
-  console.log "Invite your friends!"
-end
-```
+The aspirations for peacock was to be a full blown frontend framework, but this I think was the ultimately the downfall, it tried to do too much.
 
-#### Functions
+Another flaw I found with this system is that pattern matching is fundamentally limited, it developed closed systems that can not be extended from the outside.
 
-Let's see how we can handle the division by 0 more elegantly without needing to liter the function body with panic!
+There are many times this is great - state machines for example, but as a basis for a language it is far too limited.
 
-```
-schema NotZero = #{ % !== 0 }
-```
-
-in the example above we can rewrite it to be
-
-```
-function safe_divide(a, NotZero(b)) = a / b
-```
-
-#### Case Functions
-
-```
-schema Loading = { loading: true }
-schema Error = { error! } # { error: #{ % != null }}
-schema Loaded = { data! }
-
-case function render
-when (Loading)
-  console.log "loading"
-when (Error({ error: { msg } }))
-  console.error "Error: #{msg}"
-when (Loaded({ data }))
-  console.log "Loaded", data
-end
-
-render { loading: true }
-render { error: { msg: "Api failed" } }
-render { data: { id: 10 } }
-```
-
-#### Case Functions & Bind Patterns
-
-- if you saw the bind example before was relatively limited, lets fix that
-
-```
-case function to_a
-when Array::()
-  this
-when String::() | Set::()
-  Array.from this
-when Object::()
-  Object.entries this
-end
-
-console.log [1, 2, 3]::to_a
-console.log new Set([1, 2, 3])::to_a
-console.log "abc"::to_a
-console.log { a: 10, b: 20 }::to_a
-
-```
-
-## Optimizations
-
-Schemas carry multiple meanings when implemented.
-
-First and for most they are named patterns that can be used in any case expression or function definition.
-
-This usually is implemented as a runtime feature but it can also be optimized to be partially implemented at compile time as a type.
-
-lets take an example.
-
-```
-NotZero(a) := 10
-
-# safe_divide is defined above.
-
-safe_divide(20, a)
-```
-
-Without any optimizations the following code would be generated
-
-```js
-let a;
-
-a = s.verify(NotZero, 10);
-
-s.verify(NotZero, a);
-safe_divide(20, a);
-```
-
-There are 2 issues.
-
-- We are verifying that `a` is `NotZero` twice without `a` changing.
-- we know that 10 is not 0, so we could evaluate the predicate as compile time.
-
-With optimizations the output is
-
-```js
-let a;
-
-a = 10;
-
-safe_divide(20, a);
-```
-
-Another optimization is we can keep track of mutations at runtime & tack a "computed" patterns array
-
-variable[Symbol.computedPatterns] = [NotZero]
-
-which will let us memoize repeated pattern matches that we can't detect at statically
-
-These are the ways that Peacock can use high level features like pattern matching quite a lot with reasonable performance.
+To see more recent work, check out my other language coil-lang.
